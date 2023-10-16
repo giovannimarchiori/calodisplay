@@ -149,6 +149,7 @@ clean:
 	rm -f $(DICT_PCM_FILENAME)
 	rm -f $(SHARED_LIBRARY)
 	rm -f -r $(SHARED_LIBRARY_DS)
+	rm -r *~ src/*~
 
 # Target for creating the ./build and ./dist directories 
 directories:
