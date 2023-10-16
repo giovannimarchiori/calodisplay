@@ -601,7 +601,8 @@ void EventDisplay::startDisplay(int initialEvent) {
     cout << "Reading Geant4 geometry from file " << geomFile << endl;
     auto fGeom = TFile::Open(geomFile.c_str(), "READ");
     if (!fGeom) return;
-    TEveGeoShapeExtract* gse = (TEveGeoShapeExtract*) fGeom->Get("ECalBarrel_vol");
+    TEveGeoShapeExtract* gse = (TEveGeoShapeExtract*) fGeom->Get(volName.c_str());
+    if (!gse) return;
     barrel = TEveGeoShape::ImportShapeExtract(gse, 0);
     barrel->SetMainTransparency(70);
     fGeom->Close();
@@ -823,35 +824,31 @@ void EventDisplay::startDisplay(int initialEvent) {
 
   gEve->Redraw3D(true);
 
+  //
+  // display the events
+  //
   if (evtFile!="") {
 
-  //
-  // create the gui for event navigation
-  //
-  makeGui();
+    // create the gui for event navigation
+    makeGui();
 
+    // setup the event reader
+    cout << endl;
+    cout << "******************************************************************************" << endl;
+    cout << "Setting up the event reader" << endl;
+    cout << "******************************************************************************" << endl << endl;
   
-  //
-  // display the data
-  //
-  cout << endl;
-  cout << "******************************************************************************" << endl;
-  cout << "Setting up the event reader" << endl;
-  cout << "******************************************************************************" << endl << endl;
-
-  cout << "Reading event data from file " << evtFile << endl << endl;
-
-  // setup the reader
-  TFile* f = TFile::Open(evtFile.c_str(), "READ");
-  eventReader = new EventReader(f);
-  nEvents = eventReader->nEvents;
-  
-  // load and display the requested event
-  cout << endl;
-  cout << "******************************************************************************" << endl;
-  cout << "Reading the events" << endl;
-  cout << "******************************************************************************" << endl << endl;
-  loadEvent(initialEvent);
+    cout << "Reading event data from file " << evtFile << endl << endl;
+    TFile* f = TFile::Open(evtFile.c_str(), "READ");
+    eventReader = new EventReader(f);
+    nEvents = eventReader->nEvents;
+    
+    // load and display the requested event
+    cout << endl;
+    cout << "******************************************************************************" << endl;
+    cout << "Reading the events" << endl;
+    cout << "******************************************************************************" << endl << endl;
+    loadEvent(initialEvent);
   }
   
   

@@ -13,7 +13,25 @@
 
 using namespace std;
 
-const std::string usage = "usage: display [--nog4] [-g|--geometry <geomFile>] [-e|--events <eventFile>] [-s|--skipEvents <nevents>]\n";
+std::string usage(bool verbose=false) {
+  EventDisplay aDisplay;
+  std::string use = "Usage:\n";
+  use += "display [--nog4] [-g|--geometry <geomFile.root>] [-v|--volume <volumeName>] [-e|--events <eventFile.root>] [-s|--skipEvents <nevents>]\n\n";
+  if (verbose) {
+    use += "Default values:\n";
+    use += "geomFile: ";
+    use += aDisplay.geomFile;
+    use += "\n";
+    use += "volumeName: ";
+    use += aDisplay.volName;
+    use += "\n";
+    use += "eventFile: ";
+    use += aDisplay.evtFile;
+    use += "\n";
+    use += "\n";
+  }
+  return use;
+}
 
 int main(int argc, char* argv[]) {
 
@@ -25,7 +43,7 @@ int main(int argc, char* argv[]) {
   // check if -h option, in that case print usage and exit
   for (auto arg:args) {
     if (arg == "-h" || arg == "--help") {
-      std::cout << usage << std::endl;
+      std::cout << usage(true) << std::endl;
       exit(0);
     }
   }
@@ -38,7 +56,8 @@ int main(int argc, char* argv[]) {
       if (arg == "--nog4") {
 	display.useG4geom = false;
 	continue;
-      }      
+      }
+      
       else if (arg == "-g" || arg == "--geometry") {
 	if (i==args.size()-1) {
 	  throw std::runtime_error("missing geometry file after -g/--geometry option!");
@@ -50,6 +69,17 @@ int main(int argc, char* argv[]) {
 	continue;
       }
       
+      else if (arg == "-v" || arg == "--volume") {
+	if (i==args.size()-1) {
+	  throw std::runtime_error("missing volume name after -v/--volume option!");
+	}
+	else {
+	  i++;
+	  display.volName = args[i];
+	}
+	continue;
+      }
+     
       else if (arg == "-e" || arg == "--events") {
 	if (i==args.size()-1) {
 	  throw std::runtime_error("missing event file after -e/--events option!");
@@ -75,13 +105,13 @@ int main(int argc, char* argv[]) {
       
       else {
 	std::cerr << "Unknown option " << arg << std::endl;
-	std::cerr << usage << std::endl;
+	std::cerr << usage() << std::endl;
 	return EXIT_FAILURE;
       }
     }
   } catch (const std::exception &x) {
     std::cerr << "Exception: " << x.what() << '\n';
-    std::cerr << usage << std::endl;
+    std::cerr << usage() << std::endl;
     return EXIT_FAILURE;
   }
   
