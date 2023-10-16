@@ -27,6 +27,7 @@
 #include <TEveTrackPropagator.h>
 #include <TEveProjectionAxes.h>
 
+#include <filesystem>
 
 // return the sign of a float
 int sgn(float val) {
@@ -896,9 +897,12 @@ void EventDisplay::makeGui()
 
   TGHorizontalFrame* hf = new TGHorizontalFrame(frmMain);
   {
-    
-    TString icondir( Form("%s/icons/", gSystem->Getenv("ROOTSYS")) );
     TGPictureButton* b = 0;
+
+    TString icondir( Form("%s/icons/", gSystem->Getenv("ROOTSYS")) );
+    if (!std::filesystem::exists(icondir.Data())) {
+      icondir = Form("%s/share/root/icons/", gSystem->Getenv("ROOTSYS"));
+    }
     
     b = new TGPictureButton(hf, gClient->GetPicture(icondir+"GoBack.gif"));
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
