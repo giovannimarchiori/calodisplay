@@ -694,9 +694,12 @@ void EventDisplay::startDisplay(int initialEvent) {
   rhoPhiScene = gEve->SpawnNewScene("Rho-Phi geometry",
 				    "Scene holding projected geometry data for the RhoPhi view.");
   rhoPhiView->AddScene(rhoPhiScene);
-  rhoPhiEventScene = gEve->SpawnNewScene("RhoPhi Event Data",
-					 "Scene holding projected event-data for the RhoPhi view.");
-  rhoPhiView->AddScene(rhoPhiEventScene);
+  if (evtFile!="") {
+    rhoPhiEventScene = gEve->SpawnNewScene("RhoPhi Event Data",
+					   "Scene holding projected event-data for the RhoPhi view.");
+    rhoPhiView->AddScene(rhoPhiEventScene);
+  }
+
   rhoPhiEventSceneManual = gEve->SpawnNewScene("RhoPhi Event Data 2",
 					       "Scene holding hand-crafted event-data for the RhoPhi view.");
   rhoPhiView->AddScene(rhoPhiEventSceneManual);
@@ -740,9 +743,11 @@ void EventDisplay::startDisplay(int initialEvent) {
   rhoZScene = gEve->SpawnNewScene("Rho-Z geometry",
 				  "Scene holding projected geometry data for the RhoZ view.");
   rhoZView->AddScene(rhoZScene);
-  rhoZEventScene = gEve->SpawnNewScene("RhoZ Event Data",
-				       "Scene holding projected event-data for the RhoZ view.");
-  rhoZView->AddScene(rhoZEventScene);
+  if (evtFile!="") {
+    rhoZEventScene = gEve->SpawnNewScene("RhoZ Event Data",
+					 "Scene holding projected event-data for the RhoZ view.");
+    rhoZView->AddScene(rhoZEventScene);
+  }
   rhoZEventSceneManual = gEve->SpawnNewScene("RhoZ Event Data 2",
 					     "Scene holding hand-crafted event-data for the RhoZ view.");
   rhoZView->AddScene(rhoZEventSceneManual);
@@ -818,6 +823,7 @@ void EventDisplay::startDisplay(int initialEvent) {
 
   gEve->Redraw3D(true);
 
+  if (evtFile!="") {
 
   //
   // create the gui for event navigation
@@ -846,7 +852,8 @@ void EventDisplay::startDisplay(int initialEvent) {
   cout << "Reading the events" << endl;
   cout << "******************************************************************************" << endl << endl;
   loadEvent(initialEvent);
-
+  }
+  
   
   // Set the 3D view as the active tab and rotate the camera
   gEve->GetBrowser()->GetTabRight()->SetTab(0);

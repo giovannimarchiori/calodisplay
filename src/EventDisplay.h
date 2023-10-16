@@ -98,14 +98,15 @@ public:
   // 1 electron 50 GeV
   // std::string evtFile = "output_evts_1_pdg_11_50_GeV_ThetaMinMax_90_90_PhiMinMax_1.570795_1.570795_MagneticField_False_NoiseFalse.root";
   // 1 pi0  50 GeV
-  std::string evtFile = "output_evts_1_pdg_111_50_GeV_ThetaMinMax_90_90_PhiMinMax_1.570795_1.570795_MagneticField_False_NoiseFalse.root";
+  //std::string evtFile = "output_evts_1_pdg_111_50_GeV_ThetaMinMax_90_90_PhiMinMax_1.570795_1.570795_MagneticField_False_NoiseFalse.root";
   // 1 photon 50 GeV
   // std::string evtFile = "output_evts_1_pdg_22_50_GeV_ThetaMinMax_90_90_PhiMinMax_1.570795_1.570795_MagneticField_False_NoiseFalse.root";
   // 1 pi0  10 GeV
   // std::string evtFile = "output_evts_1_pdg_111_10_GeV_ThetaMinMax_90_90_PhiMinMax_1.570795_1.570795_MagneticField_False_NoiseFalse.root";
   // 1 photon 10 GeV
   // std::string evtFile = "output_evts_1_pdg_22_10_GeV_ThetaMinMax_90_90_PhiMinMax_1.570795_1.570795_MagneticField_False_NoiseFalse.root";
-  
+
+  std::string evtFile = "";
 
   Int_t nEvents = 0; // Number of events in file
   Int_t eventId = 0; // Current event id

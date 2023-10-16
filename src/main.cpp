@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
     std::cerr << "Geometry file " << display.geomFile << " does not exist!!!"  << std::endl;
     return EXIT_FAILURE;
   }
-  if (!std::filesystem::exists(display.evtFile)) {
+  if (display.evtFile!="" && !std::filesystem::exists(display.evtFile)) {
     std::cerr << "Event file " << display.evtFile << " does not exist!!!"  << std::endl;
     return EXIT_FAILURE;
   }
