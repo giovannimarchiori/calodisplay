@@ -1,5 +1,5 @@
 # calodisplay
-Allegro ECal display
+Allegro ECal (and HCAL) display
 
 The source files are located in `src`
 
