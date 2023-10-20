@@ -62,6 +62,9 @@ public:
   // - flags to draw or not elements of the event (particles, hits, ..)
   // - minimum energy of particles, hits, cells, clusters
   /******************************************************************************/
+
+  bool doHCal = false;
+  bool showFullDetector = false;
   
   bool drawParticles = true;
   bool drawHits = true;
@@ -79,8 +82,7 @@ public:
 
   // G4 geometry file
   bool useG4geom = true;
-  std::string geomFile = "ECalBarrel.root";
-  std::string volName = "ECalBarrel_vol";
+  std::string geomFile = "data/allegro.root";
   
   // merging along theta and module directions and drawing options
   //std::string evtFile = "output_fullCalo_SimAndDigi_withTopoCluster_MagneticField_False_pMin_10000_MeV_ThetaMinMax_40_140_pdgId_11_pythiaFalse_NoiseFalse.root";
@@ -117,8 +119,10 @@ public:
   // ELEMENTS OF THE EVENT DISPLAY
   /******************************************************************************/
   TEveTrackList* particles = nullptr;
-  TEvePointSet* hits = nullptr;
-  TEvePointSet* cells = nullptr;
+  TEvePointSet* ecalHits = nullptr;
+  TEvePointSet* hcalHits = nullptr;
+  TEvePointSet* ecalCells = nullptr;
+  TEvePointSet* hcalCells = nullptr;
   TEvePointSet* cells_merged = nullptr;
   TEvePointSet* clusters = nullptr;
   std::vector<TEveQuadSet*> qs_rhoz;

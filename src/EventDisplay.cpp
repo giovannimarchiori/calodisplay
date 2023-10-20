@@ -79,9 +79,10 @@ void EventDisplay::loadEvent(int event) {
       pmax = _p;
       ipmax = i;
     }
-  }
+  } 
   int pdgID = (* eventReader->genParticles_PDG)[ipmax];
   if (pdgID == 111) partType = "pi0";
+  else if (pdgID == 211) partType = "pi+";
   else if (pdgID == 22) partType = "y";
   else if (pdgID == 11) partType = "e-";
   else if (pdgID == -11) partType = "e+";
@@ -90,7 +91,7 @@ void EventDisplay::loadEvent(int event) {
   const double cm = geomReader->cm;
   const double mm = geomReader->mm;
   const double rMin = geomReader->rMin;
-  const double rMax = geomReader->rMax;
+  double rMax = doHCal? geomReader->rMaxHCal : geomReader->rMax;
   const double alpha = geomReader->alpha;
   const double thetaGrid = geomReader->thetaGrid;
   const double gridPhi = geomReader->gridPhi;
@@ -105,7 +106,9 @@ void EventDisplay::loadEvent(int event) {
       particles = new TEveTrackList("particles");
       TEveTrackPropagator* trkProp = particles->GetPropagator();
       trkProp->SetMagField( 0.01 );
-      particles->SetMainColor(kYellow);
+      trkProp->SetMaxR(rMax);
+      trkProp->SetMaxZ(geomReader->zMax);
+      particles->SetMainColor(kWhite);
       particles->SetLineWidth(2);
       gEve->AddElement(particles);
     }
@@ -121,18 +124,36 @@ void EventDisplay::loadEvent(int event) {
     float py = (* eventReader->genParticles_momentum_y)[ipmax];
     float pz = (* eventReader->genParticles_momentum_z)[ipmax];
     float p = sqrt( px*px + py*py + pz*pz );
+    float pT = sqrt( px*px + py*py );
     
     double t = (* eventReader->genParticles_time)[ipmax];
     double x1 = (* eventReader->genParticles_vertex_x)[ipmax] * mm;
     double y1 = (* eventReader->genParticles_vertex_y)[ipmax] * mm;
     double z1 = (* eventReader->genParticles_vertex_z)[ipmax] * mm;
+
+    // find when particle leaves detector volume (assuming it comes from 0,0,0)
+    // for zMax use ECAL which is a bit larger than HCAL 
+    double tmax = rMax/pT;
+    /*
+    if (pz!=0.0) {
+      if (geomReader->zMax/fabs(pz)<tmax)
+	tmax = geomReader->zMax/fabs(pz);
+    }
+    */
+    double x2 = x1 + px * tmax;
+    double y2 = y1 + py * tmax;
+    double z2 = z1 + pz * tmax;
+
+    /*
     double r1 = sqrt(x1*x1+y1*y1);
-    double sintheta = sqrt(px*px + py*py)/p;
-    double x2 = x1 + px/p * rMax / sintheta;
-    double y2 = y1 + py/p * rMax / sintheta;
-    double z2 = z1 + pz/p * rMax / sintheta;
     double r2 = sqrt(x2*x2+y2*y2);
-    
+    cout << "x1 y1 z1 x2 y2 z2 = "
+	 << x1 << " " << y1 << " " << z1 << " "
+	 << x2 << " " << y2 << " " << z2 << endl;
+    cout << "r1 r2 = "
+      	 << r1 << " " << r2 << endl;
+    */
+
     TEveMCTrack mct;
     mct.SetPdgCode( pdgID );
     mct.SetMomentum( px, py, pz, sqrt(p*p + m*m) );
@@ -167,17 +188,17 @@ void EventDisplay::loadEvent(int event) {
 	x1 = (* eventReader->SimParticleSecondaries_vertex_x)[i] * mm;
 	y1 = (* eventReader->SimParticleSecondaries_vertex_y)[i] * mm;
 	z1 = (* eventReader->SimParticleSecondaries_vertex_z)[i] * mm;
-	r1 = sqrt(x1*x1+y1*y1);
+	double r1 = sqrt(x1*x1+y1*y1);
 	// the two photons from a pi0 in the origin must come from small R
 	if (r1>1.) continue;
-	sintheta = sqrt(px*px + py*py)/p;
+	double sintheta = sqrt(px*px + py*py)/p;
 	x2 = x1 + px/p * rMax / sintheta;
 	y2 = y1 + py/p * rMax / sintheta;
 	z2 = z1 + pz/p * rMax / sintheta;
-	//double x2 = (* eventReader->SimParticleSecondaries_endpoint_x)[i] * mm;
-	//double y2 = (* eventReader->SimParticleSecondaries_endpoint_y)[i] * mm;
-	//double z2 = (* eventReader->SimParticleSecondaries_endpoint_z)[i] * mm;
-	r2 = sqrt(x2*x2+y2*y2);
+	// double x2 = (* eventReader->SimParticleSecondaries_endpoint_x)[i] * mm;
+	// double y2 = (* eventReader->SimParticleSecondaries_endpoint_y)[i] * mm;
+	// double z2 = (* eventReader->SimParticleSecondaries_endpoint_z)[i] * mm;
+	// double r2 = sqrt(x2*x2+y2*y2);
 	// cout << "x1 y1 z1 x2 y2 z2 = "
 	//      << x1 << " " << y1 << " " << z1 << " "
 	//      << x2 << " " << y2 << " " << z2 << endl;
@@ -205,59 +226,104 @@ void EventDisplay::loadEvent(int event) {
   }
 
   //
-  // hits
+  // hits (ECAL/HCAL)
   //
   if (drawHits) {
     cout << "Creating hits" << endl;
-    if (hits == nullptr) {
-      hits = new TEvePointSet();
-      hits->SetName(Form("hits (E>%.1f GeV)",CellEnergyThreshold));
-      hits->SetMarkerStyle(4);
-      hits->SetMarkerSize(1);
-      hits->SetMarkerColor(kRed);
-      gEve->AddElement(hits);
+    if (ecalHits == nullptr) {
+      ecalHits = new TEvePointSet();
+      ecalHits->SetName(Form("ECAL hits (E>%.1f GeV)", HitEnergyThreshold));
+      ecalHits->SetMarkerStyle(4);
+      ecalHits->SetMarkerSize(1);
+      ecalHits->SetMarkerColor(kRed);
+      gEve->AddElement(ecalHits);
     }
     else
-      hits->Reset();
+      ecalHits->Reset();
+
     for (unsigned int i = 0; i < eventReader->ECalBarrelPositionedHits_position_x->GetSize(); i ++) {
       float E = (*eventReader->ECalBarrelPositionedHits_energy)[i];
       if (E<HitEnergyThreshold) continue;
       // ULong_t cellID = (*eventReader->ECalBarrelPositionedHits_cellID)[i];
       // ULong_t layer = DetectorGeometry:::Layer(cellID);
-      hits->SetNextPoint( (*eventReader->ECalBarrelPositionedHits_position_x)[i] * mm ,
-			  (*eventReader->ECalBarrelPositionedHits_position_y)[i] * mm ,
-			  (*eventReader->ECalBarrelPositionedHits_position_z)[i] * mm );
+      ecalHits->SetNextPoint(
+	(*eventReader->ECalBarrelPositionedHits_position_x)[i] * mm ,
+	(*eventReader->ECalBarrelPositionedHits_position_y)[i] * mm ,
+	(*eventReader->ECalBarrelPositionedHits_position_z)[i] * mm );
+    }
+
+    if (doHCal) {
+      if (hcalHits == nullptr) {
+	hcalHits = new TEvePointSet();
+	hcalHits->SetName(Form("HCAL hits (E>%.1f GeV)", HitEnergyThreshold));
+	hcalHits->SetMarkerStyle(4);
+	hcalHits->SetMarkerSize(1);
+	hcalHits->SetMarkerColor(kRed);
+	gEve->AddElement(hcalHits);
+      }
+      else
+	hcalHits->Reset();
+      
+      for (unsigned int i = 0; i < eventReader->HCalBarrelPositionedHits_position_x->GetSize(); i ++) {
+	float E = (*eventReader->HCalBarrelPositionedHits_energy)[i];
+	if (E<HitEnergyThreshold) continue;
+	hcalHits->SetNextPoint(
+			       (*eventReader->HCalBarrelPositionedHits_position_x)[i] * mm ,
+			       (*eventReader->HCalBarrelPositionedHits_position_y)[i] * mm ,
+			       (*eventReader->HCalBarrelPositionedHits_position_z)[i] * mm );
+      }
     }
   }
   
   //
-  // cells
+  // cells (ECAL/HCAL)
   //
   if (drawCells) {
     cout << "Creating cells" << endl; 
-    if (cells == nullptr) {
-      cells = new TEvePointSet();
-      cells->SetName(Form("cells (E>%.1f GeV)",CellEnergyThreshold));
-      cells->SetMarkerStyle(4);
-      cells->SetMarkerSize(3);
-      cells->SetMarkerColor(kBlue);
-      gEve->AddElement(cells);
+    if (ecalCells == nullptr) {
+      ecalCells = new TEvePointSet();
+      ecalCells->SetName(Form("ECAL cells (E>%.1f GeV)",CellEnergyThreshold));
+      ecalCells->SetMarkerStyle(4);
+      ecalCells->SetMarkerSize(3);
+      ecalCells->SetMarkerColor(kYellow);
+      gEve->AddElement(ecalCells);
     }
     else
-      cells->Reset();
+      ecalCells->Reset();
     for (unsigned int i = 0; i < eventReader->ECalBarrelPositionedCells_position_x->GetSize(); i ++) {
       float E = (*eventReader->ECalBarrelPositionedCells_energy)[i];
       if (E<CellEnergyThreshold) continue;
       // ULong_t cellID = (*eventReader->ECalBarrelPositionedCells_cellID)[i];
       // ULong_t layer = DetectorGeometry::Layer(cellID);
-      cells->SetNextPoint( (*eventReader->ECalBarrelPositionedCells_position_x)[i] * mm ,
-			   (*eventReader->ECalBarrelPositionedCells_position_y)[i] * mm ,
-			     (*eventReader->ECalBarrelPositionedCells_position_z)[i] * mm );
+      ecalCells->SetNextPoint( (*eventReader->ECalBarrelPositionedCells_position_x)[i] * mm ,
+			       (*eventReader->ECalBarrelPositionedCells_position_y)[i] * mm ,
+			       (*eventReader->ECalBarrelPositionedCells_position_z)[i] * mm );
+    }
+
+    if (doHCal) {
+      if (hcalCells == nullptr) {
+	hcalCells = new TEvePointSet();
+	hcalCells->SetName(Form("HCAL cells (E>%.1f GeV)", CellEnergyThreshold));
+	hcalCells->SetMarkerStyle(4);
+	hcalCells->SetMarkerSize(3);
+	hcalCells->SetMarkerColor(kYellow);
+	gEve->AddElement(hcalCells);
+      }
+      else
+	hcalCells->Reset();
+      for (unsigned int i = 0; i < eventReader->HCalBarrelPositionedCells_position_x->GetSize(); i ++) {
+	float E = (*eventReader->HCalBarrelPositionedCells_energy)[i];
+	if (E<CellEnergyThreshold) continue;
+	hcalCells->SetNextPoint( (*eventReader->HCalBarrelPositionedCells_position_x)[i] * mm ,
+				 (*eventReader->HCalBarrelPositionedCells_position_y)[i] * mm ,
+				 (*eventReader->HCalBarrelPositionedCells_position_z)[i] * mm );
+      }
     }
   }
+
   
   //
-  // cells merged 
+  // cells merged (ECAL)
   //
   if (drawMergedCells) {
     cout << "Creating merged cells" << endl;
@@ -580,6 +646,9 @@ void EventDisplay::startDisplay(int initialEvent) {
   // create the eve manageer
   TEveManager::Create();
 
+  // Set title of main window
+  gEve->GetBrowser()->SetWindowName("Allegro calorimeter event display");
+  
   // see palettes here: https://root.cern.ch/doc/master/classTColor.html
   // gStyle->SetPalette(kAvocado);
   gStyle->SetPalette(kSienna);
@@ -601,50 +670,98 @@ void EventDisplay::startDisplay(int initialEvent) {
     cout << "Reading Geant4 geometry from file " << geomFile << endl;
     auto fGeom = TFile::Open(geomFile.c_str(), "READ");
     if (!fGeom) return;
-    TEveGeoShapeExtract* gse = (TEveGeoShapeExtract*) fGeom->Get(volName.c_str());
-    if (!gse) return;
-    barrel = TEveGeoShape::ImportShapeExtract(gse, 0);
-    barrel->SetMainTransparency(70);
-    fGeom->Close();
-    delete fGeom;
-    barrel->SetPickableRecursively(kTRUE);
-    geom->AddElement(barrel);
-    TPRegexp re;
-    // set transparency of the subvolumes of the bath
-    re = TPRegexp("LAr_bath*");
-    TEveElement* bath = barrel->FindChild(re);
-    TEveElement::List_t matches;
-    re = TPRegexp("ECAL_Cryo*");
-    barrel->FindChildren(matches, re);
-    for (auto a : matches) a->SetMainTransparency(70);
-    re = TPRegexp("services*");
-    barrel->FindChildren(matches, re);
-    for (auto a : matches) a->SetMainTransparency(70);
-    // make lists of elements inside bath to turn on/off simultaneously
-    if (bath) {
-      TEveElementList* newbath = new TEveElementList("LAr_bath");
-      barrel->AddElement(newbath);
-      TEveElement::List_t matches;
-      re = TPRegexp("PCB*");
-      bath->FindChildren(matches, re);
-      for (auto a : matches) PCBs->AddElement(a);
-      newbath->AddElement(PCBs);
-      TEveElement::List_t matches2;
-      re = TPRegexp("active*");
-      bath->FindChildren(matches2, re);
-      for (auto a : matches2) actives->AddElement(a);
-      newbath->AddElement(actives); 
-      TEveElement::List_t matches3;     
-      re = TPRegexp("passive*");
-      bath->FindChildren(matches3, re);
-      for (auto a : matches3) passives->AddElement(a);
-      newbath->AddElement(passives);
-      barrel->RemoveElement(bath);
-      // hide elements inside bath by default because they are slow in 3D
-      newbath->SetRnrSelfChildren(true, false);
-    }
+
     gEve->AddGlobalElement(geom);
     gEve->AddToListTree(geom, true);
+
+    TEveGeoShapeExtract* gse = (TEveGeoShapeExtract*) fGeom->Get("world");
+    if (!gse) return;
+    
+    TEveGeoShape* world = TEveGeoShape::ImportShapeExtract(gse, 0);
+    world->SetMainTransparency(100);
+    fGeom->Close();
+    delete fGeom;
+
+    if (showFullDetector) {
+      geom->AddElement(world);
+      world->SetRnrSelfChildren(false, true);
+    }
+    else {
+
+      TPRegexp re;
+      
+      re = TPRegexp("ECalBarrel*");
+      TEveElement* ecalbarrel = world->FindChild(re);
+      ecalbarrel->SetPickableRecursively(kTRUE);
+      geom->AddElement(ecalbarrel);
+
+      // set transparency of the subvolumes of the bath
+      re = TPRegexp("LAr_bath*");
+      TEveElement* bath = ecalbarrel->FindChild(re);
+      TEveElement::List_t matches;
+      re = TPRegexp("ECAL_Cryo*");
+      ecalbarrel->FindChildren(matches, re);
+      for (auto a : matches) a->SetMainTransparency(70);
+      re = TPRegexp("services*");
+      ecalbarrel->FindChildren(matches, re);
+      for (auto a : matches) a->SetMainTransparency(70);
+      // make lists of elements inside bath to turn on/off simultaneously
+      if (bath) {
+	TEveElementList* newbath = new TEveElementList("LAr_bath");
+	ecalbarrel->AddElement(newbath);
+	TEveElement::List_t matches;
+	re = TPRegexp("PCB*");
+	bath->FindChildren(matches, re);
+	for (auto a : matches) PCBs->AddElement(a);
+	newbath->AddElement(PCBs);
+	TEveElement::List_t matches2;
+	re = TPRegexp("active*");
+	bath->FindChildren(matches2, re);
+	for (auto a : matches2) actives->AddElement(a);
+	newbath->AddElement(actives); 
+	TEveElement::List_t matches3;     
+	re = TPRegexp("passive*");
+	bath->FindChildren(matches3, re);
+	for (auto a : matches3) passives->AddElement(a);
+	newbath->AddElement(passives);
+	ecalbarrel->RemoveElement(bath);
+	// hide elements inside bath by default because they are slow in 3D
+	newbath->SetRnrSelfChildren(true, false);
+      }
+      
+      // HCAL
+      if (doHCal) {
+	// add HCal envelope and subvolumes
+	re = TPRegexp("HCalEnvelopeVolume*");
+	TEveElement* hcalbarrel = world->FindChild(re);
+	hcalbarrel->SetPickableRecursively(kTRUE);
+	geom->AddElement(hcalbarrel);
+	
+	//re = TPRegexp("HCalLayerVol*");
+	//hcalbarrel->FindChildren(matches, re);
+	//for (auto a : matches) a->SetRnrSelfChildren(true, false);
+	
+	// set transparency of plate faces and steel
+	re = TPRegexp("HCal*PlateVol*");
+	hcalbarrel->FindChildren(matches, re);
+	for (auto a : matches) a->SetMainTransparency(70);
+	
+	re = TPRegexp("HCal*Steel*");
+	hcalbarrel->FindChildren(matches, re);
+	for (auto a : matches) a->SetMainTransparency(70);
+	
+	// group together the layers so that they can be turned on/off together
+	TEveElementList* hcalLayers = new TEveElementList("HCalLayers");
+	hcalbarrel->AddElement(hcalLayers);
+	re = TPRegexp("HCalLayerVol*");
+	TEveElement::List_t matches4;
+	hcalbarrel->FindChildren(matches4, re);
+	for (auto a : matches4) {
+	  hcalLayers->AddElement(a);
+	  hcalbarrel->RemoveElement(a);
+	}
+      }
+    }
   }
   else {
     cout << "Creating simplified geometry based on calculated dimensions " << endl;
@@ -686,7 +803,7 @@ void EventDisplay::startDisplay(int initialEvent) {
     }
     gEve->AddToListTree(barrel, true);
   }
-
+  
   gEve->AddToListTree(readout,true);
 
   // create second tab (R-phi view)
@@ -718,10 +835,10 @@ void EventDisplay::startDisplay(int initialEvent) {
   else
     rhoPhiProjManager->ImportElements(barrel, rhoPhiScene);
 
-  // the merged module grid
-  TEveStraightLineSet* gridmod = new TEveStraightLineSet("phi readout merged");
+  // draw the merged ECAL readout segmentation in rho-phi
+  TEveStraightLineSet* gridmod = new TEveStraightLineSet("ECAL phi readout merged");
   gridmod->SetLineColor(kViolet+2);
-  gridmod->SetLineWidth(8);
+  gridmod->SetLineWidth(5);
   for (int iLayer=0; iLayer < geomReader->nLayers; iLayer++) {
     double Lin = geomReader->getL(geomReader->alpha, geomReader->rMin, geomReader->r[iLayer]);
     double Lout = geomReader->getL(geomReader->alpha, geomReader->rMin, geomReader->r[iLayer+1]);
@@ -735,9 +852,30 @@ void EventDisplay::startDisplay(int initialEvent) {
       gridmod->AddLine(x1, y1, 0., x2, y2, 0.);
     }
   }
-  // add to scene
   rhoPhiScene->AddElement(gridmod);
   readout->AddElement(gridmod);
+
+  // draw the HCAL readout segmentation in rho-phi
+  if (doHCal) {
+    TEveStraightLineSet* hcalPhiReadout = new TEveStraightLineSet("HCAL phi readout");
+    hcalPhiReadout->SetLineColor(kViolet+2);
+    hcalPhiReadout->SetLineWidth(5);
+    double r1 = geomReader->rMinHCal;
+    double r2 = geomReader->rMaxHCal;
+    for (int iLayer=0; iLayer < geomReader->nLayersHCal; iLayer++) {
+      for (int i=0; i < geomReader->nPhiBinsHCal; i++) {
+	double phi = geomReader->phiMinHCal + i * geomReader->gridPhiHCal;
+	double x1 = r1*cos(phi);
+	double y1 = r1*sin(phi);
+	double x2 = r2*cos(phi);
+	double y2 = r2*sin(phi);
+	hcalPhiReadout->AddLine(x1, y1, 0., x2, y2, 0.);
+      }
+    }
+    rhoPhiScene->AddElement(hcalPhiReadout);
+    readout->AddElement(hcalPhiReadout);
+  }
+
   
   // third tab (R-z view)
   rhoZView = gEve->SpawnNewViewer("Projection Rho-Z");
@@ -766,7 +904,7 @@ void EventDisplay::startDisplay(int initialEvent) {
     rhoZProjManager->ImportElements(barrel, rhoZScene);
 
   // the theta readout grid
-  TEveStraightLineSet* grid = new TEveStraightLineSet("theta readout");
+  TEveStraightLineSet* grid = new TEveStraightLineSet("ECAL theta readout");
   grid->SetLineColor(kViolet);
   for (int iTheta=0; iTheta <= geomReader->nThetaBins; iTheta++) {
     double theta = geomReader->thetaMin + iTheta * geomReader->thetaGrid;
@@ -791,9 +929,9 @@ void EventDisplay::startDisplay(int initialEvent) {
   readout->AddElement(grid);
   
   // the merged grid
-  TEveStraightLineSet* grid2 = new TEveStraightLineSet("theta readout merged");
+  TEveStraightLineSet* grid2 = new TEveStraightLineSet("ECAL theta readout merged");
   grid2->SetLineColor(kViolet+2);
-  grid2->SetLineWidth(8);
+  grid2->SetLineWidth(5);
   for (int iLayer = 0; iLayer < geomReader->nLayers; iLayer++) {
     double r1 = geomReader->r[iLayer];
     double r2 = geomReader->r[iLayer+1];
@@ -821,7 +959,37 @@ void EventDisplay::startDisplay(int initialEvent) {
   }
   rhoZScene->AddElement(grid2);
   readout->AddElement(grid2);
+  
+  // draw the HCAL readout segmentation in eta (rho-z view)
+  if (doHCal) {
+    TEveStraightLineSet* hcalEtaReadout = new TEveStraightLineSet("HCAL eta readout");
+    hcalEtaReadout->SetLineColor(kViolet);
+    hcalEtaReadout->SetLineWidth(5);
+    for (int iEta=0; iEta <= geomReader->nEtaBinsHCal; iEta++) {
+      double eta = geomReader->etaMinHCal + iEta * geomReader->etaGridHCal;
+      double r1 = geomReader->rMinHCal;
+      double r2 = geomReader->rMaxHCal;
+      double theta = 2*TMath::ATan(TMath::Exp(-eta));
+      double z1 = r1*cos(theta)/sin(theta);
+      double z2 = r2*cos(theta)/sin(theta);
+      if (z1 < geomReader->zMaxHCal && z1 > geomReader->zMinHCal) {
+	if (z2 > geomReader->zMaxHCal) {
+	  z2 = geomReader->zMaxHCal;
+	  r2 = z2*sin(theta)/cos(theta);
+	}
+	if (z2 < geomReader->zMinHCal) {
+	  z2 = geomReader->zMinHCal;
+	  r2 = z2*sin(theta)/cos(theta);
+	}
+	hcalEtaReadout->AddLine(z1,  r1, 0., z2,  r2, 0.);
+	hcalEtaReadout->AddLine(z1, -r1, 0., z2, -r2, 0.);
+      }
+    }
+    rhoZScene->AddElement(hcalEtaReadout);
+    readout->AddElement(hcalEtaReadout);
+  }
 
+  
   gEve->Redraw3D(true);
 
   //
@@ -840,7 +1008,7 @@ void EventDisplay::startDisplay(int initialEvent) {
   
     cout << "Reading event data from file " << evtFile << endl << endl;
     TFile* f = TFile::Open(evtFile.c_str(), "READ");
-    eventReader = new EventReader(f);
+    eventReader = new EventReader(f, doHCal);
     nEvents = eventReader->nEvents;
     
     // load and display the requested event
@@ -850,7 +1018,6 @@ void EventDisplay::startDisplay(int initialEvent) {
     cout << "******************************************************************************" << endl << endl;
     loadEvent(initialEvent);
   }
-  
   
   // Set the 3D view as the active tab and rotate the camera
   gEve->GetBrowser()->GetTabRight()->SetTab(0);

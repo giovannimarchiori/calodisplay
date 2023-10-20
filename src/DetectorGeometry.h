@@ -42,15 +42,15 @@ public:
   // radial extension of barrel
   const double rMin = 217.28*cm;
   const double rMax = 257.33*cm;
-  
+
   // nominal radial thickness of layers
   std::vector<double> drNom;
   
   // number of layers
   int nLayers;
   
-  // number of electrodes
-  const int nModules = 1545;
+  // number of electrodes ECAL
+  const int nModules = 1536;
   
   // inclination angle of electrodes
   const double alpha = 50*TMath::Pi()/180.;
@@ -65,7 +65,35 @@ public:
   // - n(bins)
   const int nThetaBins = 800;
   
+
+  // HCAL
+  const std::vector<double> rHCal = {
+    281.05*cm, 286.05*cm, 291.05*cm, 296.05*cm, 301.05*cm,
+    311.05*cm, 321.05*cm, 331.05*cm, 341.05*cm, 351.05*cm,
+    361.05*cm, 381.05*cm, 401.05*cm, 421.05*cm};
+
+  // z: envelope up to +-280*cm
+  //    end plates between +-279.05 and +-279.55*cm
+  //    detector between -279.05cm and 279.05cm
+  const double zMaxHCal =  280.0*cm;
+  const double zMinHCal = -280.0*cm;
+  const double dzHCalEndPlate = -0.45*cm; // distance of end plate from envelope
+  const double thicknessHCalEndPlate = 0.5*cm; // thickness of endplate
+
+  const double etaGridHCal = 0.025;
+  const double etaOffsetHCal = -0.9;
+  const int nPhiBinsHCal = 256;
   
+  // derived
+  const int nLayersHCal = rHCal.size()-1;
+  const double rMinHCal = rHCal[0];
+  const double rMaxHCal = rHCal[nLayersHCal];
+  const double etaMinHCal = etaOffsetHCal - etaGridHCal/2.0;
+  const double etaMaxHCal = -etaOffsetHCal + etaGridHCal/2.0;
+  const int nEtaBinsHCal = (etaMaxHCal - etaMinHCal)/etaGridHCal;
+  const double gridPhiHCal = TMath::TwoPi()/nPhiBinsHCal;
+  const double phiMinHCal = -TMath::Pi();
+
   
   /******************************************************************************/
   // GEOMETRY HELPER FUNCTIONS AND DERIVED GEOMETRY PARAMETERS

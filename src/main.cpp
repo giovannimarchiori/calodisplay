@@ -16,14 +16,14 @@ using namespace std;
 std::string usage(bool verbose=false) {
   EventDisplay aDisplay;
   std::string use = "Usage:\n";
-  use += "display [--nog4] [-g|--geometry <geomFile.root>] [-v|--volume <volumeName>] [-e|--events <eventFile.root>] [-s|--skipEvents <nevents>]\n\n";
+  use += "display [--nog4] [--fulldet] [--dohcal] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-s|--skipEvents <nevents>]\n\n";
+  use += "--nog4    : use simplified geometry rather than G4 geometry in file <geomFile.root>\n";
+  use += "--fulldet : show the full detector (including tracker, muon detector, interaction region)\n";
+  use += "--dohcal  : show HCAL volume, hits and cells\n\n";
   if (verbose) {
-    use += "Default values:\n";
+    use += "Default values for options with parameters:\n";
     use += "geomFile: ";
     use += aDisplay.geomFile;
-    use += "\n";
-    use += "volumeName: ";
-    use += aDisplay.volName;
     use += "\n";
     use += "eventFile: ";
     use += aDisplay.evtFile;
@@ -57,7 +57,17 @@ int main(int argc, char* argv[]) {
 	display.useG4geom = false;
 	continue;
       }
-      
+
+      else if (arg == "--dohcal") {
+	display.doHCal = true;
+	continue;
+      }
+
+      else if (arg == "--fulldet") {
+	display.showFullDetector = true;
+	continue;
+      }
+
       else if (arg == "-g" || arg == "--geometry") {
 	if (i==args.size()-1) {
 	  throw std::runtime_error("missing geometry file after -g/--geometry option!");
@@ -69,17 +79,6 @@ int main(int argc, char* argv[]) {
 	continue;
       }
       
-      else if (arg == "-v" || arg == "--volume") {
-	if (i==args.size()-1) {
-	  throw std::runtime_error("missing volume name after -v/--volume option!");
-	}
-	else {
-	  i++;
-	  display.volName = args[i];
-	}
-	continue;
-      }
-     
       else if (arg == "-e" || arg == "--events") {
 	if (i==args.size()-1) {
 	  throw std::runtime_error("missing event file after -e/--events option!");
@@ -116,15 +115,26 @@ int main(int argc, char* argv[]) {
   }
   
   // check if the files exist
-  if (!std::filesystem::exists(display.geomFile)) {
-    std::cerr << "Geometry file " << display.geomFile << " does not exist!!!"  << std::endl;
+  if (display.useG4geom && !std::filesystem::exists(display.geomFile)) {
+    std::cerr << "G4 geometry file " << display.geomFile << " does not exist!!!"  << std::endl;
     return EXIT_FAILURE;
   }
   if (display.evtFile!="" && !std::filesystem::exists(display.evtFile)) {
     std::cerr << "Event file " << display.evtFile << " does not exist!!!"  << std::endl;
     return EXIT_FAILURE;
   }
-  
+
+  // check if there are some conflicting options
+  if (!display.useG4geom && display.doHCal) {
+    std::cerr << "Conflicting options --nog4 and --dohcal selected: simplified geometry not yet implemented for hcal!!!"  << std::endl;
+    return EXIT_FAILURE;
+  }
+  if (!display.useG4geom && display.showFullDetector) {
+    std::cerr << "Conflicting options --nog4 and --fulldet selected: simplified geometry not implemented for full detector!!!"  << std::endl;
+    return EXIT_FAILURE;
+  }
+
+	
   argc = 0;
   argv = nullptr;
   TRint* gApplication = new TRint("display", &argc, argv);

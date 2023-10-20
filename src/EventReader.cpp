@@ -9,12 +9,13 @@
 #include "EventReader.h"
 
 
-EventReader::EventReader(TFile* f)
+EventReader::EventReader(TFile* f, bool doHCal)
 {
   fReader = new TTreeReader("events", f);
   nEvents = fReader->GetEntries();
+  m_doHCal = doHCal;
   
-  // 1a. - primary particles
+  // primary particles
   genParticles_PDG = new TTreeReaderArray<Int_t>(*fReader, "genParticles.PDG");
   genParticles_generatorStatus = new TTreeReaderArray<Int_t>(*fReader, "genParticles.generatorStatus");
   genParticles_simulatorStatus = new TTreeReaderArray<Int_t>(*fReader, "genParticles.simulatorStatus");
@@ -31,7 +32,7 @@ EventReader::EventReader(TFile* f)
   genParticles_momentum_y = new TTreeReaderArray<Float_t>(*fReader, "genParticles.momentum.y");
   genParticles_momentum_z = new TTreeReaderArray<Float_t>(*fReader, "genParticles.momentum.z");
   
-  // 1a. - secondary particles
+  // secondary particles
   if (fReader->GetTree()->FindBranch("SimParticleSecondaries.PDG")) {
     SimParticleSecondaries_PDG = new TTreeReaderArray<Int_t>(*fReader, "SimParticleSecondaries.PDG");
     //SimParticleSecondaries_generatorStatus = new TTreeReaderArray<Int_t>(*fReader, "SimParticleSecondaries.generatorStatus");
@@ -50,28 +51,44 @@ EventReader::EventReader(TFile* f)
     SimParticleSecondaries_momentum_z = new TTreeReaderArray<Float_t>(*fReader, "SimParticleSecondaries.momentum.z");
   }
   
-  // 1b. - hits
+  // hits in ECal barrel
   ECalBarrelPositionedHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "ECalBarrelPositionedHits.cellID");
   ECalBarrelPositionedHits_energy     = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedHits.energy");
   ECalBarrelPositionedHits_position_x = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedHits.position.x");
   ECalBarrelPositionedHits_position_y = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedHits.position.y");
   ECalBarrelPositionedHits_position_z = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedHits.position.z");
   
-  // 1c. - cells
+  // cells in ECal barrel
   ECalBarrelPositionedCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "ECalBarrelPositionedCells.cellID");
   ECalBarrelPositionedCells_energy     = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells.energy");
   ECalBarrelPositionedCells_position_x = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells.position.x");
   ECalBarrelPositionedCells_position_y = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells.position.y");
   ECalBarrelPositionedCells_position_z = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells.position.z");
   
-  // 1d. - cells with coarser merging
+  // cells in ECal barrel with coarser merging
   ECalBarrelPositionedCells2_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "ECalBarrelPositionedCells2.cellID");
   ECalBarrelPositionedCells2_energy     = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells2.energy");
   ECalBarrelPositionedCells2_position_x = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells2.position.x");
   ECalBarrelPositionedCells2_position_y = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells2.position.y");
   ECalBarrelPositionedCells2_position_z = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells2.position.z");
+
+  if (m_doHCal) {
+    // hits in HCal barrel
+    HCalBarrelPositionedHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "HCalBarrelPositionedHits.cellID");
+    HCalBarrelPositionedHits_energy     = new TTreeReaderArray<Float_t>(*fReader, "HCalBarrelPositionedHits.energy");
+    HCalBarrelPositionedHits_position_x = new TTreeReaderArray<Float_t>(*fReader, "HCalBarrelPositionedHits.position.x");
+    HCalBarrelPositionedHits_position_y = new TTreeReaderArray<Float_t>(*fReader, "HCalBarrelPositionedHits.position.y");
+    HCalBarrelPositionedHits_position_z = new TTreeReaderArray<Float_t>(*fReader, "HCalBarrelPositionedHits.position.z");
+    
+    // cells in HCal barrel
+    HCalBarrelPositionedCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "HCalBarrelPositionedCells.cellID");
+    HCalBarrelPositionedCells_energy     = new TTreeReaderArray<Float_t>(*fReader, "HCalBarrelPositionedCells.energy");
+    HCalBarrelPositionedCells_position_x = new TTreeReaderArray<Float_t>(*fReader, "HCalBarrelPositionedCells.position.x");
+    HCalBarrelPositionedCells_position_y = new TTreeReaderArray<Float_t>(*fReader, "HCalBarrelPositionedCells.position.y");
+    HCalBarrelPositionedCells_position_z = new TTreeReaderArray<Float_t>(*fReader, "HCalBarrelPositionedCells.position.z");
+  }
   
-  // 1e. - the corrected calo topo clusters
+  // corrected calo topo clusters
   CorrectedCaloTopoClusters_energy     = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.energy");
   CorrectedCaloTopoClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.x");
   CorrectedCaloTopoClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.y");
@@ -139,6 +156,18 @@ EventReader::~EventReader() {
   delete ECalBarrelPositionedCells2_position_x;
   delete ECalBarrelPositionedCells2_position_y;
   delete ECalBarrelPositionedCells2_position_z;
+  if (m_doHCal) {
+    delete ECalBarrelPositionedHits_cellID;
+    delete ECalBarrelPositionedHits_energy;
+    delete ECalBarrelPositionedHits_position_x;
+    delete ECalBarrelPositionedHits_position_y;
+    delete ECalBarrelPositionedHits_position_z;
+    delete ECalBarrelPositionedCells_cellID;
+    delete ECalBarrelPositionedCells_energy;
+    delete ECalBarrelPositionedCells_position_x;
+    delete ECalBarrelPositionedCells_position_y;
+    delete ECalBarrelPositionedCells_position_z;
+  }
   delete CorrectedCaloTopoClusters_energy;
   delete CorrectedCaloTopoClusters_position_x;
   delete CorrectedCaloTopoClusters_position_y;
@@ -160,4 +189,3 @@ void EventReader::loadEvent(int event) {
   }
   fReader->SetEntry(event);
 }
-

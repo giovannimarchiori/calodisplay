@@ -64,28 +64,42 @@ public:
   TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_y = nullptr;
   TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_z = nullptr;
 
-  // 1b. hits
+  // the hits in ECal barrel 
   TTreeReaderArray<ULong_t> *ECalBarrelPositionedHits_cellID = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedHits_energy = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedHits_position_x = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedHits_position_y = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedHits_position_z = nullptr;
 
-  // 1c. - cells
+  // the cells in ECal barrel
   TTreeReaderArray<ULong_t> *ECalBarrelPositionedCells_cellID = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells_energy = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells_position_x = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells_position_y = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells_position_z = nullptr;
 
-  // 1d. - cells with coarser merging
+  // the cells in ECal barrel with coarser merging
   TTreeReaderArray<ULong_t> *ECalBarrelPositionedCells2_cellID = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells2_energy = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells2_position_x = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells2_position_y = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells2_position_z = nullptr;
 
-  // 1e. - the corrected calo topo clusters
+  // the hits in HCal barrel 
+  TTreeReaderArray<ULong_t> *HCalBarrelPositionedHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelPositionedHits_energy = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelPositionedHits_position_x = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelPositionedHits_position_y = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelPositionedHits_position_z = nullptr;
+
+  // the cells in HCal barrel
+  TTreeReaderArray<ULong_t> *HCalBarrelPositionedCells_cellID = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelPositionedCells_energy = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelPositionedCells_position_x = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelPositionedCells_position_y = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelPositionedCells_position_z = nullptr;
+
+  // the corrected calo topo clusters
   TTreeReaderArray<Float_t> *CorrectedCaloTopoClusters_energy = nullptr;
   TTreeReaderArray<Float_t> *CorrectedCaloTopoClusters_position_x = nullptr;
   TTreeReaderArray<Float_t> *CorrectedCaloTopoClusters_position_y = nullptr;
@@ -93,7 +107,7 @@ public:
   TTreeReaderArray<UInt_t> *CorrectedCaloTopoClusters_hits_begin = nullptr;
   TTreeReaderArray<UInt_t> *CorrectedCaloTopoClusters_hits_end = nullptr;  
   
-  // 1f. - cells in the topo clusters
+  // the cells in the topo clusters
   TTreeReaderArray<ULong_t> *PositionedCaloTopoClusterCells_cellID = nullptr;
   TTreeReaderArray<Float_t> *PositionedCaloTopoClusterCells_energy = nullptr;
   TTreeReaderArray<Float_t> *PositionedCaloTopoClusterCells_position_x = nullptr;
@@ -101,9 +115,10 @@ public:
   TTreeReaderArray<Float_t> *PositionedCaloTopoClusterCells_position_z = nullptr;
 
  public:
-  EventReader(TFile* f);
+  EventReader(TFile* f, bool doHCal=false);
   ~EventReader();
   void loadEvent(int event);
+  bool m_doHCal;
 };
 
 #endif

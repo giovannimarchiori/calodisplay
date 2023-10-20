@@ -58,6 +58,8 @@ void DetectorGeometry::calcGeom() {
   cout << "Calculating the geometry parameters" << endl;
   cout << "******************************************************************************" << endl << endl;
 
+  cout << "ECAL" << endl << endl;
+  
   drNom = std::vector<double>({
       15.*mm, 35.*mm, 35.*mm, 35.*mm, 35.*mm, 35.*mm, 
       35.*mm, 35.*mm, 35.*mm, 35.*mm, 35.*mm, 35.*mm
@@ -96,11 +98,10 @@ void DetectorGeometry::calcGeom() {
   r.resize(nLayers+1);
   dr.resize(nLayers);
   r[0] = rMin;
-  cout <<  "0 " << r[0] << " " << units << endl;
   for (int iLayer=1; iLayer<=nLayers; iLayer++) {
     r[iLayer] = getR(alpha, r[0], L[iLayer]);
     dr[iLayer-1] = r[iLayer]-r[iLayer-1];
-    cout <<  iLayer  <<  " " << r[iLayer] << " " << units << endl;
+    cout <<  iLayer-1  <<  r[iLayer-1] << " - " << r[iLayer] << " " << units << endl;
   }
   cout << endl;
 
@@ -127,6 +128,34 @@ void DetectorGeometry::calcGeom() {
   cout << "phi grid : " << gridPhi << endl;
   cout << "phi offset of electrode mid point wrt initial point : " << dPhiAvg << endl;
   cout << "initial phi of edge of module 0 : " << phiMin << endl << endl;
+
+  
+  cout << "HCAL" << endl << endl;
+  
+  cout << "r(min) = " << rMinHCal << " " << units << endl;
+  cout << "r(max) = " << rMaxHCal << " " << units << endl;
+  cout << "total thickness = " << rMaxHCal-rMinHCal << " " << units << endl;
+  cout << "n(layers) = " << nLayersHCal << endl;
+  cout << "radial position of each layer: " << endl;
+  for (int iLayer=0; iLayer<nLayersHCal; iLayer++) {
+    cout <<  iLayer  <<  " " << rHCal[iLayer] << " - " << rHCal[iLayer+1] << " " << units << endl;
+  }
+  cout << "radial thickness of each layer: " << endl;
+  for (int iLayer=0; iLayer<nLayersHCal; iLayer++) {
+    cout <<  iLayer  <<  " " << rHCal[iLayer+1]-rHCal[iLayer] << " " << units << endl;
+  }
+  cout << "z range of envelope = " << zMinHCal << " - " << zMaxHCal << " " << units << endl;
+  cout << "z range of front endplate = "
+       << zMaxHCal + dzHCalEndPlate - thicknessHCalEndPlate << " - "
+       << zMaxHCal + dzHCalEndPlate << " " << units << endl;
+  cout << "z range of back endplate = "
+       << zMinHCal - dzHCalEndPlate << " - "
+       << zMinHCal - dzHCalEndPlate + thicknessHCalEndPlate << " " << units << endl;
+  cout << "z range of detector = "
+       << zMinHCal-dzHCalEndPlate+thicknessHCalEndPlate << " - "
+       << zMaxHCal+dzHCalEndPlate-thicknessHCalEndPlate << " " << units << endl;
+  cout << endl;
+  
 }
 
 
