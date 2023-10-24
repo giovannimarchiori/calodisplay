@@ -16,10 +16,13 @@ using namespace std;
 std::string usage(bool verbose=false) {
   EventDisplay aDisplay;
   std::string use = "Usage:\n";
-  use += "display [--nog4] [--fulldet] [--dohcal] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-s|--skipEvents <nevents>]\n\n";
+  use += "display [--nog4] [--fulldet] [--dohcal] [--sw] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-s|--skipEvents <nevents>]\n\n";
   use += "--nog4    : use simplified geometry rather than G4 geometry in file <geomFile.root>\n";
   use += "--fulldet : show the full detector (including tracker, muon detector, interaction region)\n";
-  use += "--dohcal  : show HCAL volume, hits and cells\n\n";
+  use += "--dohcal  : show HCAL volume, hits and cells\n";
+  use += "--sw      : show sliding-window clusters\n";
+  use += "--notopo  : do not show topoclusters\n\n";
+  
   if (verbose) {
     use += "Default values for options with parameters:\n";
     use += "geomFile: ";
@@ -65,6 +68,16 @@ int main(int argc, char* argv[]) {
 
       else if (arg == "--fulldet") {
 	display.showFullDetector = true;
+	continue;
+      }
+
+      else if (arg == "--sw") {
+	display.drawSWClusters = true;
+	continue;
+      }
+
+      else if (arg == "--notopo") {
+ 	display.drawTopoClusters = false;
 	continue;
       }
 

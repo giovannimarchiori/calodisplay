@@ -99,6 +99,13 @@ public:
   TTreeReaderArray<Float_t> *HCalBarrelPositionedCells_position_y = nullptr;
   TTreeReaderArray<Float_t> *HCalBarrelPositionedCells_position_z = nullptr;
 
+  // IF WE ARE SURE THAT WE DO NOT PLOT BOTH SW AND TOPOCLUSTERS AT THE SAME TIME
+  // we could simplify the code of the EventDisplay class by having a single
+  // cluster reader, that points to either SW or topo clusters based on the clusters
+  // that we want to draw
+  // For the moment keep both (we might want to have SW clusters in ECAL for
+  // EM objects and topoclusters for ECAL+HCAL for jets)
+  
   // the corrected calo topo clusters
   TTreeReaderArray<Float_t> *CorrectedCaloTopoClusters_energy = nullptr;
   TTreeReaderArray<Float_t> *CorrectedCaloTopoClusters_position_x = nullptr;
@@ -114,11 +121,29 @@ public:
   TTreeReaderArray<Float_t> *PositionedCaloTopoClusterCells_position_y = nullptr;
   TTreeReaderArray<Float_t> *PositionedCaloTopoClusterCells_position_z = nullptr;
 
+  // the sliding window clusters (TODO: include upstream/downstream corrections)
+  TTreeReaderArray<Float_t> *CaloClusters_energy = nullptr;
+  TTreeReaderArray<Float_t> *CaloClusters_position_x = nullptr;
+  TTreeReaderArray<Float_t> *CaloClusters_position_y = nullptr;
+  TTreeReaderArray<Float_t> *CaloClusters_position_z = nullptr;
+  TTreeReaderArray<UInt_t> *CaloClusters_hits_begin = nullptr;
+  TTreeReaderArray<UInt_t> *CaloClusters_hits_end = nullptr;
+
+  // the cells in the sliding window clusters
+  TTreeReaderArray<ULong_t> *PositionedCaloClusterCells_cellID = nullptr;
+  TTreeReaderArray<Float_t> *PositionedCaloClusterCells_energy = nullptr;
+  TTreeReaderArray<Float_t> *PositionedCaloClusterCells_position_x = nullptr;
+  TTreeReaderArray<Float_t> *PositionedCaloClusterCells_position_y = nullptr;
+  TTreeReaderArray<Float_t> *PositionedCaloClusterCells_position_z = nullptr;
+
+  
  public:
-  EventReader(TFile* f, bool doHCal=false);
+  EventReader(TFile* f, bool doHCal=false, bool doSW=false, bool doTopo=true);
   ~EventReader();
   void loadEvent(int event);
   bool m_doHCal;
+  bool m_doSW;
+  bool m_doTopo;
 };
 
 #endif

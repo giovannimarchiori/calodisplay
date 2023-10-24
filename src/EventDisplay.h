@@ -71,6 +71,7 @@ public:
   bool drawCells = true;
   bool drawMergedCells = false;
   bool drawTopoClusters = true;
+  bool drawSWClusters = false;
   
   // min particle energy (GeV)
   float ParticleEnergyThreshold = 1.0;
@@ -78,7 +79,7 @@ public:
   float HitEnergyThreshold = 0.0;
   float CellEnergyThreshold = 0.0;
   // min cluster energy (in GeV)
-  float TopoClusterEnergyThreshold = 2.;  
+  float ClusterEnergyThreshold = 2.;  
 
   // G4 geometry file
   bool useG4geom = true;
@@ -124,13 +125,14 @@ public:
   TEvePointSet* ecalCells = nullptr;
   TEvePointSet* hcalCells = nullptr;
   TEvePointSet* cells_merged = nullptr;
-  TEvePointSet* clusters = nullptr;
-  std::vector<TEveQuadSet*> qs_rhoz;
-  std::vector<TEveQuadSet*> qs_rhophi;
+  TEvePointSet* topoclusters = nullptr;
+  TEvePointSet* swclusters = nullptr;
   TEveElementList* topoclusters_rhoz = nullptr;
   TEveElementList* topoclusters_rhophi = nullptr;
-  std::vector<TEveBoxSet*> bs;
+  TEveElementList* swclusters_rhoz = nullptr;
+  TEveElementList* swclusters_rhophi = nullptr;
   TEveElementList* topoclusters_3D = nullptr;
+  TEveElementList* swclusters_3D = nullptr;
   
   TEveGeoShape* barrel  = nullptr;
   TEveViewer* rhoPhiView = nullptr;
@@ -163,6 +165,10 @@ public:
   // start event display
   void startDisplay(int initialEvent=0);
 
+  // fill cluster objects for given collection (sw or topo) and loaded event
+  // invoked by loadEvent
+  void FillClusters(std::string clusterType);
+		    
   // load event 
   void loadEvent(int event);
 

@@ -9,11 +9,13 @@
 #include "EventReader.h"
 
 
-EventReader::EventReader(TFile* f, bool doHCal)
+EventReader::EventReader(TFile* f, bool doHCal, bool doSW, bool doTopo)
 {
   fReader = new TTreeReader("events", f);
   nEvents = fReader->GetEntries();
   m_doHCal = doHCal;
+  m_doSW = doSW;
+  m_doTopo = doTopo;
   
   // primary particles
   genParticles_PDG = new TTreeReaderArray<Int_t>(*fReader, "genParticles.PDG");
@@ -87,24 +89,39 @@ EventReader::EventReader(TFile* f, bool doHCal)
     HCalBarrelPositionedCells_position_y = new TTreeReaderArray<Float_t>(*fReader, "HCalBarrelPositionedCells.position.y");
     HCalBarrelPositionedCells_position_z = new TTreeReaderArray<Float_t>(*fReader, "HCalBarrelPositionedCells.position.z");
   }
-  
-  // corrected calo topo clusters
-  CorrectedCaloTopoClusters_energy     = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.energy");
-  CorrectedCaloTopoClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.x");
-  CorrectedCaloTopoClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.y");
-  CorrectedCaloTopoClusters_position_z = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.z");
-  CorrectedCaloTopoClusters_hits_begin = new TTreeReaderArray<UInt_t>(*fReader, "CorrectedCaloTopoClusters.hits_begin");
-  CorrectedCaloTopoClusters_hits_end   = new TTreeReaderArray<UInt_t>(*fReader, "CorrectedCaloTopoClusters.hits_end");
-  
-  // 1f. - cells in the topo clusters
-  PositionedCaloTopoClusterCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "PositionedCaloTopoClusterCells.cellID");
-  PositionedCaloTopoClusterCells_energy     = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloTopoClusterCells.energy");
-  PositionedCaloTopoClusterCells_position_x = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloTopoClusterCells.position.x");
-  PositionedCaloTopoClusterCells_position_y = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloTopoClusterCells.position.y");
-  PositionedCaloTopoClusterCells_position_z = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloTopoClusterCells.position.z");
-  
-  //qs_rhoz.clear();
-  //qs_rhophi.clear();      
+
+  if (m_doSW) {
+    // SW clusters
+    CaloClusters_energy     = new TTreeReaderArray<Float_t>(*fReader, "CaloClusters.energy");
+    CaloClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, "CaloClusters.position.x");
+    CaloClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, "CaloClusters.position.y");
+    CaloClusters_position_z = new TTreeReaderArray<Float_t>(*fReader, "CaloClusters.position.z");
+    CaloClusters_hits_begin = new TTreeReaderArray<UInt_t>(*fReader, "CaloClusters.hits_begin");
+    CaloClusters_hits_end   = new TTreeReaderArray<UInt_t>(*fReader, "CaloClusters.hits_end");
+    
+    // cells in the SW clusters
+    PositionedCaloClusterCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "PositionedCaloClusterCells.cellID");
+    PositionedCaloClusterCells_energy     = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloClusterCells.energy");
+    PositionedCaloClusterCells_position_x = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloClusterCells.position.x");
+    PositionedCaloClusterCells_position_y = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloClusterCells.position.y");
+    PositionedCaloClusterCells_position_z = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloClusterCells.position.z");
+  }
+  if (m_doTopo) {
+    // corrected calo topo clusters
+    CorrectedCaloTopoClusters_energy     = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.energy");
+    CorrectedCaloTopoClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.x");
+    CorrectedCaloTopoClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.y");
+    CorrectedCaloTopoClusters_position_z = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.z");
+    CorrectedCaloTopoClusters_hits_begin = new TTreeReaderArray<UInt_t>(*fReader, "CorrectedCaloTopoClusters.hits_begin");
+    CorrectedCaloTopoClusters_hits_end   = new TTreeReaderArray<UInt_t>(*fReader, "CorrectedCaloTopoClusters.hits_end");
+    
+    // cells in the topo clusters
+    PositionedCaloTopoClusterCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "PositionedCaloTopoClusterCells.cellID");
+    PositionedCaloTopoClusterCells_energy     = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloTopoClusterCells.energy");
+    PositionedCaloTopoClusterCells_position_x = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloTopoClusterCells.position.x");
+    PositionedCaloTopoClusterCells_position_y = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloTopoClusterCells.position.y");
+    PositionedCaloTopoClusterCells_position_z = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloTopoClusterCells.position.z");
+  }
 }
 
 EventReader::~EventReader() {
@@ -168,17 +185,32 @@ EventReader::~EventReader() {
     delete ECalBarrelPositionedCells_position_y;
     delete ECalBarrelPositionedCells_position_z;
   }
-  delete CorrectedCaloTopoClusters_energy;
-  delete CorrectedCaloTopoClusters_position_x;
-  delete CorrectedCaloTopoClusters_position_y;
-  delete CorrectedCaloTopoClusters_position_z;
-  delete CorrectedCaloTopoClusters_hits_begin;
-  delete CorrectedCaloTopoClusters_hits_end;
-  delete PositionedCaloTopoClusterCells_cellID;
-  delete PositionedCaloTopoClusterCells_energy;
-  delete PositionedCaloTopoClusterCells_position_x;
-  delete PositionedCaloTopoClusterCells_position_y;
-  delete PositionedCaloTopoClusterCells_position_z;
+  if (m_doSW) {
+    delete CaloClusters_energy;
+    delete CaloClusters_position_x;
+    delete CaloClusters_position_y;
+    delete CaloClusters_position_z;
+    delete CaloClusters_hits_begin;
+    delete CaloClusters_hits_end;
+    delete PositionedCaloClusterCells_cellID;
+    delete PositionedCaloClusterCells_energy;
+    delete PositionedCaloClusterCells_position_x;
+    delete PositionedCaloClusterCells_position_y;
+    delete PositionedCaloClusterCells_position_z;
+  }
+  if (m_doTopo) {
+    delete CorrectedCaloTopoClusters_energy;
+    delete CorrectedCaloTopoClusters_position_x;
+    delete CorrectedCaloTopoClusters_position_y;
+    delete CorrectedCaloTopoClusters_position_z;
+    delete CorrectedCaloTopoClusters_hits_begin;
+    delete CorrectedCaloTopoClusters_hits_end;
+    delete PositionedCaloTopoClusterCells_cellID;
+    delete PositionedCaloTopoClusterCells_energy;
+    delete PositionedCaloTopoClusterCells_position_x;
+    delete PositionedCaloTopoClusterCells_position_y;
+    delete PositionedCaloTopoClusterCells_position_z;
+  }
   delete fReader;
 }
 

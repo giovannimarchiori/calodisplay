@@ -54,6 +54,366 @@ Bool_t TGLConstAnnotation::MouseEnter(TGLOvlSelectRecord& /*rec*/)
 }
 
 
+void EventDisplay::FillClusters(std::string clusterType) {
+
+  if (clusterType == "topo") std::cout << "Creating topo clusters" << std::endl;
+  else if (clusterType == "sw") std::cout << "Creating SW clusters" << std::endl;
+  else {
+    std::cout << "Unknown cluster type " << clusterType << std::endl;
+  }
+
+  TEvePointSet* clusters = nullptr;
+  TEveElementList* clusters_3D = nullptr;
+  TEveElementList* clusters_rhoz = nullptr;
+  TEveElementList* clusters_rhophi = nullptr;
+
+  const double cm = geomReader->cm;
+  const double mm = geomReader->mm;
+  const double rMin = geomReader->rMin;
+  double rMax = doHCal? geomReader->rMaxHCal : geomReader->rMax;
+  const double alpha = geomReader->alpha;
+  const double thetaGrid = geomReader->thetaGrid;
+  const double gridPhi = geomReader->gridPhi;
+  const double phiMin = geomReader->phiMin;
+  
+  if (clusterType == "topo") {
+    clusters = topoclusters;
+  }
+  else {
+    clusters = swclusters;
+  }
+    
+  // centers of the clusters
+  if (clusterType=="topo") {
+    if (topoclusters == nullptr) {
+      topoclusters = new TEvePointSet();
+      topoclusters->SetName(Form("%s clusters (E>%.1f GeV)", clusterType.c_str(), ClusterEnergyThreshold));
+      topoclusters->SetMarkerColor(kGreen);
+      gEve->AddElement(topoclusters);
+    }
+    else
+      topoclusters->Reset();      
+    clusters = topoclusters;
+  }
+  else {
+    if (swclusters == nullptr) {
+      swclusters = new TEvePointSet();
+      swclusters->SetName(Form("%s clusters (E>%.1f GeV)", clusterType.c_str(), ClusterEnergyThreshold));
+      swclusters->SetMarkerColor(kGray);
+      gEve->AddElement(swclusters);
+    }
+    else
+      swclusters->Reset();      
+    clusters = swclusters;
+  }
+  clusters->SetMarkerStyle(4);
+  clusters->SetMarkerSize(6);
+
+  unsigned int nClusters = (clusterType=="topo") ?
+    eventReader->CorrectedCaloTopoClusters_position_x->GetSize() :
+    eventReader->CaloClusters_position_x->GetSize() ;
+  
+  for (unsigned int i = 0; i < nClusters; i ++) {
+    float E = (clusterType=="topo") ?
+      (*eventReader->CorrectedCaloTopoClusters_energy)[i] :
+      (*eventReader->CaloClusters_energy)[i] ;
+    if (E < ClusterEnergyThreshold) continue;
+    // topo cluster positions are in cm while calo clusters and hits/cells in mm ... ?
+    if (clusterType=="topo") {
+      clusters->SetNextPoint( (*eventReader->CorrectedCaloTopoClusters_position_x)[i] * cm ,
+			      (*eventReader->CorrectedCaloTopoClusters_position_y)[i] * cm ,
+			      (*eventReader->CorrectedCaloTopoClusters_position_z)[i] * cm );
+    }
+    else {
+      clusters->SetNextPoint( (*eventReader->CaloClusters_position_x)[i] * mm ,
+			      (*eventReader->CaloClusters_position_y)[i] * mm ,
+			      (*eventReader->CaloClusters_position_z)[i] * mm );
+    }
+  }
+  
+  std::vector<TEveQuadSet*> qs_rhoz;
+  std::vector<TEveQuadSet*> qs_rhophi;
+  std::vector<TEveBoxSet*> bs;
+  
+  TEveRGBAPalette *pal = new TEveRGBAPalette(0, 1000);
+      
+  // clusters in 3D
+  if (clusterType=="topo") {
+    if (topoclusters_3D==nullptr) {
+      topoclusters_3D = new TEveElementList(Form("%s clusters in 3D (no E cut)", clusterType.c_str()));
+      gEve->AddElement(topoclusters_3D);
+    }
+    else
+      topoclusters_3D->DestroyElements();
+    clusters_3D = topoclusters_3D;
+  }
+  else {
+    if (swclusters_3D==nullptr) {
+      swclusters_3D = new TEveElementList(Form("%s clusters in 3D (no E cut)", clusterType.c_str()));
+      gEve->AddElement(swclusters_3D);
+    }
+    else
+      swclusters_3D->DestroyElements();
+    clusters_3D = swclusters_3D;
+  }
+  
+  // clusters in 2D
+  if (clusterType=="topo") {
+    if (topoclusters_rhoz==nullptr) {
+      topoclusters_rhoz = new TEveElementList(Form("%s clusters in rho-z (E>%.1f GeV)",
+						   clusterType.c_str(),
+						   ClusterEnergyThreshold));
+      // add to scene (that is not auto-projected!)
+      rhoZEventSceneManual->AddElement(topoclusters_rhoz);
+      gEve->AddToListTree(topoclusters_rhoz,false);
+    }
+    else
+      topoclusters_rhoz->DestroyElements();
+
+    if (topoclusters_rhophi==nullptr) {
+      topoclusters_rhophi = new TEveElementList(Form("%s clusters in rho-phi (E>%.1f GeV)",
+						     clusterType.c_str(),
+						     ClusterEnergyThreshold));
+      // add to scene (that is not auto-projected!)
+      rhoPhiEventSceneManual->AddElement(topoclusters_rhophi);
+      gEve->AddToListTree(topoclusters_rhophi,false);
+    }
+    else
+      topoclusters_rhophi->DestroyElements();
+    clusters_rhoz = topoclusters_rhoz;
+    clusters_rhophi = topoclusters_rhophi;
+  }
+  else {
+    if (swclusters_rhoz==nullptr) {
+      swclusters_rhoz = new TEveElementList(Form("%s clusters in rho-z (E>%.1f GeV)",
+						   clusterType.c_str(),
+						   ClusterEnergyThreshold));
+      // add to scene (that is not auto-projected!)
+      rhoZEventSceneManual->AddElement(swclusters_rhoz);
+      gEve->AddToListTree(swclusters_rhoz,false);
+    }
+    else
+      swclusters_rhoz->DestroyElements();
+    
+    if (swclusters_rhophi==nullptr) {
+      swclusters_rhophi = new TEveElementList(Form("%s clusters in rho-phi (E>%.1f GeV)",
+						     clusterType.c_str(),
+						     ClusterEnergyThreshold));
+      // add to scene (that is not auto-projected!)
+      rhoPhiEventSceneManual->AddElement(swclusters_rhophi);
+      gEve->AddToListTree(swclusters_rhophi,false);
+    }
+    else
+      swclusters_rhophi->DestroyElements();
+    clusters_rhoz = swclusters_rhoz;
+    clusters_rhophi = swclusters_rhophi;
+  }
+
+  
+  for (unsigned int i = 0; i < nClusters; i ++) {
+    float energy, xcl, ycl, zcl;
+    if (clusterType == "topo") {
+      energy = (*eventReader->CorrectedCaloTopoClusters_energy)[i];
+      xcl = (*eventReader->CorrectedCaloTopoClusters_position_x)[i];
+      ycl = (*eventReader->CorrectedCaloTopoClusters_position_y)[i];
+      zcl = (*eventReader->CorrectedCaloTopoClusters_position_z)[i];
+    }
+    else {
+      energy = (*eventReader->CaloClusters_energy)[i];
+      xcl = (*eventReader->CaloClusters_position_x)[i];
+      ycl = (*eventReader->CaloClusters_position_y)[i];
+      zcl = (*eventReader->CaloClusters_position_z)[i];
+    }
+    float rcl = sqrt(xcl*xcl + ycl*ycl);
+    float phicl = atan2(ycl, xcl);
+    float thetacl = atan2(rcl, zcl);
+
+    if (energy < ClusterEnergyThreshold) {
+      qs_rhoz.push_back(nullptr);
+      qs_rhophi.push_back(nullptr);
+    }
+    else {
+      TEveQuadSet* aqs = new TEveQuadSet(TEveQuadSet::kQT_FreeQuad, false, 32,
+					 Form("%s cluster %d", clusterType.c_str(), (int) i));
+      aqs->SetMainTransparency(80);
+      // by calling SetOwnIds(kTRUE) the digit-set becomes
+      // the owner of the assigned objects and deletes
+      // them on destruction.
+      aqs->SetOwnIds(kTRUE);
+      aqs->SetPalette(pal);
+      aqs->SetTitle(Form("E = %f GeV\nR = %f cm\ntheta = %f\nphi = %f",
+			 energy,
+			 rcl,
+			 thetacl,
+			 phicl));
+      qs_rhoz.push_back(aqs);
+      clusters_rhoz->AddElement(aqs);
+	  
+      TEveQuadSet* aqs2 = new TEveQuadSet(TEveQuadSet::kQT_FreeQuad, false, 32,
+					  Form("%s cluster %d", clusterType.c_str(), (int) i));
+      aqs2->SetMainTransparency(80);
+      aqs2->SetOwnIds(kTRUE);
+      aqs2->SetPalette(pal);
+      aqs2->SetTitle(Form("E = %f GeV\nR = %f cm\ntheta = %f\nphi = %f",			    
+			  energy,
+			  rcl,
+			  thetacl,
+			  phicl));
+      qs_rhophi.push_back(aqs2);
+      clusters_rhophi->AddElement(aqs2);
+    }
+	
+    TEveBoxSet* _bs = new TEveBoxSet(Form("%s cluster %d", clusterType.c_str(), (int) i),"");
+    _bs->Reset(TEveBoxSet::kBT_FreeBox, false, 32);
+    _bs->SetMainTransparency(80);
+    _bs->SetOwnIds(kTRUE);
+    _bs->SetPalette(pal);
+    _bs->SetTitle(Form("E = %f GeV\nR = %f cm\ntheta = %f\nphi = %f",
+		       energy,
+		       rcl,
+		       thetacl,
+		       phicl));
+    //bs_topo.push_back(_bs);
+    bs.push_back(_bs);
+    clusters_3D->AddElement(_bs);
+  }
+  
+  // loop over cells and attach them to clusters
+  unsigned int nCells = (clusterType=="topo") ?
+    eventReader->PositionedCaloTopoClusterCells_energy->GetSize() :
+    eventReader->PositionedCaloClusterCells_energy->GetSize();
+  for (unsigned int i = 0; i < nCells; i ++) {
+    int icl = -1;
+    for (unsigned int j = 0; j < nClusters; j ++) {
+      unsigned int first_hit, last_hit;
+      if (clusterType=="topo") {
+	first_hit = (*eventReader->CorrectedCaloTopoClusters_hits_begin)[j];
+	last_hit =  (*eventReader->CorrectedCaloTopoClusters_hits_end)[j];
+      }
+      else {
+	first_hit = (*eventReader->CaloClusters_hits_begin)[j];
+	last_hit =  (*eventReader->CaloClusters_hits_end)[j];
+      }
+      // TODO check again if < or <=
+      if (i >= first_hit && i < last_hit) {
+	icl = j;
+	break;
+      }
+    }
+    if (icl==-1) continue; // should never happen..
+    ULong_t cellID;
+    float energy, x_center, y_center, z_center;
+    if (clusterType=="topo") {
+      cellID = (*eventReader->PositionedCaloTopoClusterCells_cellID)[i];
+      energy = (*eventReader->PositionedCaloTopoClusterCells_energy)[i];
+      x_center = (*eventReader->PositionedCaloTopoClusterCells_position_x)[i] * mm;
+      y_center = (*eventReader->PositionedCaloTopoClusterCells_position_y)[i] * mm;
+      z_center = (*eventReader->PositionedCaloTopoClusterCells_position_z)[i] * mm;
+    }
+    else {
+      cellID = (*eventReader->PositionedCaloClusterCells_cellID)[i];
+      energy = (*eventReader->PositionedCaloClusterCells_energy)[i];
+      x_center = (*eventReader->PositionedCaloClusterCells_position_x)[i] * mm;
+      y_center = (*eventReader->PositionedCaloClusterCells_position_y)[i] * mm;
+      z_center = (*eventReader->PositionedCaloClusterCells_position_z)[i] * mm;
+    }      
+    float r_center = sqrt(x_center*x_center + y_center*y_center);
+    int layer = (int) DetectorGeometry::Layer(cellID);
+    float r_in = geomReader->r[layer];
+    float r_out = geomReader->r[layer+1];
+    float theta_center = atan2(r_center, z_center);
+    //float phi_center = atan2(y_center, x_center);
+
+    
+    // cluster cells in rho-z projection
+    float verts[12];
+    verts[0] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+    verts[1] = r_in * sgn(y_center);
+    verts[3] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+    verts[4] = r_in * sgn(y_center);
+    verts[6] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+    verts[7] = r_out * sgn(y_center);
+    verts[9] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+    verts[10] = r_out * sgn(y_center);
+
+    verts[2] = verts[5] = verts[8] = verts[11] = 0.;
+    if (qs_rhoz[icl]!=nullptr) {
+      qs_rhoz[icl]->AddQuad(verts);
+      qs_rhoz[icl]->QuadValue( (int) (1000 * energy) );
+      qs_rhoz[icl]->QuadId( new TNamed(Form("%s cell %lu", clusterType.c_str(), cellID), "Dong!") );
+    }
+    // cluster cells in rho-phi projection
+    int module = (int) DetectorGeometry::Module(cellID);
+    double Lin = geomReader->getL(alpha, rMin, geomReader->r[layer]);
+    double Lout = geomReader->getL(alpha, rMin, geomReader->r[layer+1]);
+    double deltaL = rMin*sin(gridPhi/2.0)*sin(alpha);
+    for (int j = 0; j < geomReader->mergedModules[layer]; j++) {
+      int iModule = module + j;
+      double phi0 = phiMin + iModule*gridPhi;
+      verts[0] = rMin*cos(phi0) + (Lin+deltaL)*cos(phi0+alpha);
+      verts[1] = rMin*sin(phi0) + (Lin+deltaL)*sin(phi0+alpha);
+      verts[3] = rMin*cos(phi0) + (Lout+deltaL)*cos(phi0+alpha);
+      verts[4] = rMin*sin(phi0) + (Lout+deltaL)*sin(phi0+alpha);
+      verts[6] = rMin*cos(phi0+gridPhi) + (Lout-deltaL)*cos(phi0+gridPhi+alpha);
+      verts[7] = rMin*sin(phi0+gridPhi) + (Lout-deltaL)*sin(phi0+gridPhi+alpha);
+      verts[9] = rMin*cos(phi0+gridPhi) + (Lin-deltaL)*cos(phi0+gridPhi+alpha);
+      verts[10] = rMin*sin(phi0+gridPhi) + (Lin-deltaL)*sin(phi0+gridPhi+alpha);
+      verts[2] = verts[5] = verts[8] = verts[11] = 0.;
+      if (qs_rhophi[icl]!=nullptr) {
+	qs_rhophi[icl]->AddQuad(verts);
+	qs_rhophi[icl]->QuadValue( (int) (1000 * energy) );
+	qs_rhophi[icl]->QuadId(new TNamed(Form("%s cell %lu", clusterType.c_str(), cellID), "Dong!"));
+      }
+    }
+    
+      // cluster cells in 3D
+    float verts3D[24];
+    for (int j=0; j < geomReader->mergedModules[layer]; j++) {
+      int iModule = module + j;
+      double phi0 = phiMin + iModule * gridPhi;
+      
+      verts3D[0] = rMin*cos(phi0) + (Lin+deltaL)*cos(phi0+alpha);
+      verts3D[1] = rMin*sin(phi0) + (Lin+deltaL)*sin(phi0+alpha);
+      verts3D[2] = r_in/tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+      
+      verts3D[3] = rMin*cos(phi0+gridPhi) + (Lin-deltaL)*cos(phi0+gridPhi+alpha);
+      verts3D[4] = rMin*sin(phi0+gridPhi) + (Lin-deltaL)*sin(phi0+gridPhi+alpha);
+      verts3D[5] = r_in/tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+      
+      verts3D[6] = rMin*cos(phi0+gridPhi) + (Lin-deltaL)*cos(phi0+gridPhi+alpha);
+      verts3D[7] = rMin*sin(phi0+gridPhi) + (Lin-deltaL)*sin(phi0+gridPhi+alpha);
+      verts3D[8] = r_in/tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+      
+      verts3D[9] = rMin*cos(phi0) + (Lin+deltaL)*cos(phi0+alpha);
+      verts3D[10] = rMin*sin(phi0) + (Lin+deltaL)*sin(phi0+alpha);
+      verts3D[11] = r_in/tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+      
+      verts3D[12] = rMin*cos(phi0) + (Lout+deltaL)*cos(phi0+alpha);
+      verts3D[13] = rMin*sin(phi0) + (Lout+deltaL)*sin(phi0+alpha);
+      verts3D[14] = r_out/tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+      
+      verts3D[15] = rMin*cos(phi0+gridPhi) + (Lout-deltaL)*cos(phi0+gridPhi+alpha);
+      verts3D[16] = rMin*sin(phi0+gridPhi) + (Lout-deltaL)*sin(phi0+gridPhi+alpha);
+      verts3D[17] = r_out/tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+      
+      verts3D[18] = rMin*cos(phi0+gridPhi) + (Lout-deltaL)*cos(phi0+gridPhi+alpha);
+      verts3D[19] = rMin*sin(phi0+gridPhi) + (Lout-deltaL)*sin(phi0+gridPhi+alpha);
+      verts3D[20] = r_out/tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+      
+      verts3D[21] = rMin*cos(phi0) + (Lout+deltaL)*cos(phi0+alpha);
+      verts3D[22] = rMin*sin(phi0) + (Lout+deltaL)*sin(phi0+alpha);
+      verts3D[23] = r_out/tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+      
+      //bs_topo[icl]->AddBox(verts3D);
+      //bs_topo[icl]->DigitValue( (int) (1000 * energy) );
+      bs[icl]->AddBox(verts3D);
+      bs[icl]->DigitValue( (int) (1000 * energy) );
+      //bs->BoxId(new TNamed(Form("Cell %lu", cellID), "Dong!"));
+    }
+  }
+}
+
+
 void EventDisplay::loadEvent(int event) {
   
   if (event != -1) eventId = event;
@@ -90,12 +450,14 @@ void EventDisplay::loadEvent(int event) {
 
   const double cm = geomReader->cm;
   const double mm = geomReader->mm;
-  const double rMin = geomReader->rMin;
   double rMax = doHCal? geomReader->rMaxHCal : geomReader->rMax;
+  /*
+  const double rMin = geomReader->rMin;
   const double alpha = geomReader->alpha;
   const double thetaGrid = geomReader->thetaGrid;
   const double gridPhi = geomReader->gridPhi;
   const double phiMin = geomReader->phiMin;
+  */
   
   //
   // particles
@@ -352,250 +714,13 @@ void EventDisplay::loadEvent(int event) {
   //
   // clusters
   //
-  if (drawTopoClusters) {
-    cout << "Creating clusters" << endl;
+  if (drawTopoClusters) FillClusters("topo");
+  if (drawSWClusters) FillClusters("sw");
 
-    // centers of the clusters
-    if (clusters == nullptr) {
-      clusters = new TEvePointSet();
-      clusters->SetName(Form("clusters (E>%.1f GeV)",TopoClusterEnergyThreshold));
-      clusters->SetMarkerStyle(4);
-      clusters->SetMarkerSize(6);
-      clusters->SetMarkerColor(kGreen);
-      gEve->AddElement(clusters);
-    }
-    else
-      clusters->Reset();
-      
-    for (unsigned int i = 0; i < eventReader->CorrectedCaloTopoClusters_position_x->GetSize(); i ++) {
-      float E = (*eventReader->CorrectedCaloTopoClusters_energy)[i];
-      if (E < TopoClusterEnergyThreshold) continue;
-      // cluster positions are in cm and hits/cells in mm ...
-      clusters->SetNextPoint( (*eventReader->CorrectedCaloTopoClusters_position_x)[i] * cm ,
-			      (*eventReader->CorrectedCaloTopoClusters_position_y)[i] * cm ,
-			      (*eventReader->CorrectedCaloTopoClusters_position_z)[i] * cm ); 
-    }
 
-      
-    // the DestroyElements method does not work for TExeQuadSet as for the TEvePointSet..
-    // so I have to destroy and recreate the quad and box sets
-    for (auto qs : qs_rhoz) {
-      if (qs)
-	qs->Destroy();
-    }
-    qs_rhoz.clear();
-      
-    for (auto qs : qs_rhophi) {
-      if (qs)
-	qs->Destroy();
-    }
-    qs_rhophi.clear();
-
-    for (auto _bs : bs) {
-      if (_bs)
-	_bs->Destroy();
-    }
-    bs.clear();
-
-    TEveRGBAPalette *pal = new TEveRGBAPalette(0, 1000);
-      
-    // clusters in 3D
-    if (topoclusters_3D==nullptr) {
-      topoclusters_3D = new TEveElementList("Clusters in 3D (no E cut)");
-      gEve->AddElement(topoclusters_3D);
-    }
-    else
-      topoclusters_3D->DestroyElements();
-      
-    // clusters in 2D
-    if (topoclusters_rhoz==nullptr) {
-      topoclusters_rhoz = new TEveElementList(Form("Clusters in rho-z (E>%.1f GeV)",
-						   TopoClusterEnergyThreshold));
-      // add to scene or manager?
-      // rhoZProjManager->AddElement(topoclusters_rhoz);
-      rhoZEventSceneManual->AddElement(topoclusters_rhoz);
-      gEve->AddToListTree(topoclusters_rhoz,false);
-    }
-    else
-      topoclusters_rhoz->DestroyElements();
-
-    if (topoclusters_rhophi==nullptr) {
-      topoclusters_rhophi = new TEveElementList(Form("Clusters in rho-phi (E>%.1f GeV)",
-						     TopoClusterEnergyThreshold));
-      // add to scene or manager? -- scene that is not auto-projected!
-      // rhoPhiProjManager->AddElement(topoclusters_rhophi);
-      rhoPhiEventSceneManual->AddElement(topoclusters_rhophi);
-      gEve->AddToListTree(topoclusters_rhophi,false);
-    }
-    else
-      topoclusters_rhophi->DestroyElements();
-
-    for (unsigned int i = 0; i < eventReader->CorrectedCaloTopoClusters_energy->GetSize(); i ++) {
-      float energy = (*eventReader->CorrectedCaloTopoClusters_energy)[i];
-      float xcl = (*eventReader->CorrectedCaloTopoClusters_position_x)[i];
-      float ycl = (*eventReader->CorrectedCaloTopoClusters_position_y)[i];
-      float zcl = (*eventReader->CorrectedCaloTopoClusters_position_z)[i];
-      float rcl = sqrt(xcl*xcl + ycl*ycl);
-      float phicl = atan2(ycl, xcl);
-      float thetacl = atan2(rcl, zcl);
-
-      if (energy < TopoClusterEnergyThreshold) {
-	qs_rhoz.push_back(nullptr);
-	qs_rhophi.push_back(nullptr);
-      }
-      else {
-	TEveQuadSet* aqs = new TEveQuadSet(TEveQuadSet::kQT_FreeQuad, false, 32,
-					   Form("cluster %d", (int) i));
-	aqs->SetMainTransparency(80);
-	// by calling SetOwnIds(kTRUE) the digit-set becomes
-	// the owner of the assigned objects and deletes
-	// them on destruction.
-	aqs->SetOwnIds(kTRUE);
-	aqs->SetPalette(pal);
-	aqs->SetTitle(Form("E = %f GeV\nR = %f cm\ntheta = %f\nphi = %f",
-			   energy,
-			   rcl,
-			   thetacl,
-			   phicl));
-	qs_rhoz.push_back(aqs);
-	topoclusters_rhoz->AddElement(aqs);
-	  
-	TEveQuadSet* aqs2 = new TEveQuadSet(TEveQuadSet::kQT_FreeQuad, false, 32,
-					    Form("cluster %d", (int) i));
-	aqs2->SetMainTransparency(80);
-	aqs2->SetOwnIds(kTRUE);
-	aqs2->SetPalette(pal);
-	aqs2->SetTitle(Form("E = %f GeV\nR = %f cm\ntheta = %f\nphi = %f",			    
-			    energy,
-			    rcl,
-			    thetacl,
-			    phicl));
-	qs_rhophi.push_back(aqs2);
-	topoclusters_rhophi->AddElement(aqs2);
-      }
-	
-      TEveBoxSet* _bs = new TEveBoxSet(Form("cluster %d", (int) i),"");
-      _bs->Reset(TEveBoxSet::kBT_FreeBox, false, 32);
-      _bs->SetMainTransparency(80);
-      _bs->SetOwnIds(kTRUE);
-      _bs->SetPalette(pal);
-      _bs->SetTitle(Form("E = %f GeV\nR = %f cm\ntheta = %f\nphi = %f",
-			 energy,
-			 rcl,
-			 thetacl,
-			 phicl));
-      bs.push_back(_bs);
-      topoclusters_3D->AddElement(_bs);
-    }
-      
-    // loop over cells and attach them to clusters
-    for (unsigned int i = 0; i < eventReader->PositionedCaloTopoClusterCells_energy->GetSize(); i ++) {
-      int icl = -1;
-      for (unsigned int j = 0; j < eventReader->CorrectedCaloTopoClusters_energy->GetSize(); j ++) {
-	if (i >= (*eventReader->CorrectedCaloTopoClusters_hits_begin)[j] &&
-	    i < (*eventReader->CorrectedCaloTopoClusters_hits_end)[j]) {
-	  icl = j;
-	  break;
-	}
-      }
-      if (icl==-1) continue; // should never happen..
-      ULong_t cellID = (*eventReader->PositionedCaloTopoClusterCells_cellID)[i];
-      int layer = (int) DetectorGeometry::Layer(cellID);
-      float x_center = (*eventReader->PositionedCaloTopoClusterCells_position_x)[i] * mm;
-      float y_center = (*eventReader->PositionedCaloTopoClusterCells_position_y)[i] * mm;
-      float z_center = (*eventReader->PositionedCaloTopoClusterCells_position_z)[i] * mm;
-      float r_center = sqrt(x_center*x_center + y_center*y_center);
-      float r_in = geomReader->r[layer];
-      float r_out = geomReader->r[layer+1];
-      float theta_center = atan2(r_center, z_center);
-      //float phi_center = atan2(y_center, x_center);
-      float energy = (*eventReader->PositionedCaloTopoClusterCells_energy)[i];
-	
-      // cluster cells in rho-z projection
-      float verts[12];
-      verts[0] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-      verts[1] = r_in * sgn(y_center);
-      verts[3] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-      verts[4] = r_in * sgn(y_center);
-      verts[6] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-      verts[7] = r_out * sgn(y_center);
-      verts[9] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-      verts[10] = r_out * sgn(y_center);
-      verts[2] = verts[5] = verts[8] = verts[11] = 0.;
-      if (qs_rhoz[icl]!=nullptr) {
-	qs_rhoz[icl]->AddQuad(verts);
-	qs_rhoz[icl]->QuadValue( (int) (1000 * energy) );
-	qs_rhoz[icl]->QuadId( new TNamed(Form("Cell %lu", cellID), "Dong!") );
-      }
-      // cluster cells in rho-phi projection
-      int module = (int) DetectorGeometry::Module(cellID);
-      double Lin = geomReader->getL(alpha, rMin, geomReader->r[layer]);
-      double Lout = geomReader->getL(alpha, rMin, geomReader->r[layer+1]);
-      double deltaL = rMin*sin(gridPhi/2.0)*sin(alpha);
-      for (int j = 0; j < geomReader->mergedModules[layer]; j++) {
-	int iModule = module + j;
-	double phi0 = phiMin + iModule*gridPhi;
-	verts[0] = rMin*cos(phi0) + (Lin+deltaL)*cos(phi0+alpha);
-	verts[1] = rMin*sin(phi0) + (Lin+deltaL)*sin(phi0+alpha);
-	verts[3] = rMin*cos(phi0) + (Lout+deltaL)*cos(phi0+alpha);
-	verts[4] = rMin*sin(phi0) + (Lout+deltaL)*sin(phi0+alpha);
-	verts[6] = rMin*cos(phi0+gridPhi) + (Lout-deltaL)*cos(phi0+gridPhi+alpha);
-	verts[7] = rMin*sin(phi0+gridPhi) + (Lout-deltaL)*sin(phi0+gridPhi+alpha);
-	verts[9] = rMin*cos(phi0+gridPhi) + (Lin-deltaL)*cos(phi0+gridPhi+alpha);
-	verts[10] = rMin*sin(phi0+gridPhi) + (Lin-deltaL)*sin(phi0+gridPhi+alpha);
-	verts[2] = verts[5] = verts[8] = verts[11] = 0.;
-	if (qs_rhophi[icl]!=nullptr) {
-	  qs_rhophi[icl]->AddQuad(verts);
-	  qs_rhophi[icl]->QuadValue( (int) (1000 * energy) );
-	  qs_rhophi[icl]->QuadId(new TNamed(Form("Cell %lu", cellID), "Dong!"));
-	}
-      }
-
-      // cluster cells in 3D
-      float verts3D[24];
-      for (int j=0; j < geomReader->mergedModules[layer]; j++) {
-	int iModule = module + j;
-	double phi0 = phiMin + iModule * gridPhi;
-	  
-	verts3D[0] = rMin*cos(phi0) + (Lin+deltaL)*cos(phi0+alpha);
-	verts3D[1] = rMin*sin(phi0) + (Lin+deltaL)*sin(phi0+alpha);
-	verts3D[2] = r_in/tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-	  
-	verts3D[3] = rMin*cos(phi0+gridPhi) + (Lin-deltaL)*cos(phi0+gridPhi+alpha);
-	verts3D[4] = rMin*sin(phi0+gridPhi) + (Lin-deltaL)*sin(phi0+gridPhi+alpha);
-	verts3D[5] = r_in/tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-	  
-	verts3D[6] = rMin*cos(phi0+gridPhi) + (Lin-deltaL)*cos(phi0+gridPhi+alpha);
-	verts3D[7] = rMin*sin(phi0+gridPhi) + (Lin-deltaL)*sin(phi0+gridPhi+alpha);
-	verts3D[8] = r_in/tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-	  
-	verts3D[9] = rMin*cos(phi0) + (Lin+deltaL)*cos(phi0+alpha);
-	verts3D[10] = rMin*sin(phi0) + (Lin+deltaL)*sin(phi0+alpha);
-	verts3D[11] = r_in/tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-	  
-	verts3D[12] = rMin*cos(phi0) + (Lout+deltaL)*cos(phi0+alpha);
-	verts3D[13] = rMin*sin(phi0) + (Lout+deltaL)*sin(phi0+alpha);
-	verts3D[14] = r_out/tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-	  
-	verts3D[15] = rMin*cos(phi0+gridPhi) + (Lout-deltaL)*cos(phi0+gridPhi+alpha);
-	verts3D[16] = rMin*sin(phi0+gridPhi) + (Lout-deltaL)*sin(phi0+gridPhi+alpha);
-	verts3D[17] = r_out/tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-	  
-	verts3D[18] = rMin*cos(phi0+gridPhi) + (Lout-deltaL)*cos(phi0+gridPhi+alpha);
-	verts3D[19] = rMin*sin(phi0+gridPhi) + (Lout-deltaL)*sin(phi0+gridPhi+alpha);
-	verts3D[20] = r_out/tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-	  
-	verts3D[21] = rMin*cos(phi0) + (Lout+deltaL)*cos(phi0+alpha);
-	verts3D[22] = rMin*sin(phi0) + (Lout+deltaL)*sin(phi0+alpha);
-	verts3D[23] = r_out/tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-	  
-	bs[icl]->AddBox(verts3D);
-	bs[icl]->DigitValue( (int) (1000 * energy) );
-	//bs->BoxId(new TNamed(Form("Cell %lu", cellID), "Dong!"));
-      }
-    }
-  }
-
+  //
+  // event label
+  //
   if (eventLabel == nullptr) {
     eventLabel = new TGLConstAnnotation(gEve->GetDefaultGLViewer(),
 					Form("%s, %.1f GeV\nEvent %d",
@@ -1008,7 +1133,7 @@ void EventDisplay::startDisplay(int initialEvent) {
   
     cout << "Reading event data from file " << evtFile << endl << endl;
     TFile* f = TFile::Open(evtFile.c_str(), "READ");
-    eventReader = new EventReader(f, doHCal);
+    eventReader = new EventReader(f, doHCal, drawSWClusters, drawTopoClusters);
     nEvents = eventReader->nEvents;
     
     // load and display the requested event
