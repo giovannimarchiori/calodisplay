@@ -28,6 +28,7 @@
 #include <TEveProjectionAxes.h>
 
 #include <filesystem>
+#include <unordered_map>
 
 // return the sign of a float
 int sgn(float val) {
@@ -60,6 +61,7 @@ void EventDisplay::FillClusters(std::string clusterType) {
   else if (clusterType == "sw") std::cout << "Creating SW clusters" << std::endl;
   else {
     std::cout << "Unknown cluster type " << clusterType << std::endl;
+    return;
   }
 
   TEvePointSet* clusters = nullptr;
@@ -83,6 +85,7 @@ void EventDisplay::FillClusters(std::string clusterType) {
     clusters = swclusters;
   }
     
+
   // centers of the clusters
   if (clusterType=="topo") {
     if (topoclusters == nullptr) {
@@ -130,13 +133,16 @@ void EventDisplay::FillClusters(std::string clusterType) {
 			      (*eventReader->CaloClusters_position_z)[i] * mm );
     }
   }
-  
+
+
+  // now create the visual representation of the clustered cells 
   std::vector<TEveQuadSet*> qs_rhoz;
   std::vector<TEveQuadSet*> qs_rhophi;
   std::vector<TEveBoxSet*> bs;
-  
+
   TEveRGBAPalette *pal = new TEveRGBAPalette(0, 1000);
-      
+
+  // first, create the containers
   // clusters in 3D
   if (clusterType=="topo") {
     if (topoclusters_3D==nullptr) {
@@ -209,7 +215,12 @@ void EventDisplay::FillClusters(std::string clusterType) {
     clusters_rhophi = swclusters_rhophi;
   }
 
-  
+
+  // now loop over the clusters and fill the containers
+  // in 3D this is done in this first loop
+  // for 2D projection, in this loop integrate energy over projected dimension
+  // and fill map of 2D cell ID vs energy
+  // then the filling is done in a second loop later
   for (unsigned int i = 0; i < nClusters; i ++) {
     float energy, xcl, ycl, zcl;
     if (clusterType == "topo") {
@@ -227,7 +238,7 @@ void EventDisplay::FillClusters(std::string clusterType) {
     float rcl = sqrt(xcl*xcl + ycl*ycl);
     float phicl = atan2(ycl, xcl);
     float thetacl = atan2(rcl, zcl);
-
+      
     if (energy < ClusterEnergyThreshold) {
       qs_rhoz.push_back(nullptr);
       qs_rhophi.push_back(nullptr);
@@ -248,7 +259,7 @@ void EventDisplay::FillClusters(std::string clusterType) {
 			 phicl));
       qs_rhoz.push_back(aqs);
       clusters_rhoz->AddElement(aqs);
-	  
+
       TEveQuadSet* aqs2 = new TEveQuadSet(TEveQuadSet::kQT_FreeQuad, false, 32,
 					  Form("%s cluster %d", clusterType.c_str(), (int) i));
       aqs2->SetMainTransparency(80);
@@ -273,12 +284,13 @@ void EventDisplay::FillClusters(std::string clusterType) {
 		       rcl,
 		       thetacl,
 		       phicl));
-    //bs_topo.push_back(_bs);
     bs.push_back(_bs);
     clusters_3D->AddElement(_bs);
   }
-  
-  // loop over cells and attach them to clusters
+
+  // loop over cells
+  std::unordered_map<int, double> cellEnergies_rhoz;
+  std::unordered_map<int, double> cellEnergies_rhophi;
   unsigned int nCells = (clusterType=="topo") ?
     eventReader->PositionedCaloTopoClusterCells_energy->GetSize() :
     eventReader->PositionedCaloClusterCells_energy->GetSize();
@@ -316,60 +328,65 @@ void EventDisplay::FillClusters(std::string clusterType) {
       x_center = (*eventReader->PositionedCaloClusterCells_position_x)[i] * mm;
       y_center = (*eventReader->PositionedCaloClusterCells_position_y)[i] * mm;
       z_center = (*eventReader->PositionedCaloClusterCells_position_z)[i] * mm;
-    }      
+    }
     float r_center = sqrt(x_center*x_center + y_center*y_center);
+    // might need to add system (at least for topoclusters) to distinguish ecal/hcal...
     int layer = (int) DetectorGeometry::Layer(cellID);
+    int thetaID = (int) DetectorGeometry::ThetaBin(cellID);
+    int moduleID = (int) DetectorGeometry::Module(cellID);
+    // for 2D projections, assign unique ID based either on layer-theta (for rho-Z projection)
+    // or layer-module (for rho-phi projection)
+    // layer = 0..11 fits in 4 bits (0..15)
+    // theta = 0..800 fits in 10 bits (0..1023)
+    // module = 0..1535 fits in 11 bits (0..2043)
+    // cluster = assume < 512 (9 bits)
+    // so both IDs can fit in a 32-bit integer
+    // but could even play it safer and just use cellID and remove unused fields
+    // for clus
+    int rhophiID = icl + 512*layer + 512*16*moduleID;
+    int rhozID = icl + 512*layer + 512*16*thetaID;
+    
     float r_in = geomReader->r[layer];
     float r_out = geomReader->r[layer+1];
     float theta_center = atan2(r_center, z_center);
     //float phi_center = atan2(y_center, x_center);
 
-    
     // cluster cells in rho-z projection
-    float verts[12];
-    verts[0] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-    verts[1] = r_in * sgn(y_center);
-    verts[3] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-    verts[4] = r_in * sgn(y_center);
-    verts[6] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-    verts[7] = r_out * sgn(y_center);
-    verts[9] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-    verts[10] = r_out * sgn(y_center);
-
-    verts[2] = verts[5] = verts[8] = verts[11] = 0.;
+    // skip clusters with energy below threshold
     if (qs_rhoz[icl]!=nullptr) {
-      qs_rhoz[icl]->AddQuad(verts);
-      qs_rhoz[icl]->QuadValue( (int) (1000 * energy) );
-      qs_rhoz[icl]->QuadId( new TNamed(Form("%s cell %lu", clusterType.c_str(), cellID), "Dong!") );
-    }
-    // cluster cells in rho-phi projection
-    int module = (int) DetectorGeometry::Module(cellID);
-    double Lin = geomReader->getL(alpha, rMin, geomReader->r[layer]);
-    double Lout = geomReader->getL(alpha, rMin, geomReader->r[layer+1]);
-    double deltaL = rMin*sin(gridPhi/2.0)*sin(alpha);
-    for (int j = 0; j < geomReader->mergedModules[layer]; j++) {
-      int iModule = module + j;
-      double phi0 = phiMin + iModule*gridPhi;
-      verts[0] = rMin*cos(phi0) + (Lin+deltaL)*cos(phi0+alpha);
-      verts[1] = rMin*sin(phi0) + (Lin+deltaL)*sin(phi0+alpha);
-      verts[3] = rMin*cos(phi0) + (Lout+deltaL)*cos(phi0+alpha);
-      verts[4] = rMin*sin(phi0) + (Lout+deltaL)*sin(phi0+alpha);
-      verts[6] = rMin*cos(phi0+gridPhi) + (Lout-deltaL)*cos(phi0+gridPhi+alpha);
-      verts[7] = rMin*sin(phi0+gridPhi) + (Lout-deltaL)*sin(phi0+gridPhi+alpha);
-      verts[9] = rMin*cos(phi0+gridPhi) + (Lin-deltaL)*cos(phi0+gridPhi+alpha);
-      verts[10] = rMin*sin(phi0+gridPhi) + (Lin-deltaL)*sin(phi0+gridPhi+alpha);
-      verts[2] = verts[5] = verts[8] = verts[11] = 0.;
-      if (qs_rhophi[icl]!=nullptr) {
-	qs_rhophi[icl]->AddQuad(verts);
-	qs_rhophi[icl]->QuadValue( (int) (1000 * energy) );
-	qs_rhophi[icl]->QuadId(new TNamed(Form("%s cell %lu", clusterType.c_str(), cellID), "Dong!"));
+      // if cell ID (in rho-z) already inserted in map, sum energy of this cell
+      if (cellEnergies_rhoz.count(rhozID)) {
+	// debug
+	// std::cout << "Cell with layer, theta = " << layer << " " << thetaID << " already in map with energy " << cellEnergies_rhoz[rhozID] << " , adding energy " << energy << std::endl;
+	cellEnergies_rhoz[rhozID] += energy;
+      }
+      // otherwise insert new cell in map
+      else {
+	// debug
+	// std::cout << "Cell with layer, theta = " << layer << " " << thetaID << " NOT in map, inserting energy " << energy << std::endl;
+	cellEnergies_rhoz[rhozID] = energy;
+      }
+      // if cell ID (in rho-phi) already inserted in map, sum energy of this cell
+      if (cellEnergies_rhophi.count(rhophiID)) {
+	// debug
+	// std::cout << "Cell with layer, module = " << layer << " " << moduleID << " already in map with energy " << cellEnergies_rhophi[rhophiID] << " , adding energy " << energy << std::endl;
+	cellEnergies_rhophi[rhophiID] += energy;
+      }
+      // otherwise insert new cell in map
+      else {
+	// std::cout << "Cell with layer, module = " << layer << " " << moduleID << " NOT in map, inserting energy " << energy << std::endl;
+	cellEnergies_rhophi[rhophiID] = energy;
       }
     }
     
-      // cluster cells in 3D
+    // cluster cells in 3D
     float verts3D[24];
+    double Lin = geomReader->getL(alpha, rMin, r_in);
+    double Lout = geomReader->getL(alpha, rMin, r_out);
+    double deltaL = rMin*sin(gridPhi/2.0)*sin(alpha);
+
     for (int j=0; j < geomReader->mergedModules[layer]; j++) {
-      int iModule = module + j;
+      int iModule = moduleID + j;
       double phi0 = phiMin + iModule * gridPhi;
       
       verts3D[0] = rMin*cos(phi0) + (Lin+deltaL)*cos(phi0+alpha);
@@ -404,11 +421,156 @@ void EventDisplay::FillClusters(std::string clusterType) {
       verts3D[22] = rMin*sin(phi0) + (Lout+deltaL)*sin(phi0+alpha);
       verts3D[23] = r_out/tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
       
-      //bs_topo[icl]->AddBox(verts3D);
-      //bs_topo[icl]->DigitValue( (int) (1000 * energy) );
       bs[icl]->AddBox(verts3D);
       bs[icl]->DigitValue( (int) (1000 * energy) );
       //bs->BoxId(new TNamed(Form("Cell %lu", cellID), "Dong!"));
+    }
+  }
+
+
+  // and now draw the 2D projections
+  float verts[12];
+  // cluster cells in rho-z projection
+  // for this, unfortunately, I have to loop over all cells
+  // because I need to retrieve their position
+  // I cannot just loop over the map of the energies :(
+  // in alternative I should add methods to determine the
+  // center of the cells from theta bin, layer, and alpha...
+  /*
+  for (auto& [key, energy]: cellEnergies_rhoz) {
+    int ikey = (int) key;
+    int icl = ikey % (512*16);
+    int layer = (ikey / 512) % 16;
+    int thetaID = ikey / (512*16) ;
+    
+    float r_in = geomReader->r[layer];
+    float r_out = geomReader->r[layer+1];
+    float x_center, y_center, z_center;
+    if (clusterType=="topo") {
+      x_center = (*eventReader->PositionedCaloTopoClusterCells_position_x)[i] * mm;
+      y_center = (*eventReader->PositionedCaloTopoClusterCells_position_y)[i] * mm;
+      z_center = (*eventReader->PositionedCaloTopoClusterCells_position_z)[i] * mm;
+    }
+    else {
+      x_center = (*eventReader->PositionedCaloClusterCells_position_x)[i] * mm;
+      y_center = (*eventReader->PositionedCaloClusterCells_position_y)[i] * mm;
+      z_center = (*eventReader->PositionedCaloClusterCells_position_z)[i] * mm;
+    }
+    float r_center = sqrt(x_center*x_center + y_center*y_center);
+
+    float theta_center = atan2(r_center, z_center);
+    //float phi_center = atan2(y_center, x_center);
+
+    float verts[12];
+    verts[0] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+    verts[1] = r_in * sgn(y_center);
+    verts[3] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+    verts[4] = r_in * sgn(y_center);
+    verts[6] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+    verts[7] = r_out * sgn(y_center);
+    verts[9] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+    verts[10] = r_out * sgn(y_center);
+    verts[2] = verts[5] = verts[8] = verts[11] = 0.;
+    //if (qs_rhoz[icl]!=nullptr) {
+    qs_rhoz[icl]->AddQuad(verts);
+    qs_rhoz[icl]->QuadValue( (int) (1000 * energy) );
+    qs_rhoz[icl]->QuadId( new TNamed(Form("%s %d cell L%d Th%d", clusterType.c_str(), icl, layer, thetaID), "Dong!") );
+    //}
+  }
+  */
+
+  for (unsigned int i = 0; i < nCells; i ++) {
+    int icl = -1;
+    for (unsigned int j = 0; j < nClusters; j ++) {
+      unsigned int first_hit, last_hit;
+      if (clusterType=="topo") {
+	first_hit = (*eventReader->CorrectedCaloTopoClusters_hits_begin)[j];
+	last_hit =  (*eventReader->CorrectedCaloTopoClusters_hits_end)[j];
+      }
+      else {
+	first_hit = (*eventReader->CaloClusters_hits_begin)[j];
+	last_hit =  (*eventReader->CaloClusters_hits_end)[j];
+      }
+      // TODO check again if < or <=
+      if (i >= first_hit && i < last_hit) {
+	icl = j;
+	break;
+      }
+    }
+    if (icl==-1) continue; // should never happen..
+    ULong_t cellID;
+    float energy;
+    if (clusterType=="topo") {
+      cellID = (*eventReader->PositionedCaloTopoClusterCells_cellID)[i];
+    }
+    else {
+      cellID = (*eventReader->PositionedCaloClusterCells_cellID)[i];
+    }
+
+    int layer = (int) DetectorGeometry::Layer(cellID);
+    int thetaID = (int) DetectorGeometry::ThetaBin(cellID);
+    int rhozID = icl + 512*layer + 512*16*thetaID;
+    if (cellEnergies_rhoz.count(rhozID) == 0) continue;
+    energy = cellEnergies_rhoz[rhozID];
+    cellEnergies_rhoz.erase(rhozID);
+    float r_in = geomReader->r[layer];
+    float r_out = geomReader->r[layer+1];
+    float x_center, y_center, z_center;
+    if (clusterType=="topo") {
+      x_center = (*eventReader->PositionedCaloTopoClusterCells_position_x)[i] * mm;
+      y_center = (*eventReader->PositionedCaloTopoClusterCells_position_y)[i] * mm;
+      z_center = (*eventReader->PositionedCaloTopoClusterCells_position_z)[i] * mm;
+    }
+    else {
+      x_center = (*eventReader->PositionedCaloClusterCells_position_x)[i] * mm;
+      y_center = (*eventReader->PositionedCaloClusterCells_position_y)[i] * mm;
+      z_center = (*eventReader->PositionedCaloClusterCells_position_z)[i] * mm;
+    }
+    float r_center = sqrt(x_center*x_center + y_center*y_center);
+    float theta_center = atan2(r_center, z_center);
+    verts[0] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+    verts[1] = r_in * sgn(y_center);
+    verts[3] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+    verts[4] = r_in * sgn(y_center);
+    verts[6] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+    verts[7] = r_out * sgn(y_center);
+    verts[9] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
+    verts[10] = r_out * sgn(y_center);
+    verts[2] = verts[5] = verts[8] = verts[11] = 0.;
+    qs_rhoz[icl]->AddQuad(verts);
+    qs_rhoz[icl]->QuadValue( (int) (1000 * energy) );
+    qs_rhoz[icl]->QuadId( new TNamed(Form("%s %d cell L%d Th%d", clusterType.c_str(), icl, layer, thetaID), "Dong!") );
+  }
+  
+  // cluster cells in rho-phi projection
+  for (auto& [key, energy]: cellEnergies_rhophi) {
+    int ikey = (int) key;
+    int icl = ikey % 512;
+    int layer = (ikey / 512) % 16;
+    int moduleID = ikey / (512*16) ;
+    // std::cout << "cluster layer module = " << icl << " " << layer << " " << moduleID << std::endl;
+    
+    float r_in = geomReader->r[layer];
+    float r_out = geomReader->r[layer+1];
+    double Lin = geomReader->getL(alpha, rMin, r_in);
+    double Lout = geomReader->getL(alpha, rMin, r_out);
+    double deltaL = rMin*sin(gridPhi/2.0)*sin(alpha);
+    for (int j = 0; j < geomReader->mergedModules[layer]; j++) {
+      int iModule = moduleID + j;
+      double phi0 = phiMin + iModule*gridPhi;
+      verts[0] = rMin*cos(phi0) + (Lin+deltaL)*cos(phi0+alpha);
+      verts[1] = rMin*sin(phi0) + (Lin+deltaL)*sin(phi0+alpha);
+      verts[3] = rMin*cos(phi0) + (Lout+deltaL)*cos(phi0+alpha);
+      verts[4] = rMin*sin(phi0) + (Lout+deltaL)*sin(phi0+alpha);
+      verts[6] = rMin*cos(phi0+gridPhi) + (Lout-deltaL)*cos(phi0+gridPhi+alpha);
+      verts[7] = rMin*sin(phi0+gridPhi) + (Lout-deltaL)*sin(phi0+gridPhi+alpha);
+      verts[9] = rMin*cos(phi0+gridPhi) + (Lin-deltaL)*cos(phi0+gridPhi+alpha);
+      verts[10] = rMin*sin(phi0+gridPhi) + (Lin-deltaL)*sin(phi0+gridPhi+alpha);
+      verts[2] = verts[5] = verts[8] = verts[11] = 0.;
+      qs_rhophi[icl]->AddQuad(verts);
+      qs_rhophi[icl]->QuadValue( (int) (1000 * energy) );
+      //qs_rhophi[icl]->QuadId( new TNamed(Form("%s cell %lu", clusterType.c_str(), cellID), "Dong!"));
+      qs_rhophi[icl]->QuadId( new TNamed(Form("%s %d cell L%d M%d", clusterType.c_str(), icl, layer, moduleID), "Dong!") );
     }
   }
 }
@@ -439,7 +601,7 @@ void EventDisplay::loadEvent(int event) {
       pmax = _p;
       ipmax = i;
     }
-  } 
+  }
   int pdgID = (* eventReader->genParticles_PDG)[ipmax];
   if (pdgID == 111) partType = "pi0";
   else if (pdgID == 211) partType = "pi+";
@@ -909,7 +1071,7 @@ void EventDisplay::startDisplay(int initialEvent) {
       b->SetMainTransparency(90);
       b->SetNSegments(128);
       layers->AddElement(b);
-    }    
+    }
     // the electrodes
     TEveElementList* modules = new TEveElementList("modules");
     barrel->AddElement(modules);

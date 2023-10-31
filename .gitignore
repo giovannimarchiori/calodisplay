@@ -1,3 +1,5 @@
 dist/
 build/
 util/gdmltoroot_C*
+src/DetectorGeometry_cpp*
+*.root
