@@ -149,7 +149,13 @@ public:
   /******************************************************************************/
   // HELPER FUNCTIONS related to the readout
   /******************************************************************************/
-  
+
+  // extract number encoded in N bits starting at bit M from cellID  
+  static ULong_t ReadNbitsAtPositionMFromCellID(int n, int m, ULong_t cellID);
+
+  // extract system number from cellID
+  static ULong_t SystemID(ULong_t cellID);
+
   // extract layer number from cellID
   static ULong_t Layer(ULong_t cellID);
   

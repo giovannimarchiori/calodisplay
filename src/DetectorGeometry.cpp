@@ -163,20 +163,27 @@ void DetectorGeometry::calcGeom() {
 // HELPER FUNCTIONS related to the readout
 /******************************************************************************/
 
+ULong_t DetectorGeometry::ReadNbitsAtPositionMFromCellID(int n, int m, ULong_t cellID) {
+  const ULong_t mask = (1<<n) - 1;
+  return (cellID >> m) & mask;
+}
+
+// extract system ID from cellID
+ULong_t DetectorGeometry::SystemID(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(4, 0, cellID);
+}
+
 // extract layer number from cellID
 ULong_t DetectorGeometry::Layer(ULong_t cellID) {
-  const ULong_t mask = (1<<8) -1;
-  return (cellID >> 11) & mask;
+  return ReadNbitsAtPositionMFromCellID(8, 11, cellID);
 }
 
 // extract module number from cellID
 ULong_t DetectorGeometry::Module(ULong_t cellID) {
-  const ULong_t mask = (1<<11) -1;
-  return (cellID >> 19) & mask;
+  return ReadNbitsAtPositionMFromCellID(11, 19, cellID);
 }
 
 // extract theta bin from cellID
 ULong_t DetectorGeometry::ThetaBin(ULong_t cellID) {
-  const ULong_t mask = (1<<10) -1;
-  return (cellID >> 30) & mask;
+  return ReadNbitsAtPositionMFromCellID(10, 30, cellID);
 }
