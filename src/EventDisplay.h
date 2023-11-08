@@ -134,7 +134,8 @@ public:
   TEveElementList* topoclusters_3D = nullptr;
   TEveElementList* swclusters_3D = nullptr;
   
-  TEveGeoShape* barrel  = nullptr;
+  TEveGeoShape* ecalbarrel  = nullptr;
+  TEveGeoShape* hcalbarrel  = nullptr;
   TEveViewer* rhoPhiView = nullptr;
   TEveViewer* rhoZView = nullptr;
   TGLViewer* rhoPhiGLView = nullptr;

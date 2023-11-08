@@ -138,10 +138,6 @@ int main(int argc, char* argv[]) {
   }
 
   // check if there are some conflicting options
-  if (!display.useG4geom && display.doHCal) {
-    std::cerr << "Conflicting options --nog4 and --dohcal selected: simplified geometry not yet implemented for hcal!!!"  << std::endl;
-    return EXIT_FAILURE;
-  }
   if (!display.useG4geom && display.showFullDetector) {
     std::cerr << "Conflicting options --nog4 and --fulldet selected: simplified geometry not implemented for full detector!!!"  << std::endl;
     return EXIT_FAILURE;
