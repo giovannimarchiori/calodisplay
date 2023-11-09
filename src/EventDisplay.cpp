@@ -356,10 +356,10 @@ void EventDisplay::FillClusters(std::string clusterType)
       z_center = (*eventReader->PositionedCaloClusterCells_position_z)[i] * mm;
     }
     float r_center = sqrt(x_center * x_center + y_center * y_center);
-    // might need to add system (at least for topoclusters) to distinguish ecal/hcal...
-    int layer = (int)DetectorGeometry::Layer(cellID);
-    int thetaID = (int)DetectorGeometry::ThetaBin(cellID);
-    int moduleID = (int)DetectorGeometry::Module(cellID);
+    // TODO: might need to add system (at least for topoclusters) to distinguish ecal/hcal when we will have clusters from both...
+    int layer = (int)DetectorGeometry::ECalBarrelLayer(cellID);
+    int thetaID = (int)DetectorGeometry::ECalBarrelThetaBin(cellID);
+    int moduleID = (int)DetectorGeometry::ECalBarrelModule(cellID);
     // for 2D projections, assign unique ID based either on layer-theta (for rho-Z projection)
     // or layer-module (for rho-phi projection)
     // layer = 0..11 fits in 4 bits (0..15)
@@ -546,8 +546,9 @@ void EventDisplay::FillClusters(std::string clusterType)
       cellID = (*eventReader->PositionedCaloClusterCells_cellID)[i];
     }
 
-    int layer = (int)DetectorGeometry::Layer(cellID);
-    int thetaID = (int)DetectorGeometry::ThetaBin(cellID);
+    // TODO: update when we also have HCAL in topoclustering
+    int layer = (int)DetectorGeometry::ECalBarrelLayer(cellID);
+    int thetaID = (int)DetectorGeometry::ECalBarrelThetaBin(cellID);
     int rhozID = icl + 512 * layer + 512 * 16 * thetaID;
     if (cellEnergies_rhoz.count(rhozID) == 0)
       continue;

@@ -134,16 +134,18 @@ void DetectorGeometry::calcGeom() {
   
   cout << "r(min) = " << rMinHCal << " " << units << endl;
   cout << "r(max) = " << rMaxHCal << " " << units << endl;
-  cout << "total thickness = " << rMaxHCal-rMinHCal << " " << units << endl;
-  cout << "n(layers) = " << nLayersHCal << endl;
+  cout << "total thickness = " << rMaxHCal-rMinHCal << " " << units << endl << endl;
+  cout << "n(layers) = " << nLayersHCal << endl << endl;
   cout << "radial position of each layer: " << endl;
   for (int iLayer=0; iLayer<nLayersHCal; iLayer++) {
     cout <<  iLayer  <<  " " << rHCal[iLayer] << " - " << rHCal[iLayer+1] << " " << units << endl;
   }
+  cout << endl;
   cout << "radial thickness of each layer: " << endl;
   for (int iLayer=0; iLayer<nLayersHCal; iLayer++) {
     cout <<  iLayer  <<  " " << rHCal[iLayer+1]-rHCal[iLayer] << " " << units << endl;
   }
+  cout << endl;
   cout << "z range of envelope = " << zMinHCal << " - " << zMaxHCal << " " << units << endl;
   cout << "z range of front endplate = "
        << zMaxHCal + dzHCalEndPlate - thicknessHCalEndPlate << " - "
@@ -155,6 +157,13 @@ void DetectorGeometry::calcGeom() {
        << zMinHCal-dzHCalEndPlate+thicknessHCalEndPlate << " - "
        << zMaxHCal+dzHCalEndPlate-thicknessHCalEndPlate << " " << units << endl;
   cout << endl;
+  cout << "theta coverage of each layer: " << endl;
+  for (int iLayer=0; iLayer<nLayersHCal; iLayer++) {
+    float thetaMin = TMath::ATan2(rHCal[iLayer], zMaxHCal+dzHCalEndPlate-thicknessHCalEndPlate);
+    float thetaMax = TMath::ATan2(rHCal[iLayer], zMinHCal-dzHCalEndPlate+thicknessHCalEndPlate);
+    cout <<  iLayer  <<  " " << thetaMin << " - " << thetaMax << endl;
+  }
+  cout << endl << endl;
   
 }
 
@@ -168,22 +177,49 @@ ULong_t DetectorGeometry::ReadNbitsAtPositionMFromCellID(int n, int m, ULong_t c
   return (cellID >> m) & mask;
 }
 
+// ECalBarrel: system:4,cryo:1,type:3,subtype:3,layer:8,module:11,theta:10
 // extract system ID from cellID
-ULong_t DetectorGeometry::SystemID(ULong_t cellID) {
+ULong_t DetectorGeometry::ECalBarrelSystemID(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(4, 0, cellID);
 }
 
 // extract layer number from cellID
-ULong_t DetectorGeometry::Layer(ULong_t cellID) {
+ULong_t DetectorGeometry::ECalBarrelLayer(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(8, 11, cellID);
 }
 
 // extract module number from cellID
-ULong_t DetectorGeometry::Module(ULong_t cellID) {
+ULong_t DetectorGeometry::ECalBarrelModule(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(11, 19, cellID);
 }
 
 // extract theta bin from cellID
-ULong_t DetectorGeometry::ThetaBin(ULong_t cellID) {
+ULong_t DetectorGeometry::ECalBarrelThetaBin(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(10, 30, cellID);
+}
+
+// HCalBarrel: system:4,layer:5,row:9,theta:9,phi:10
+// extract system ID from cellID
+ULong_t DetectorGeometry::HCalBarrelSystemID(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(4, 0, cellID);
+}
+
+// extract layer number from cellID
+ULong_t DetectorGeometry::HCalBarrelLayer(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(5, 4, cellID);
+}
+
+// extract row number from cellID
+ULong_t DetectorGeometry::HCalBarrelRow(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(9, 9, cellID);
+}
+
+// extract theta bin from cellID
+ULong_t DetectorGeometry::HCalBarrelThetaBin(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(9, 18, cellID);
+}
+
+// extract phi number from cellID
+ULong_t DetectorGeometry::HCalBarrelPhiBin(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(10, 27, cellID);
 }

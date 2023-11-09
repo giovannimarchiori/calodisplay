@@ -161,17 +161,32 @@ public:
   static ULong_t ReadNbitsAtPositionMFromCellID(int n, int m, ULong_t cellID);
 
   // extract system number from cellID
-  static ULong_t SystemID(ULong_t cellID);
+  static ULong_t ECalBarrelSystemID(ULong_t cellID);
 
   // extract layer number from cellID
-  static ULong_t Layer(ULong_t cellID);
+  static ULong_t ECalBarrelLayer(ULong_t cellID);
   
   // extract module number from cellID
-  static ULong_t Module(ULong_t cellID);
+  static ULong_t ECalBarrelModule(ULong_t cellID);
   
   // extract theta bin from cellID
-  static ULong_t ThetaBin(ULong_t cellID);
+  static ULong_t ECalBarrelThetaBin(ULong_t cellID);
 
+  // extract system number from cellID
+  static ULong_t HCalBarrelSystemID(ULong_t cellID);
+
+  // extract layer number from cellID
+  static ULong_t HCalBarrelLayer(ULong_t cellID);
+
+  // extract row number from cellID
+  static ULong_t HCalBarrelRow(ULong_t cellID);
+
+  // extract theta bin from cellID
+  static ULong_t HCalBarrelThetaBin(ULong_t cellID);
+
+  // extract phi bin from cellID
+  static ULong_t HCalBarrelPhiBin(ULong_t cellID);
+ 
   //ClassDef(DetectorGeometry, 0)
 };
 
