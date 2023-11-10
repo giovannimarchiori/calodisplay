@@ -30,6 +30,8 @@
 #include <filesystem>
 #include <unordered_map>
 
+const bool debug = true;
+
 // return the sign of a float
 int sgn(float val)
 {
@@ -55,7 +57,6 @@ Bool_t TGLConstAnnotation::MouseEnter(TGLOvlSelectRecord & /*rec*/)
 
 void EventDisplay::FillClusters(std::string clusterType)
 {
-
   if (clusterType == "topo")
     std::cout << "Creating topo clusters" << std::endl;
   else if (clusterType == "sw")
@@ -79,6 +80,9 @@ void EventDisplay::FillClusters(std::string clusterType)
   const double thetaGrid = geomReader->thetaGrid;
   const double gridPhi = geomReader->gridPhi;
   const double phiMin = geomReader->phiMin;
+  const double thetaGridHCal = geomReader->thetaGridHCal;
+  const double gridPhiHCal = geomReader->gridPhiHCal;
+  const double phiMinHCal = geomReader->phiMinHCal;
 
   if (clusterType == "topo")
   {
@@ -120,7 +124,11 @@ void EventDisplay::FillClusters(std::string clusterType)
   clusters->SetMarkerSize(6);
 
   unsigned int nClusters = (clusterType == "topo") ? eventReader->CorrectedCaloTopoClusters_position_x->GetSize() : eventReader->CaloClusters_position_x->GetSize();
-
+  if (debug)
+  {
+    cout << "  n(clusters) = " << nClusters << endl;
+    cout << "  Looping over clusters to retrieve barycenter" << endl;
+  }
   for (unsigned int i = 0; i < nClusters; i++)
   {
     float E = (clusterType == "topo") ? (*eventReader->CorrectedCaloTopoClusters_energy)[i] : (*eventReader->CaloClusters_energy)[i];
@@ -236,6 +244,7 @@ void EventDisplay::FillClusters(std::string clusterType)
   // for 2D projection, in this loop integrate energy over projected dimension
   // and fill map of 2D cell ID vs energy
   // then the filling is done in a second loop later
+  if (debug) cout << "  Looping over clusters to fill 3D projections" << endl;
   for (unsigned int i = 0; i < nClusters; i++)
   {
     float energy, xcl, ycl, zcl;
@@ -356,24 +365,44 @@ void EventDisplay::FillClusters(std::string clusterType)
       z_center = (*eventReader->PositionedCaloClusterCells_position_z)[i] * mm;
     }
     float r_center = sqrt(x_center * x_center + y_center * y_center);
-    // TODO: might need to add system (at least for topoclusters) to distinguish ecal/hcal when we will have clusters from both...
-    int layer = (int)DetectorGeometry::ECalBarrelLayer(cellID);
-    int thetaID = (int)DetectorGeometry::ECalBarrelThetaBin(cellID);
-    int moduleID = (int)DetectorGeometry::ECalBarrelModule(cellID);
-    // for 2D projections, assign unique ID based either on layer-theta (for rho-Z projection)
-    // or layer-module (for rho-phi projection)
+    int system = (int)DetectorGeometry::SystemID(cellID);
+    // for 2D projections, assign unique ID
+    // based on
+    // ECAL: layer-theta for rho-z, layer-module for rho-phi
+    // HCAL: layer-theta for rho-z, layer-phi for rho-phi
     // layer = 0..11 fits in 4 bits (0..15)
     // theta = 0..800 fits in 10 bits (0..1023)
     // module = 0..1535 fits in 11 bits (0..2043)
     // cluster = assume < 512 (9 bits)
     // so both IDs can fit in a 32-bit integer
     // but could even play it safer and just use cellID and remove unused fields
-    // for clus
-    int rhophiID = icl + 512 * layer + 512 * 16 * moduleID;
-    int rhozID = icl + 512 * layer + 512 * 16 * thetaID;
-
-    float r_in = geomReader->r[layer];
-    float r_out = geomReader->r[layer + 1];
+    float r_in, r_out;
+    int layer, thetaID, moduleID, phiID;
+    int rhophiID, rhozID;
+    if (system==4) {
+      layer = (int)DetectorGeometry::ECalBarrelLayer(cellID);
+      thetaID = (int)DetectorGeometry::ECalBarrelThetaBin(cellID);
+      moduleID = (int)DetectorGeometry::ECalBarrelModule(cellID);
+      rhophiID = icl + 512 * layer + 512 * 16 * moduleID;
+      rhozID = icl + 512 * layer + 512 * 16 * thetaID;
+      r_in = geomReader->r[layer];
+      r_out = geomReader->r[layer + 1];
+    }
+    else if (system==8) {
+      layer = (int)DetectorGeometry::HCalBarrelLayer(cellID);
+      thetaID = (int)DetectorGeometry::HCalBarrelThetaBin(cellID);
+      phiID = (int)DetectorGeometry::HCalBarrelPhiBin(cellID);
+      rhophiID = icl + 512 * layer + 512 * 16 * phiID;
+      rhozID = icl + 512 * layer + 512 * 16 * thetaID;
+      rhophiID = -rhophiID; // hack to distinguish ECAL/HCAL
+      rhozID = -rhozID; // idem
+      r_in = geomReader->rHCal[layer];
+      r_out = geomReader->rHCal[layer + 1];
+    }
+    else {
+      cout << "Unknown system " << system << endl;
+      exit(1);
+    }
     float theta_center = atan2(r_center, z_center);
     // float phi_center = atan2(y_center, x_center);
 
@@ -409,56 +438,100 @@ void EventDisplay::FillClusters(std::string clusterType)
         cellEnergies_rhophi[rhophiID] = energy;
       }
     }
-
+  
     // cluster cells in 3D
     float verts3D[24];
-    double Lin = geomReader->getL(alpha, rMin, r_in);
-    double Lout = geomReader->getL(alpha, rMin, r_out);
-    double deltaL = rMin * sin(gridPhi / 2.0) * sin(alpha);
+    if (system==4) {
+      double Lin = geomReader->getL(alpha, rMin, r_in);
+      double Lout = geomReader->getL(alpha, rMin, r_out);
+      double deltaL = rMin * sin(gridPhi / 2.0) * sin(alpha);
+      for (int j = 0; j < geomReader->mergedModules[layer]; j++)
+	{
+	  int iModule = moduleID + j;
+	  double phi0 = phiMin + iModule * gridPhi;
+	  
+	  verts3D[0] = rMin * cos(phi0) + (Lin + deltaL) * cos(phi0 + alpha);
+	  verts3D[1] = rMin * sin(phi0) + (Lin + deltaL) * sin(phi0 + alpha);
+	  verts3D[2] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+	  
+	  verts3D[3] = rMin * cos(phi0 + gridPhi) + (Lin - deltaL) * cos(phi0 + gridPhi + alpha);
+	  verts3D[4] = rMin * sin(phi0 + gridPhi) + (Lin - deltaL) * sin(phi0 + gridPhi + alpha);
+	  verts3D[5] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+	  
+	  verts3D[6] = rMin * cos(phi0 + gridPhi) + (Lin - deltaL) * cos(phi0 + gridPhi + alpha);
+	  verts3D[7] = rMin * sin(phi0 + gridPhi) + (Lin - deltaL) * sin(phi0 + gridPhi + alpha);
+	  verts3D[8] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+	  
+	  verts3D[9] = rMin * cos(phi0) + (Lin + deltaL) * cos(phi0 + alpha);
+	  verts3D[10] = rMin * sin(phi0) + (Lin + deltaL) * sin(phi0 + alpha);
+	  verts3D[11] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+	  
+	  verts3D[12] = rMin * cos(phi0) + (Lout + deltaL) * cos(phi0 + alpha);
+	  verts3D[13] = rMin * sin(phi0) + (Lout + deltaL) * sin(phi0 + alpha);
+	  verts3D[14] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+	  
+	  verts3D[15] = rMin * cos(phi0 + gridPhi) + (Lout - deltaL) * cos(phi0 + gridPhi + alpha);
+	  verts3D[16] = rMin * sin(phi0 + gridPhi) + (Lout - deltaL) * sin(phi0 + gridPhi + alpha);
+	  verts3D[17] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+	  
+	  verts3D[18] = rMin * cos(phi0 + gridPhi) + (Lout - deltaL) * cos(phi0 + gridPhi + alpha);
+	  verts3D[19] = rMin * sin(phi0 + gridPhi) + (Lout - deltaL) * sin(phi0 + gridPhi + alpha);
+	  verts3D[20] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+	  
+	  verts3D[21] = rMin * cos(phi0) + (Lout + deltaL) * cos(phi0 + alpha);
+	  verts3D[22] = rMin * sin(phi0) + (Lout + deltaL) * sin(phi0 + alpha);
+	  verts3D[23] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+	  
+	  bs[icl]->AddBox(verts3D);
+	  bs[icl]->DigitValue((int)(1000 * energy));
+	  // bs->BoxId(new TNamed(Form("Cell %lu", cellID), "Dong!"));
+	}
+    }
+    else {
+      // HCAL
+      float phiMin = phiMinHCal + gridPhiHCal*phiID;
+      float phiMax = phiMinHCal + gridPhiHCal*(phiID+1);
+      float thetaMin = theta_center - thetaGridHCal / 2.;
+      float thetaMax = theta_center + thetaGridHCal / 2.;
+	
+      verts3D[0] = r_in * cos(phiMin);
+      verts3D[1] = r_in * sin(phiMin);
+      verts3D[2] = r_in / tan(thetaMin);
+      
+      verts3D[3] = r_in * cos(phiMax);
+      verts3D[4] = r_in * sin(phiMax);
+      verts3D[5] = r_in / tan(thetaMin);
+      
+      verts3D[6] = r_in * cos(phiMax);
+      verts3D[7] = r_in * sin(phiMax);
+      verts3D[8] = r_in / tan(thetaMax);
+      
+      verts3D[9] = r_in * cos(phiMin);
+      verts3D[10] = r_in * sin(phiMin);
+      verts3D[11] = r_in / tan(thetaMax);
+      
+      verts3D[12] = r_out * cos(phiMin);
+      verts3D[13] = r_out * sin(phiMin);
+      verts3D[14] = r_out / tan(thetaMin);
+      
+      verts3D[15] = r_out * cos(phiMax);
+      verts3D[16] = r_out * sin(phiMax);
+      verts3D[17] = r_out / tan(thetaMin);
 
-    for (int j = 0; j < geomReader->mergedModules[layer]; j++)
-    {
-      int iModule = moduleID + j;
-      double phi0 = phiMin + iModule * gridPhi;
+      verts3D[18] = r_out * cos(phiMax);
+      verts3D[19] = r_out * sin(phiMax);
+      verts3D[20] = r_out / tan(thetaMax);
 
-      verts3D[0] = rMin * cos(phi0) + (Lin + deltaL) * cos(phi0 + alpha);
-      verts3D[1] = rMin * sin(phi0) + (Lin + deltaL) * sin(phi0 + alpha);
-      verts3D[2] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
-
-      verts3D[3] = rMin * cos(phi0 + gridPhi) + (Lin - deltaL) * cos(phi0 + gridPhi + alpha);
-      verts3D[4] = rMin * sin(phi0 + gridPhi) + (Lin - deltaL) * sin(phi0 + gridPhi + alpha);
-      verts3D[5] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
-
-      verts3D[6] = rMin * cos(phi0 + gridPhi) + (Lin - deltaL) * cos(phi0 + gridPhi + alpha);
-      verts3D[7] = rMin * sin(phi0 + gridPhi) + (Lin - deltaL) * sin(phi0 + gridPhi + alpha);
-      verts3D[8] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
-
-      verts3D[9] = rMin * cos(phi0) + (Lin + deltaL) * cos(phi0 + alpha);
-      verts3D[10] = rMin * sin(phi0) + (Lin + deltaL) * sin(phi0 + alpha);
-      verts3D[11] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
-
-      verts3D[12] = rMin * cos(phi0) + (Lout + deltaL) * cos(phi0 + alpha);
-      verts3D[13] = rMin * sin(phi0) + (Lout + deltaL) * sin(phi0 + alpha);
-      verts3D[14] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
-
-      verts3D[15] = rMin * cos(phi0 + gridPhi) + (Lout - deltaL) * cos(phi0 + gridPhi + alpha);
-      verts3D[16] = rMin * sin(phi0 + gridPhi) + (Lout - deltaL) * sin(phi0 + gridPhi + alpha);
-      verts3D[17] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
-
-      verts3D[18] = rMin * cos(phi0 + gridPhi) + (Lout - deltaL) * cos(phi0 + gridPhi + alpha);
-      verts3D[19] = rMin * sin(phi0 + gridPhi) + (Lout - deltaL) * sin(phi0 + gridPhi + alpha);
-      verts3D[20] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
-
-      verts3D[21] = rMin * cos(phi0) + (Lout + deltaL) * cos(phi0 + alpha);
-      verts3D[22] = rMin * sin(phi0) + (Lout + deltaL) * sin(phi0 + alpha);
-      verts3D[23] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
-
+      verts3D[21] = r_out * cos(phiMin);
+      verts3D[22] = r_out * sin(phiMin);
+      verts3D[23] = r_out / tan(thetaMax);
+      
       bs[icl]->AddBox(verts3D);
       bs[icl]->DigitValue((int)(1000 * energy));
       // bs->BoxId(new TNamed(Form("Cell %lu", cellID), "Dong!"));
     }
   }
-
+  
   // and now draw the 2D projections
   float verts[12];
   // cluster cells in rho-z projection
@@ -510,6 +583,7 @@ void EventDisplay::FillClusters(std::string clusterType)
   }
   */
 
+  if (debug) cout << "  Draw rho-z view of clustered cells" << endl;
   for (unsigned int i = 0; i < nCells; i++)
   {
     int icl = -1;
@@ -546,38 +620,58 @@ void EventDisplay::FillClusters(std::string clusterType)
       cellID = (*eventReader->PositionedCaloClusterCells_cellID)[i];
     }
 
-    // TODO: update when we also have HCAL in topoclustering
-    int layer = (int)DetectorGeometry::ECalBarrelLayer(cellID);
-    int thetaID = (int)DetectorGeometry::ECalBarrelThetaBin(cellID);
-    int rhozID = icl + 512 * layer + 512 * 16 * thetaID;
+    int system = (int)DetectorGeometry::SystemID(cellID);
+    int layer, thetaID, moduleID, phiID, rhozID;
+    float r_in, r_out, thetaMin, thetaMax;
+    if (system==4) {
+      layer = (int)DetectorGeometry::ECalBarrelLayer(cellID);
+      thetaID = (int)DetectorGeometry::ECalBarrelThetaBin(cellID);
+      rhozID = icl + 512 * layer + 512 * 16 * thetaID;
+      r_in = geomReader->r[layer];
+      r_out = geomReader->r[layer + 1];
+    }
+    else {
+      layer = (int)DetectorGeometry::HCalBarrelLayer(cellID);
+      thetaID = (int)DetectorGeometry::HCalBarrelThetaBin(cellID);
+      rhozID = -(icl + 512 * layer + 512 * 16 * thetaID);
+      r_in = geomReader->rHCal[layer];
+      r_out = geomReader->rHCal[layer + 1];
+    }
     if (cellEnergies_rhoz.count(rhozID) == 0)
       continue;
     energy = cellEnergies_rhoz[rhozID];
     cellEnergies_rhoz.erase(rhozID);
-    float r_in = geomReader->r[layer];
-    float r_out = geomReader->r[layer + 1];
     float x_center, y_center, z_center;
     if (clusterType == "topo")
-    {
-      x_center = (*eventReader->PositionedCaloTopoClusterCells_position_x)[i] * mm;
-      y_center = (*eventReader->PositionedCaloTopoClusterCells_position_y)[i] * mm;
-      z_center = (*eventReader->PositionedCaloTopoClusterCells_position_z)[i] * mm;
-    }
+      {
+	x_center = (*eventReader->PositionedCaloTopoClusterCells_position_x)[i] * mm;
+	y_center = (*eventReader->PositionedCaloTopoClusterCells_position_y)[i] * mm;
+	z_center = (*eventReader->PositionedCaloTopoClusterCells_position_z)[i] * mm;
+      }
     else
-    {
-      x_center = (*eventReader->PositionedCaloClusterCells_position_x)[i] * mm;
-      y_center = (*eventReader->PositionedCaloClusterCells_position_y)[i] * mm;
-      z_center = (*eventReader->PositionedCaloClusterCells_position_z)[i] * mm;
-    }
+      {
+	x_center = (*eventReader->PositionedCaloClusterCells_position_x)[i] * mm;
+	y_center = (*eventReader->PositionedCaloClusterCells_position_y)[i] * mm;
+	z_center = (*eventReader->PositionedCaloClusterCells_position_z)[i] * mm;
+      }
     float r_center = sqrt(x_center * x_center + y_center * y_center);
     float theta_center = atan2(r_center, z_center);
-    verts[0] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+    if (system==4) {
+      thetaMin = theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.;
+      thetaMax = theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.;
+    }
+    else {
+      thetaMin = theta_center - thetaGridHCal / 2.;
+      thetaMax = theta_center + thetaGridHCal / 2.;
+    }
+
+    verts[0] = r_in / tan(thetaMin);
     verts[1] = r_in * sgn(y_center);
-    verts[3] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+    verts[3] = r_in / tan(thetaMax);
     verts[4] = r_in * sgn(y_center);
-    verts[6] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+    verts[6] = r_out / tan(thetaMax);
     verts[7] = r_out * sgn(y_center);
-    verts[9] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+    verts[9] = r_out / tan(thetaMin);
     verts[10] = r_out * sgn(y_center);
     verts[2] = verts[5] = verts[8] = verts[11] = 0.;
     qs_rhoz[icl]->AddQuad(verts);
@@ -586,36 +680,64 @@ void EventDisplay::FillClusters(std::string clusterType)
   }
 
   // cluster cells in rho-phi projection
+  if (debug) cout << "  Draw rho-phi view of clustered cells" << endl;
   for (auto &[key, energy] : cellEnergies_rhophi)
   {
     int ikey = (int)key;
+    int system = 4;
+    if (ikey < 0) {
+      system = 8;
+      ikey = -ikey;
+    }
     int icl = ikey % 512;
-    int layer = (ikey / 512) % 16;
-    int moduleID = ikey / (512 * 16);
-    // std::cout << "cluster layer module = " << icl << " " << layer << " " << moduleID << std::endl;
-
-    float r_in = geomReader->r[layer];
-    float r_out = geomReader->r[layer + 1];
-    double Lin = geomReader->getL(alpha, rMin, r_in);
-    double Lout = geomReader->getL(alpha, rMin, r_out);
-    double deltaL = rMin * sin(gridPhi / 2.0) * sin(alpha);
-    for (int j = 0; j < geomReader->mergedModules[layer]; j++)
-    {
-      int iModule = moduleID + j;
-      double phi0 = phiMin + iModule * gridPhi;
-      verts[0] = rMin * cos(phi0) + (Lin + deltaL) * cos(phi0 + alpha);
-      verts[1] = rMin * sin(phi0) + (Lin + deltaL) * sin(phi0 + alpha);
-      verts[3] = rMin * cos(phi0) + (Lout + deltaL) * cos(phi0 + alpha);
-      verts[4] = rMin * sin(phi0) + (Lout + deltaL) * sin(phi0 + alpha);
-      verts[6] = rMin * cos(phi0 + gridPhi) + (Lout - deltaL) * cos(phi0 + gridPhi + alpha);
-      verts[7] = rMin * sin(phi0 + gridPhi) + (Lout - deltaL) * sin(phi0 + gridPhi + alpha);
-      verts[9] = rMin * cos(phi0 + gridPhi) + (Lin - deltaL) * cos(phi0 + gridPhi + alpha);
-      verts[10] = rMin * sin(phi0 + gridPhi) + (Lin - deltaL) * sin(phi0 + gridPhi + alpha);
+    if (system==4) {
+      int layer = (ikey / 512) % 16;
+      int moduleID = ikey / (512 * 16);
+      // std::cout << "cluster layer module = " << icl << " " << layer << " " << moduleID << std::endl;
+      float r_in = geomReader->r[layer];
+      float r_out = geomReader->r[layer + 1];
+      double Lin = geomReader->getL(alpha, rMin, r_in);
+      double Lout = geomReader->getL(alpha, rMin, r_out);
+      double deltaL = rMin * sin(gridPhi / 2.0) * sin(alpha);
+      for (int j = 0; j < geomReader->mergedModules[layer]; j++)
+	{
+	  int iModule = moduleID + j;
+	  double phi0 = phiMin + iModule * gridPhi;
+	  verts[0] = rMin * cos(phi0) + (Lin + deltaL) * cos(phi0 + alpha);
+	  verts[1] = rMin * sin(phi0) + (Lin + deltaL) * sin(phi0 + alpha);
+	  verts[3] = rMin * cos(phi0) + (Lout + deltaL) * cos(phi0 + alpha);
+	  verts[4] = rMin * sin(phi0) + (Lout + deltaL) * sin(phi0 + alpha);
+	  verts[6] = rMin * cos(phi0 + gridPhi) + (Lout - deltaL) * cos(phi0 + gridPhi + alpha);
+	  verts[7] = rMin * sin(phi0 + gridPhi) + (Lout - deltaL) * sin(phi0 + gridPhi + alpha);
+	  verts[9] = rMin * cos(phi0 + gridPhi) + (Lin - deltaL) * cos(phi0 + gridPhi + alpha);
+	  verts[10] = rMin * sin(phi0 + gridPhi) + (Lin - deltaL) * sin(phi0 + gridPhi + alpha);
+	  verts[2] = verts[5] = verts[8] = verts[11] = 0.;
+	  qs_rhophi[icl]->AddQuad(verts);
+	  qs_rhophi[icl]->QuadValue((int)(1000 * energy));
+	  // qs_rhophi[icl]->QuadId( new TNamed(Form("%s cell %lu", clusterType.c_str(), cellID), "Dong!"));
+	  qs_rhophi[icl]->QuadId(new TNamed(Form("%s %d cell L%d M%d", clusterType.c_str(), icl, layer, moduleID), "Dong!"));
+	}
+    }
+    else {
+      int layer = (ikey / 512) % 16;
+      int phiID = ikey / (512 * 16);
+      // std::cout << "cluster layer module = " << icl << " " << layer << " " << moduleID << std::endl;
+      float r_in = geomReader->rHCal[layer];
+      float r_out = geomReader->rHCal[layer + 1];
+      float phiMin = phiMinHCal + gridPhiHCal*phiID;
+      float phiMax = phiMinHCal + gridPhiHCal*(phiID+1);
+      verts[0] = r_in * cos(phiMin);
+      verts[1] = r_in * sin(phiMin);
+      verts[3] = r_in * cos(phiMax);
+      verts[4] = r_in * sin(phiMax);
+      verts[6] = r_out * cos(phiMax);
+      verts[7] = r_out * sin(phiMax);
+      verts[9] = r_out * cos(phiMin);
+      verts[10] = r_out * sin(phiMin);
       verts[2] = verts[5] = verts[8] = verts[11] = 0.;
       qs_rhophi[icl]->AddQuad(verts);
       qs_rhophi[icl]->QuadValue((int)(1000 * energy));
-      // qs_rhophi[icl]->QuadId( new TNamed(Form("%s cell %lu", clusterType.c_str(), cellID), "Dong!"));
-      qs_rhophi[icl]->QuadId(new TNamed(Form("%s %d cell L%d M%d", clusterType.c_str(), icl, layer, moduleID), "Dong!"));
+      qs_rhophi[icl]->QuadId(new TNamed(Form("%s %d cell L%d P%d", clusterType.c_str(), icl, layer, phiID), "Dong!"));
     }
   }
 }

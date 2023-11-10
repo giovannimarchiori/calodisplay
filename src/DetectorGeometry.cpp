@@ -178,48 +178,46 @@ ULong_t DetectorGeometry::ReadNbitsAtPositionMFromCellID(int n, int m, ULong_t c
 }
 
 // ECalBarrel: system:4,cryo:1,type:3,subtype:3,layer:8,module:11,theta:10
+// HCalBarrel: system:4,layer:5,theta:9,phi:10
+
 // extract system ID from cellID
-ULong_t DetectorGeometry::ECalBarrelSystemID(ULong_t cellID) {
+ULong_t DetectorGeometry::SystemID(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(4, 0, cellID);
 }
 
-// extract layer number from cellID
+// extract ECal layer number from cellID
 ULong_t DetectorGeometry::ECalBarrelLayer(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(8, 11, cellID);
 }
 
-// extract module number from cellID
+// extract ECal module number from cellID
 ULong_t DetectorGeometry::ECalBarrelModule(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(11, 19, cellID);
 }
 
-// extract theta bin from cellID
+// extract ECal theta bin from cellID
 ULong_t DetectorGeometry::ECalBarrelThetaBin(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(10, 30, cellID);
 }
 
-// HCalBarrel: system:4,layer:5,row:9,theta:9,phi:10
-// extract system ID from cellID
-ULong_t DetectorGeometry::HCalBarrelSystemID(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(4, 0, cellID);
-}
-
-// extract layer number from cellID
+// extract HCal layer number from cellID
 ULong_t DetectorGeometry::HCalBarrelLayer(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(5, 4, cellID);
 }
 
 // extract row number from cellID
-ULong_t DetectorGeometry::HCalBarrelRow(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(9, 9, cellID);
-}
+//ULong_t DetectorGeometry::HCalBarrelRow(ULong_t cellID) {
+//  return ReadNbitsAtPositionMFromCellID(9, 9, cellID);
+//}
 
 // extract theta bin from cellID
 ULong_t DetectorGeometry::HCalBarrelThetaBin(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(9, 18, cellID);
+  //return ReadNbitsAtPositionMFromCellID(9, 18, cellID);
+  return ReadNbitsAtPositionMFromCellID(9, 9, cellID);
 }
 
 // extract phi number from cellID
 ULong_t DetectorGeometry::HCalBarrelPhiBin(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(10, 27, cellID);
+  //return ReadNbitsAtPositionMFromCellID(10, 27, cellID);
+  return ReadNbitsAtPositionMFromCellID(10, 18, cellID);
 }
