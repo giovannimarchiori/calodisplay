@@ -1193,7 +1193,6 @@ void EventDisplay::startDisplay(int initialEvent)
     }
     else
     {
-
       TPRegexp re;
 
       re = TPRegexp("ECalBarrel*");
@@ -1326,28 +1325,29 @@ void EventDisplay::startDisplay(int initialEvent)
     gEve->AddToListTree(ecalbarrel, true);
 
     // the HCAL barrel envelope
-    hcalbarrel = new TEveGeoShape("HCAL barrel");
-    hcalbarrel->SetShape(new TGeoTube(geomReader->rMinHCal, geomReader->rMaxHCal, geomReader->zMaxHCal));
-    hcalbarrel->SetMainColor(kRed);
-    hcalbarrel->SetMainTransparency(80);
-    hcalbarrel->SetNSegments(128);
-    // geom->AddElement(hcalbarrel);
-    gEve->AddGlobalElement(hcalbarrel);
+    if (doHCal) {
+      hcalbarrel = new TEveGeoShape("HCAL barrel");
+      hcalbarrel->SetShape(new TGeoTube(geomReader->rMinHCal, geomReader->rMaxHCal, geomReader->zMaxHCal));
+      hcalbarrel->SetMainColor(kRed);
+      hcalbarrel->SetMainTransparency(80);
+      hcalbarrel->SetNSegments(128);
+      // geom->AddElement(hcalbarrel);
+      gEve->AddGlobalElement(hcalbarrel);
 
-    // the HCAL barrel layers
-    TEveElementList *hcallayers = new TEveElementList("layers");
-    hcalbarrel->AddElement(hcallayers);
-    for (int iLayer = 0; iLayer < geomReader->nLayersHCal; iLayer++)
-    {
-      b = new TEveGeoShape(Form("HCAL barrel layer %d", iLayer));
-      b->SetShape(new TGeoTube(geomReader->rHCal[iLayer], geomReader->rHCal[iLayer + 1], geomReader->zMaxHCal));
-      b->SetMainColor(kRed);
-      b->SetMainTransparency(80);
-      b->SetNSegments(128);
-      hcallayers->AddElement(b);
+      // the HCAL barrel layers
+      TEveElementList *hcallayers = new TEveElementList("layers");
+      hcalbarrel->AddElement(hcallayers);
+      for (int iLayer = 0; iLayer < geomReader->nLayersHCal; iLayer++)
+      {
+        b = new TEveGeoShape(Form("HCAL barrel layer %d", iLayer));
+        b->SetShape(new TGeoTube(geomReader->rHCal[iLayer], geomReader->rHCal[iLayer + 1], geomReader->zMaxHCal));
+        b->SetMainColor(kRed);
+        b->SetMainTransparency(80);
+        b->SetNSegments(128);
+        hcallayers->AddElement(b);
+      }
+      gEve->AddToListTree(hcalbarrel, true);
     }
-
-    gEve->AddToListTree(hcalbarrel, true);
   }
 
   gEve->AddToListTree(readout, true);
