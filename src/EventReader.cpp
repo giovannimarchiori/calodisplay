@@ -116,11 +116,11 @@ EventReader::EventReader(TFile* f, bool doHCal, bool doSW, bool doTopo)
     CorrectedCaloTopoClusters_hits_end   = new TTreeReaderArray<UInt_t>(*fReader, "CorrectedCaloTopoClusters.hits_end");
     
     // cells in the topo clusters
-    PositionedCaloTopoClusterCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "PositionedCaloTopoClusterCells.cellID");
-    PositionedCaloTopoClusterCells_energy     = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloTopoClusterCells.energy");
-    PositionedCaloTopoClusterCells_position_x = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloTopoClusterCells.position.x");
-    PositionedCaloTopoClusterCells_position_y = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloTopoClusterCells.position.y");
-    PositionedCaloTopoClusterCells_position_z = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloTopoClusterCells.position.z");
+    CaloTopoClusterCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "CaloTopoClusterCells.cellID");
+    CaloTopoClusterCells_energy     = new TTreeReaderArray<Float_t>(*fReader, "CaloTopoClusterCells.energy");
+    CaloTopoClusterCells_position_x = new TTreeReaderArray<Float_t>(*fReader, "CaloTopoClusterCells.position.x");
+    CaloTopoClusterCells_position_y = new TTreeReaderArray<Float_t>(*fReader, "CaloTopoClusterCells.position.y");
+    CaloTopoClusterCells_position_z = new TTreeReaderArray<Float_t>(*fReader, "CaloTopoClusterCells.position.z");
   }
 }
 
@@ -205,11 +205,11 @@ EventReader::~EventReader() {
     delete CorrectedCaloTopoClusters_position_z;
     delete CorrectedCaloTopoClusters_hits_begin;
     delete CorrectedCaloTopoClusters_hits_end;
-    delete PositionedCaloTopoClusterCells_cellID;
-    delete PositionedCaloTopoClusterCells_energy;
-    delete PositionedCaloTopoClusterCells_position_x;
-    delete PositionedCaloTopoClusterCells_position_y;
-    delete PositionedCaloTopoClusterCells_position_z;
+    delete CaloTopoClusterCells_cellID;
+    delete CaloTopoClusterCells_energy;
+    delete CaloTopoClusterCells_position_x;
+    delete CaloTopoClusterCells_position_y;
+    delete CaloTopoClusterCells_position_z;
   }
   delete fReader;
 }

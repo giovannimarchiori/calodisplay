@@ -320,7 +320,7 @@ void EventDisplay::FillClusters(std::string clusterType)
   // loop over cells
   std::unordered_map<int, double> cellEnergies_rhoz;
   std::unordered_map<int, double> cellEnergies_rhophi;
-  unsigned int nCells = (clusterType == "topo") ? eventReader->PositionedCaloTopoClusterCells_energy->GetSize() : eventReader->PositionedCaloClusterCells_energy->GetSize();
+  unsigned int nCells = (clusterType == "topo") ? eventReader->CaloTopoClusterCells_energy->GetSize() : eventReader->PositionedCaloClusterCells_energy->GetSize();
   for (unsigned int i = 0; i < nCells; i++)
   {
     int icl = -1;
@@ -350,11 +350,11 @@ void EventDisplay::FillClusters(std::string clusterType)
     float energy, x_center, y_center, z_center;
     if (clusterType == "topo")
     {
-      cellID = (*eventReader->PositionedCaloTopoClusterCells_cellID)[i];
-      energy = (*eventReader->PositionedCaloTopoClusterCells_energy)[i];
-      x_center = (*eventReader->PositionedCaloTopoClusterCells_position_x)[i] * mm;
-      y_center = (*eventReader->PositionedCaloTopoClusterCells_position_y)[i] * mm;
-      z_center = (*eventReader->PositionedCaloTopoClusterCells_position_z)[i] * mm;
+      cellID = (*eventReader->CaloTopoClusterCells_cellID)[i];
+      energy = (*eventReader->CaloTopoClusterCells_energy)[i];
+      x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * mm;
+      y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * mm;
+      z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * mm;
     }
     else
     {
@@ -551,9 +551,9 @@ void EventDisplay::FillClusters(std::string clusterType)
     float r_out = geomReader->r[layer+1];
     float x_center, y_center, z_center;
     if (clusterType=="topo") {
-      x_center = (*eventReader->PositionedCaloTopoClusterCells_position_x)[i] * mm;
-      y_center = (*eventReader->PositionedCaloTopoClusterCells_position_y)[i] * mm;
-      z_center = (*eventReader->PositionedCaloTopoClusterCells_position_z)[i] * mm;
+      x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * mm;
+      y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * mm;
+      z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * mm;
     }
     else {
       x_center = (*eventReader->PositionedCaloClusterCells_position_x)[i] * mm;
@@ -613,7 +613,7 @@ void EventDisplay::FillClusters(std::string clusterType)
     float energy;
     if (clusterType == "topo")
     {
-      cellID = (*eventReader->PositionedCaloTopoClusterCells_cellID)[i];
+      cellID = (*eventReader->CaloTopoClusterCells_cellID)[i];
     }
     else
     {
@@ -644,9 +644,9 @@ void EventDisplay::FillClusters(std::string clusterType)
     float x_center, y_center, z_center;
     if (clusterType == "topo")
       {
-	x_center = (*eventReader->PositionedCaloTopoClusterCells_position_x)[i] * mm;
-	y_center = (*eventReader->PositionedCaloTopoClusterCells_position_y)[i] * mm;
-	z_center = (*eventReader->PositionedCaloTopoClusterCells_position_z)[i] * mm;
+	x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * mm;
+	y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * mm;
+	z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * mm;
       }
     else
       {
@@ -1310,7 +1310,8 @@ void EventDisplay::startDisplay(int initialEvent)
     ecalbarrel->AddElement(modules);
     for (int iModule = 0; iModule < geomReader->nModules; iModule++)
     {
-      double phi0 = iModule * geomReader->gridPhi - geomReader->gridPhi / 12.; // small extra shift is due to finite width of element (?)
+      //double phi0 = iModule * geomReader->gridPhi - geomReader->gridPhi / 12.; // small extra shift is due to finite width of element (?)
+      double phi0 = iModule * geomReader->gridPhixs
       double phi = phi0 + geomReader->dPhiAvg;
       b = new TEveGeoShape(Form("Module %d", iModule));
       b->SetShape(new TGeoBBox(geomReader->Ltot / 2, 0.01, (geomReader->zMax - geomReader->zMin) / 2.0));

@@ -115,11 +115,11 @@ public:
   TTreeReaderArray<UInt_t> *CorrectedCaloTopoClusters_hits_end = nullptr;  
   
   // the cells in the topo clusters
-  TTreeReaderArray<ULong_t> *PositionedCaloTopoClusterCells_cellID = nullptr;
-  TTreeReaderArray<Float_t> *PositionedCaloTopoClusterCells_energy = nullptr;
-  TTreeReaderArray<Float_t> *PositionedCaloTopoClusterCells_position_x = nullptr;
-  TTreeReaderArray<Float_t> *PositionedCaloTopoClusterCells_position_y = nullptr;
-  TTreeReaderArray<Float_t> *PositionedCaloTopoClusterCells_position_z = nullptr;
+  TTreeReaderArray<ULong_t> *CaloTopoClusterCells_cellID = nullptr;
+  TTreeReaderArray<Float_t> *CaloTopoClusterCells_energy = nullptr;
+  TTreeReaderArray<Float_t> *CaloTopoClusterCells_position_x = nullptr;
+  TTreeReaderArray<Float_t> *CaloTopoClusterCells_position_y = nullptr;
+  TTreeReaderArray<Float_t> *CaloTopoClusterCells_position_z = nullptr;
 
   // the sliding window clusters (TODO: include upstream/downstream corrections)
   TTreeReaderArray<Float_t> *CaloClusters_energy = nullptr;
