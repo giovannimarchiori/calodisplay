@@ -1311,7 +1311,7 @@ void EventDisplay::startDisplay(int initialEvent)
     for (int iModule = 0; iModule < geomReader->nModules; iModule++)
     {
       //double phi0 = iModule * geomReader->gridPhi - geomReader->gridPhi / 12.; // small extra shift is due to finite width of element (?)
-      double phi0 = iModule * geomReader->gridPhixs
+      double phi0 = iModule * geomReader->gridPhi;
       double phi = phi0 + geomReader->dPhiAvg;
       b = new TEveGeoShape(Form("Module %d", iModule));
       b->SetShape(new TGeoBBox(geomReader->Ltot / 2, 0.01, (geomReader->zMax - geomReader->zMin) / 2.0));
