@@ -29,6 +29,7 @@
 
 #include <filesystem>
 #include <unordered_map>
+#include <iostream>
 
 const bool debug = true;
 
@@ -126,8 +127,8 @@ void EventDisplay::FillClusters(std::string clusterType)
   unsigned int nClusters = (clusterType == "topo") ? eventReader->CorrectedCaloTopoClusters_position_x->GetSize() : eventReader->CaloClusters_position_x->GetSize();
   if (debug)
   {
-    cout << "  n(clusters) = " << nClusters << endl;
-    cout << "  Looping over clusters to retrieve barycenter" << endl;
+    std::cout << "  n(clusters) = " << nClusters << std::endl;
+    std::cout << "  Looping over clusters to retrieve barycenter" << std::endl;
   }
   for (unsigned int i = 0; i < nClusters; i++)
   {
@@ -244,7 +245,7 @@ void EventDisplay::FillClusters(std::string clusterType)
   // for 2D projection, in this loop integrate energy over projected dimension
   // and fill map of 2D cell ID vs energy
   // then the filling is done in a second loop later
-  if (debug) cout << "  Looping over clusters to fill 3D projections" << endl;
+  if (debug) std::cout << "  Looping over clusters to fill 3D projections" << std::endl;
   for (unsigned int i = 0; i < nClusters; i++)
   {
     float energy, xcl, ycl, zcl;
@@ -400,7 +401,7 @@ void EventDisplay::FillClusters(std::string clusterType)
       r_out = geomReader->rHCal[layer + 1];
     }
     else {
-      cout << "Unknown system " << system << endl;
+      std::cout << "Unknown system " << system << std::endl;
       exit(1);
     }
     float theta_center = atan2(r_center, z_center);
@@ -583,7 +584,7 @@ void EventDisplay::FillClusters(std::string clusterType)
   }
   */
 
-  if (debug) cout << "  Draw rho-z view of clustered cells" << endl;
+  if (debug) std::cout << "  Draw rho-z view of clustered cells" << std::endl;
   for (unsigned int i = 0; i < nCells; i++)
   {
     int icl = -1;
@@ -680,7 +681,7 @@ void EventDisplay::FillClusters(std::string clusterType)
   }
 
   // cluster cells in rho-phi projection
-  if (debug) cout << "  Draw rho-phi view of clustered cells" << endl;
+  if (debug) std::cout << "  Draw rho-phi view of clustered cells" << std::endl;
   for (auto &[key, energy] : cellEnergies_rhophi)
   {
     int ikey = (int)key;
@@ -804,7 +805,7 @@ void EventDisplay::loadEvent(int event)
   //
   if (drawParticles)
   {
-    cout << "Creating particles" << endl;
+    std::cout << "Creating particles" << std::endl;
     if (particles == nullptr)
     {
       particles = new TEveTrackList("particles");
@@ -841,7 +842,7 @@ void EventDisplay::loadEvent(int event)
     /*
     if (pz!=0.0) {
       if (geomReader->zMax/fabs(pz)<tmax)
-  tmax = geomReader->zMax/fabs(pz);
+        tmax = geomReader->zMax/fabs(pz);
     }
     */
     double x2 = x1 + px * tmax;
@@ -943,7 +944,7 @@ void EventDisplay::loadEvent(int event)
   //
   if (drawHits)
   {
-    cout << "Creating hits" << endl;
+    std::cout << "Creating hits" << std::endl;
     if (ecalHits == nullptr)
     {
       ecalHits = new TEvePointSet();
@@ -1001,7 +1002,7 @@ void EventDisplay::loadEvent(int event)
   //
   if (drawCells)
   {
-    cout << "Creating cells" << endl;
+    std::cout << "Creating cells" << std::endl;
     if (ecalCells == nullptr)
     {
       ecalCells = new TEvePointSet();
@@ -1591,7 +1592,7 @@ void EventDisplay::startDisplay(int initialEvent)
     cout << "Reading event data from file " << evtFile << endl
          << endl;
     TFile *f = TFile::Open(evtFile.c_str(), "READ");
-    eventReader = new EventReader(f, doHCal, drawSWClusters, drawTopoClusters);
+    eventReader = new EventReader(f, doHCal, drawSWClusters, drawTopoClusters, drawMergedCells);
     nEvents = eventReader->nEvents;
 
     // load and display the requested event

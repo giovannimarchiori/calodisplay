@@ -9,13 +9,14 @@
 #include "EventReader.h"
 
 
-EventReader::EventReader(TFile* f, bool doHCal, bool doSW, bool doTopo)
+EventReader::EventReader(TFile* f, bool doHCal, bool doSW, bool doTopo, bool drawMergedCells)
 {
   fReader = new TTreeReader("events", f);
   nEvents = fReader->GetEntries();
   m_doHCal = doHCal;
   m_doSW = doSW;
   m_doTopo = doTopo;
+  m_drawMergedCells = drawMergedCells;
   
   // primary particles
   genParticles_PDG = new TTreeReaderArray<Int_t>(*fReader, "genParticles.PDG");
@@ -68,11 +69,13 @@ EventReader::EventReader(TFile* f, bool doHCal, bool doSW, bool doTopo)
   ECalBarrelPositionedCells_position_z = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells.position.z");
   
   // cells in ECal barrel with coarser merging
-  ECalBarrelPositionedCells2_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "ECalBarrelPositionedCells2.cellID");
-  ECalBarrelPositionedCells2_energy     = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells2.energy");
-  ECalBarrelPositionedCells2_position_x = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells2.position.x");
-  ECalBarrelPositionedCells2_position_y = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells2.position.y");
-  ECalBarrelPositionedCells2_position_z = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells2.position.z");
+  if (m_drawMergedCells) {
+    ECalBarrelPositionedCells2_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "ECalBarrelPositionedCells2.cellID");
+    ECalBarrelPositionedCells2_energy     = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells2.energy");
+    ECalBarrelPositionedCells2_position_x = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells2.position.x");
+    ECalBarrelPositionedCells2_position_y = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells2.position.y");
+    ECalBarrelPositionedCells2_position_z = new TTreeReaderArray<Float_t>(*fReader, "ECalBarrelPositionedCells2.position.z");
+  }
 
   if (m_doHCal) {
     // hits in HCal barrel
@@ -168,11 +171,13 @@ EventReader::~EventReader() {
   delete ECalBarrelPositionedCells_position_x;
   delete ECalBarrelPositionedCells_position_y;
   delete ECalBarrelPositionedCells_position_z;
-  delete ECalBarrelPositionedCells2_cellID;
-  delete ECalBarrelPositionedCells2_energy;
-  delete ECalBarrelPositionedCells2_position_x;
-  delete ECalBarrelPositionedCells2_position_y;
-  delete ECalBarrelPositionedCells2_position_z;
+  if (m_drawMergedCells) {
+    delete ECalBarrelPositionedCells2_cellID;
+    delete ECalBarrelPositionedCells2_energy;
+    delete ECalBarrelPositionedCells2_position_x;
+    delete ECalBarrelPositionedCells2_position_y;
+    delete ECalBarrelPositionedCells2_position_z;
+  }
   if (m_doHCal) {
     delete ECalBarrelPositionedHits_cellID;
     delete ECalBarrelPositionedHits_energy;

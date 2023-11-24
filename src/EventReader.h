@@ -138,12 +138,13 @@ public:
 
   
  public:
-  EventReader(TFile* f, bool doHCal=false, bool doSW=false, bool doTopo=true);
+  EventReader(TFile* f, bool doHCal=false, bool doSW=false, bool doTopo=true, bool drawMergedCells=false);
   ~EventReader();
   void loadEvent(int event);
   bool m_doHCal;
   bool m_doSW;
   bool m_doTopo;
+  bool m_drawMergedCells;
 };
 
 #endif
