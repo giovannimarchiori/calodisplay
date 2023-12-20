@@ -5,6 +5,7 @@
 #pragma link C++ nestedclasses;
 
 #pragma link C++ class DetectorGeometry;
+#pragma link C++ class CaloCluster;
 #pragma link C++ class EventReader;
 #pragma link C++ class EventDisplay;
 

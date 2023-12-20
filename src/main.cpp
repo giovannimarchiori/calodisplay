@@ -16,7 +16,7 @@ using namespace std;
 std::string usage(bool verbose=false) {
   EventDisplay aDisplay;
   std::string use = "Usage:\n";
-  use += "display [--nog4] [--fulldet] [--dohcal] [--sw] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-s|--skipEvents <nevents>]\n\n";
+  use += "calodisplay [--nog4] [--fulldet] [--dohcal] [--sw] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-s|--skipEvents <nevents>]\n\n";
   use += "--nog4    : use simplified geometry rather than G4 geometry in file <geomFile.root>\n";
   use += "--fulldet : show the full detector (including tracker, muon detector, interaction region)\n";
   use += "--dohcal  : show HCAL volume, hits and cells\n";
