@@ -116,6 +116,8 @@ void CaloCluster::print() const
   std::cout << "Cluster: " << m_index << std::endl;
   std::cout << "Energy: " << m_energy << " GeV" << endl;
   std::cout << "Barycenter (r, theta, phi): " << m_barycenter.Pt() << " " << m_barycenter.Theta() << " " << m_barycenter.Phi() << std::endl;
+  std::cout << "Energy in ECAL: " << getEnergyECal() << " GeV" << endl;
+  std::cout << "Energy in HCAL: " << getEnergyHCal() << " GeV" << endl;
   std::cout << "Energy and barycenter in each layer of the ECAL: " << std::endl;
   for (unsigned int i=0; i<m_energyVsECalLayer.size(); i++)
   {
