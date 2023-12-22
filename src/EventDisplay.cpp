@@ -201,9 +201,9 @@ void EventDisplay::FillClusters(std::string clusterType)
       {
         cellID = (*eventReader->CaloTopoClusterCells_cellID)[iCell];
         energy = (*eventReader->CaloTopoClusterCells_energy)[iCell];
-        x = (*eventReader->CaloTopoClusterCells_position_x)[iCell] * mm;
-        y = (*eventReader->CaloTopoClusterCells_position_y)[iCell] * mm;
-        z = (*eventReader->CaloTopoClusterCells_position_z)[iCell] * mm;
+        x = (*eventReader->CaloTopoClusterCells_position_x)[iCell] * cm;
+        y = (*eventReader->CaloTopoClusterCells_position_y)[iCell] * cm;
+        z = (*eventReader->CaloTopoClusterCells_position_z)[iCell] * cm;
       }
       else
       {
@@ -218,26 +218,26 @@ void EventDisplay::FillClusters(std::string clusterType)
       if (systemID == 4)
       {
         layer = geomReader->ECalBarrelLayer(cellID);
-        if (energyVsECalLayer[layer]>0)
+        if (energyVsECalLayer[layer] > 0)
         {
           float weight = energy / energyVsECalLayer[layer];
           barycenterVsECalLayer[layer].SetXYZ(
-            barycenterVsECalLayer[layer].X() + x * weight,
-            barycenterVsECalLayer[layer].Y() + y * weight,
-            barycenterVsECalLayer[layer].Z() + z * weight);
+              barycenterVsECalLayer[layer].X() + x * weight,
+              barycenterVsECalLayer[layer].Y() + y * weight,
+              barycenterVsECalLayer[layer].Z() + z * weight);
           sumWeightsVsECalLayer[layer] += weight;
         }
       }
       else if (systemID == 8)
       {
         layer = geomReader->HCalBarrelLayer(cellID);
-        if (energyVsHCalLayer[layer]>0)
+        if (energyVsHCalLayer[layer] > 0)
         {
           float weight = energy / energyVsHCalLayer[layer];
           barycenterVsHCalLayer[layer].SetXYZ(
-            barycenterVsHCalLayer[layer].X() + x * weight,
-            barycenterVsHCalLayer[layer].Y() + y * weight,
-            barycenterVsHCalLayer[layer].Z() + z * weight);
+              barycenterVsHCalLayer[layer].X() + x * weight,
+              barycenterVsHCalLayer[layer].Y() + y * weight,
+              barycenterVsHCalLayer[layer].Z() + z * weight);
           sumWeightsVsHCalLayer[layer] += weight;
         }
       }
@@ -272,10 +272,17 @@ void EventDisplay::FillClusters(std::string clusterType)
 
 void EventDisplay::DrawClusters(std::string clusterType)
 {
+  std::vector<CaloCluster *> *clusters = nullptr;
   if (clusterType == "topo")
+  {
     std::cout << "Drawing topo clusters" << std::endl;
+    clusters = &topoclusters;
+  }
   else if (clusterType == "sw")
+  {
     std::cout << "Drawing SW clusters" << std::endl;
+    clusters = &swclusters;
+  }
   else
   {
     std::cout << "Unknown cluster type " << clusterType << std::endl;
@@ -315,7 +322,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
     {
       topoclustersCenter = new TEvePointSet();
       topoclustersCenter->SetName(Form("%s clusters (E>%.1f GeV)", clusterType.c_str(), ClusterEnergyThreshold));
-      topoclustersCenter->SetMarkerColor(kGreen);
+      topoclustersCenter->SetMarkerColor(kWhite);
       gEve->AddElement(topoclustersCenter);
     }
     else
@@ -336,7 +343,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
     clustersCenter = swclustersCenter;
   }
   clustersCenter->SetMarkerStyle(4);
-  clustersCenter->SetMarkerSize(6);
+  clustersCenter->SetMarkerSize(5);
 
   unsigned int nClusters = (clusterType == "topo") ? eventReader->CorrectedCaloTopoClusters_position_x->GetSize() : eventReader->CaloClusters_position_x->GetSize();
   if (debug)
@@ -461,6 +468,8 @@ void EventDisplay::DrawClusters(std::string clusterType)
   // then the filling is done in a second loop later
   if (debug)
     std::cout << "  Looping over clusters to fill 3D projections" << std::endl;
+
+  int icl = 0;
   for (unsigned int i = 0; i < nClusters; i++)
   {
     float energy, xcl, ycl, zcl;
@@ -486,6 +495,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
     {
       qs_rhoz.push_back(nullptr);
       qs_rhophi.push_back(nullptr);
+      bs.push_back(nullptr);
     }
     else
     {
@@ -517,22 +527,57 @@ void EventDisplay::DrawClusters(std::string clusterType)
                           phicl));
       qs_rhophi.push_back(aqs2);
       clusters_rhophi->AddElement(aqs2);
+      //}
+
+      TEveBoxSet *_bs = new TEveBoxSet(Form("%s cluster %d", clusterType.c_str(), (int)i), "");
+      _bs->Reset(TEveBoxSet::kBT_FreeBox, false, 32);
+      _bs->SetMainTransparency(80);
+      _bs->SetOwnIds(kTRUE);
+      _bs->SetPalette(pal);
+      _bs->SetTitle(Form("E = %f GeV\nR = %f cm\ntheta = %f\nphi = %f",
+                         energy,
+                         rcl,
+                         thetacl,
+                         phicl));
+      bs.push_back(_bs);
+      clusters_3D->AddElement(_bs);
+
+      // try showing the barycenter vs layer
+      if (drawClustersBarycenterVsLayer)
+      {
+        TEvePointSet *layerBarycenters = new TEvePointSet();
+        layerBarycenters->SetName(Form("%s cluster %d barycenters", clusterType.c_str(), (int)i));
+        layerBarycenters->SetMarkerColor(kGreen);
+        layerBarycenters->SetMarkerStyle(4);
+        layerBarycenters->SetMarkerSize(3);
+        clusters_3D->AddElement(layerBarycenters);
+        CaloCluster* clus = (*clusters)[icl];
+        for (unsigned int iLayer = 0; iLayer < clus->getNLayersECal(); iLayer++)
+        {
+          if (clus->getEnergyInECalLayer(iLayer)>0)
+          {
+            layerBarycenters->SetNextPoint(
+              clus->getBarycenterInECalLayer(iLayer).X() / cm,
+              clus->getBarycenterInECalLayer(iLayer).Y() / cm,
+              clus->getBarycenterInECalLayer(iLayer).Z() / cm
+            );
+          }
+        }
+        for (unsigned int iLayer = 0; iLayer < (*clusters)[icl]->getNLayersHCal(); iLayer++)
+        {
+          if (clus->getEnergyInHCalLayer(iLayer)>0)
+          {
+            layerBarycenters->SetNextPoint(
+              clus->getBarycenterInHCalLayer(iLayer).X() / cm,
+              clus->getBarycenterInHCalLayer(iLayer).Y() / cm,
+              clus->getBarycenterInHCalLayer(iLayer).Z() / cm
+            );
+          }
+        }
+      }
+      icl++;
     }
-
-    TEveBoxSet *_bs = new TEveBoxSet(Form("%s cluster %d", clusterType.c_str(), (int)i), "");
-    _bs->Reset(TEveBoxSet::kBT_FreeBox, false, 32);
-    _bs->SetMainTransparency(80);
-    _bs->SetOwnIds(kTRUE);
-    _bs->SetPalette(pal);
-    _bs->SetTitle(Form("E = %f GeV\nR = %f cm\ntheta = %f\nphi = %f",
-                       energy,
-                       rcl,
-                       thetacl,
-                       phicl));
-    bs.push_back(_bs);
-    clusters_3D->AddElement(_bs);
   }
-
   // loop over cells
   std::unordered_map<int, double> cellEnergies_rhoz;
   std::unordered_map<int, double> cellEnergies_rhophi;
@@ -659,6 +704,8 @@ void EventDisplay::DrawClusters(std::string clusterType)
     }
 
     // cluster cells in 3D
+    if (bs[icl] != nullptr)
+    {
     float verts3D[24];
     if (systemID == 4)
     {
@@ -750,6 +797,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
       bs[icl]->AddBox(verts3D);
       bs[icl]->DigitValue((int)(1000 * energy));
       // bs->BoxId(new TNamed(Form("Cell %lu", cellID), "Dong!"));
+    }
     }
   }
 
@@ -1237,7 +1285,7 @@ void EventDisplay::loadEvent(int event)
       ecalCells = new TEvePointSet();
       ecalCells->SetName(Form("ECAL cells (E>%.1f GeV)", CellEnergyThreshold));
       ecalCells->SetMarkerStyle(4);
-      ecalCells->SetMarkerSize(3);
+      ecalCells->SetMarkerSize(2);
       ecalCells->SetMarkerColor(kYellow);
       gEve->AddElement(ecalCells);
     }
@@ -1262,7 +1310,7 @@ void EventDisplay::loadEvent(int event)
         hcalCells = new TEvePointSet();
         hcalCells->SetName(Form("HCAL cells (E>%.1f GeV)", CellEnergyThreshold));
         hcalCells->SetMarkerStyle(4);
-        hcalCells->SetMarkerSize(3);
+        hcalCells->SetMarkerSize(2);
         hcalCells->SetMarkerColor(kYellow);
         gEve->AddElement(hcalCells);
       }
