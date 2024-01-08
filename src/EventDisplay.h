@@ -120,7 +120,10 @@ public:
   TEveElementList *swclusters_rhophi = nullptr;
   TEveElementList *topoclusters_3D = nullptr;
   TEveElementList *swclusters_3D = nullptr;
-
+  TEveElementList *hits = nullptr;
+  TEveElementList *digis = nullptr;
+  TEveElementList *topoclusters = nullptr;
+  TEveElementList *swclusters = nullptr;
   TEveGeoShape *ecalbarrel = nullptr;
   TEveGeoShape *hcalbarrel = nullptr;
   TEveViewer *rhoPhiView = nullptr;
@@ -141,8 +144,8 @@ public:
 
   DetectorGeometry *geomReader = nullptr;
   EventReader *eventReader = nullptr;
-  std::vector<CaloCluster *> topoclusters;
-  std::vector<CaloCluster *> swclusters;
+  std::vector<CaloCluster *> topoclusterData;
+  std::vector<CaloCluster *> swclusterData;
 
   /******************************************************************************/
   // class methods

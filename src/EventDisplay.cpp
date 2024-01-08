@@ -58,19 +58,19 @@ Bool_t TGLConstAnnotation::MouseEnter(TGLOvlSelectRecord & /*rec*/)
 
 void EventDisplay::FillClusters(std::string clusterType)
 {
-  std::vector<CaloCluster *> *clusters = nullptr;
+  std::vector<CaloCluster *> *clusterData = nullptr;
   unsigned int nClusters = 0;
 
   if (clusterType == "topo")
   {
     std::cout << "Creating topo clusters" << std::endl;
-    clusters = &topoclusters;
+    clusterData = &topoclusterData;
     nClusters = eventReader->CorrectedCaloTopoClusters_position_x->GetSize();
   }
   else if (clusterType == "sw")
   {
     std::cout << "Creating SW clusters" << std::endl;
-    clusters = &swclusters;
+    clusterData = &swclusterData;
     nClusters = eventReader->CaloClusters_position_x->GetSize();
   }
   else
@@ -86,13 +86,13 @@ void EventDisplay::FillClusters(std::string clusterType)
   }
 
   // delete clusters from previous event
-  if (clusters->size() > 0)
+  if (clusterData->size() > 0)
   {
-    for (CaloCluster *cluster : *clusters)
+    for (CaloCluster *cluster : *clusterData)
     {
       delete cluster;
     }
-    clusters->resize(0);
+    clusterData->resize(0);
   }
 
   // loop over clusters and fill the relevant info
@@ -109,7 +109,7 @@ void EventDisplay::FillClusters(std::string clusterType)
 
     // create empty cluster object
     CaloCluster *cluster = new CaloCluster;
-    clusters->emplace_back(cluster);
+    clusterData->emplace_back(cluster);
 
     // set index and energy
     cluster->setIndex(i);
@@ -272,16 +272,16 @@ void EventDisplay::FillClusters(std::string clusterType)
 
 void EventDisplay::DrawClusters(std::string clusterType)
 {
-  std::vector<CaloCluster *> *clusters = nullptr;
+  std::vector<CaloCluster *> *clusterData = nullptr;
   if (clusterType == "topo")
   {
     std::cout << "Drawing topo clusters" << std::endl;
-    clusters = &topoclusters;
+    clusterData = &topoclusterData;
   }
   else if (clusterType == "sw")
   {
     std::cout << "Drawing SW clusters" << std::endl;
-    clusters = &swclusters;
+    clusterData = &swclusterData;
   }
   else
   {
@@ -323,7 +323,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
       topoclustersCenter = new TEvePointSet();
       topoclustersCenter->SetName(Form("%s clusters (E>%.1f GeV)", clusterType.c_str(), ClusterEnergyThreshold));
       topoclustersCenter->SetMarkerColor(kWhite);
-      gEve->AddElement(topoclustersCenter);
+      topoclusters->AddElement(topoclustersCenter);
     }
     else
       topoclustersCenter->Reset();
@@ -336,7 +336,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
       swclustersCenter = new TEvePointSet();
       swclustersCenter->SetName(Form("%s clusters (E>%.1f GeV)", clusterType.c_str(), ClusterEnergyThreshold));
       swclustersCenter->SetMarkerColor(kGray);
-      gEve->AddElement(swclustersCenter);
+      swclusters->AddElement(swclustersCenter);
     }
     else
       swclustersCenter->Reset();
@@ -551,7 +551,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
         layerBarycenters->SetMarkerStyle(4);
         layerBarycenters->SetMarkerSize(3);
         clusters_3D->AddElement(layerBarycenters);
-        CaloCluster* clus = (*clusters)[icl];
+        CaloCluster* clus = (*clusterData)[icl];
         for (unsigned int iLayer = 0; iLayer < clus->getNLayersECal(); iLayer++)
         {
           if (clus->getEnergyInECalLayer(iLayer)>0)
@@ -563,7 +563,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
             );
           }
         }
-        for (unsigned int iLayer = 0; iLayer < (*clusters)[icl]->getNLayersHCal(); iLayer++)
+        for (unsigned int iLayer = 0; iLayer < (*clusterData)[icl]->getNLayersHCal(); iLayer++)
         {
           if (clus->getEnergyInHCalLayer(iLayer)>0)
           {
@@ -1087,7 +1087,8 @@ void EventDisplay::loadEvent(int event)
     {
       particles = new TEveTrackList("particles");
       TEveTrackPropagator *trkProp = particles->GetPropagator();
-      trkProp->SetMagField(0.01);
+      //trkProp->SetMagField(0.00001);
+      trkProp->SetMagField(0.0);
       trkProp->SetMaxR(rMax);
       trkProp->SetMaxZ(geomReader->zMax);
       particles->SetMainColor(kWhite);
@@ -1221,6 +1222,12 @@ void EventDisplay::loadEvent(int event)
   //
   if (drawHits)
   {
+    if (hits == nullptr)
+    {
+      hits  = new TEveElementList("hits");
+      gEve->AddElement(hits);
+    }
+    // do we need to Reset() otherwise ?
     std::cout << "Creating hits" << std::endl;
     if (ecalHits == nullptr)
     {
@@ -1229,7 +1236,8 @@ void EventDisplay::loadEvent(int event)
       ecalHits->SetMarkerStyle(4);
       ecalHits->SetMarkerSize(1);
       ecalHits->SetMarkerColor(kRed);
-      gEve->AddElement(ecalHits);
+      //gEve->AddElement(ecalHits);
+      hits->AddElement(ecalHits);
     }
     else
       ecalHits->Reset();
@@ -1256,7 +1264,8 @@ void EventDisplay::loadEvent(int event)
         hcalHits->SetMarkerStyle(4);
         hcalHits->SetMarkerSize(1);
         hcalHits->SetMarkerColor(kRed);
-        gEve->AddElement(hcalHits);
+        hits->AddElement(hcalHits);
+
       }
       else
         hcalHits->Reset();
@@ -1280,6 +1289,11 @@ void EventDisplay::loadEvent(int event)
   if (drawCells)
   {
     std::cout << "Creating cells" << std::endl;
+    if (digis == nullptr)
+    {
+      digis  = new TEveElementList("digis");
+      gEve->AddElement(digis);
+    }
     if (ecalCells == nullptr)
     {
       ecalCells = new TEvePointSet();
@@ -1287,7 +1301,7 @@ void EventDisplay::loadEvent(int event)
       ecalCells->SetMarkerStyle(4);
       ecalCells->SetMarkerSize(2);
       ecalCells->SetMarkerColor(kYellow);
-      gEve->AddElement(ecalCells);
+      digis->AddElement(ecalCells);
     }
     else
       ecalCells->Reset();
@@ -1312,7 +1326,7 @@ void EventDisplay::loadEvent(int event)
         hcalCells->SetMarkerStyle(4);
         hcalCells->SetMarkerSize(2);
         hcalCells->SetMarkerColor(kYellow);
-        gEve->AddElement(hcalCells);
+        digis->AddElement(hcalCells);
       }
       else
         hcalCells->Reset();
@@ -1341,7 +1355,7 @@ void EventDisplay::loadEvent(int event)
       cells_merged->SetMarkerStyle(4);
       cells_merged->SetMarkerSize(3);
       cells_merged->SetMarkerColor(kBlue);
-      gEve->AddElement(cells_merged);
+      digis->AddElement(cells_merged);
     }
     else
       cells_merged->Reset();
@@ -1362,11 +1376,24 @@ void EventDisplay::loadEvent(int event)
   //
   if (drawTopoClusters)
   {
+    if (topoclusters == nullptr)
+    {
+      topoclusters  = new TEveElementList(Form("topoclusters (E > %.1f GeV)", ClusterEnergyThreshold));
+      gEve->AddElement(topoclusters);
+    }
     FillClusters("topo");
     DrawClusters("topo");
   }
   if (drawSWClusters)
+  {
+    if (swclusters == nullptr)
+    {
+      swclusters  = new TEveElementList(Form("SW clusters (E > %.1f GeV)", ClusterEnergyThreshold));
+      gEve->AddElement(swclusters);
+    }
+    FillClusters("sw");
     DrawClusters("sw");
+  }
 
   //
   // event label
@@ -1659,6 +1686,7 @@ void EventDisplay::startDisplay(int initialEvent)
   rhoPhiProjManager->SetProjection(TEveProjection::kPT_RPhi);
   auto axes = new TEveProjectionAxes(rhoPhiProjManager);
   axes->SetElementName("Rho-Phi projection axes");
+  axes->SetDrawOrigin(true);
   rhoPhiScene->AddElement(axes);
 
   if (useG4geom)
@@ -1738,6 +1766,7 @@ void EventDisplay::startDisplay(int initialEvent)
   rhoZProjManager->SetProjection(TEveProjection::kPT_RhoZ);
   auto axes2 = new TEveProjectionAxes(rhoZProjManager);
   axes2->SetElementName("Rho-Z projection axes");
+  axes2->SetDrawOrigin(true);
   rhoZScene->AddElement(axes2);
   if (useG4geom)
     rhoZProjManager->ImportElements(geom, rhoZScene);
