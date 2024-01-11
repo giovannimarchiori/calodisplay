@@ -80,7 +80,7 @@ public:
   float HitEnergyThreshold = 0.0;
   float CellEnergyThreshold = 0.0;
   // min cluster energy (in GeV)
-  float ClusterEnergyThreshold = 2.;
+  float ClusterEnergyThreshold = 1.;
 
   // G4 geometry file
   bool useG4geom = true;
@@ -122,8 +122,6 @@ public:
   TEveElementList *swclusters_3D = nullptr;
   TEveElementList *hits = nullptr;
   TEveElementList *digis = nullptr;
-  TEveElementList *topoclusters = nullptr;
-  TEveElementList *swclusters = nullptr;
   TEveGeoShape *ecalbarrel = nullptr;
   TEveGeoShape *hcalbarrel = nullptr;
   TEveViewer *rhoPhiView = nullptr;

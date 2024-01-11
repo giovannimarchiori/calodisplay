@@ -306,76 +306,8 @@ void EventDisplay::DrawClusters(std::string clusterType)
   const double gridPhiHCal = geomReader->gridPhiHCal;
   const double phiMinHCal = geomReader->phiMinHCal;
 
-  if (clusterType == "topo")
-  {
-    clustersCenter = topoclustersCenter;
-  }
-  else
-  {
-    clustersCenter = swclustersCenter;
-  }
 
-  // centers of the clusters
-  if (clusterType == "topo")
-  {
-    if (topoclustersCenter == nullptr)
-    {
-      topoclustersCenter = new TEvePointSet();
-      topoclustersCenter->SetName(Form("%s clusters (E>%.1f GeV)", clusterType.c_str(), ClusterEnergyThreshold));
-      topoclustersCenter->SetMarkerColor(kWhite);
-      topoclusters->AddElement(topoclustersCenter);
-    }
-    else
-      topoclustersCenter->Reset();
-    clustersCenter = topoclustersCenter;
-  }
-  else
-  {
-    if (swclustersCenter == nullptr)
-    {
-      swclustersCenter = new TEvePointSet();
-      swclustersCenter->SetName(Form("%s clusters (E>%.1f GeV)", clusterType.c_str(), ClusterEnergyThreshold));
-      swclustersCenter->SetMarkerColor(kGray);
-      swclusters->AddElement(swclustersCenter);
-    }
-    else
-      swclustersCenter->Reset();
-    clustersCenter = swclustersCenter;
-  }
-  clustersCenter->SetMarkerStyle(4);
-  clustersCenter->SetMarkerSize(5);
-
-  unsigned int nClusters = (clusterType == "topo") ? eventReader->CorrectedCaloTopoClusters_position_x->GetSize() : eventReader->CaloClusters_position_x->GetSize();
-  if (debug)
-  {
-    std::cout << "  n(clusters) = " << nClusters << std::endl;
-    std::cout << "  Looping over clusters to retrieve barycenter" << std::endl;
-  }
-  for (unsigned int i = 0; i < nClusters; i++)
-  {
-    float E = (clusterType == "topo") ? (*eventReader->CorrectedCaloTopoClusters_energy)[i] : (*eventReader->CaloClusters_energy)[i];
-    if (E < ClusterEnergyThreshold)
-      continue;
-    // topo cluster positions are in cm while calo clusters and hits/cells in mm ... ?
-    if (clusterType == "topo")
-    {
-      clustersCenter->SetNextPoint((*eventReader->CorrectedCaloTopoClusters_position_x)[i] * cm,
-                                   (*eventReader->CorrectedCaloTopoClusters_position_y)[i] * cm,
-                                   (*eventReader->CorrectedCaloTopoClusters_position_z)[i] * cm);
-    }
-    else
-    {
-      clustersCenter->SetNextPoint((*eventReader->CaloClusters_position_x)[i] * mm,
-                                   (*eventReader->CaloClusters_position_y)[i] * mm,
-                                   (*eventReader->CaloClusters_position_z)[i] * mm);
-    }
-  }
-
-  // now create the visual representation of the clustered cells
-  std::vector<TEveQuadSet *> qs_rhoz;
-  std::vector<TEveQuadSet *> qs_rhophi;
-  std::vector<TEveBoxSet *> bs;
-
+  // create the graphic containers
   TEveRGBAPalette *pal = new TEveRGBAPalette(0, 1000);
 
   // first, create the containers
@@ -384,18 +316,25 @@ void EventDisplay::DrawClusters(std::string clusterType)
   {
     if (topoclusters_3D == nullptr)
     {
-      topoclusters_3D = new TEveElementList(Form("%s clusters in 3D (no E cut)", clusterType.c_str()));
+      topoclusters_3D = new TEveElementList(Form("%sclusters (E>%.1f GeV)", 
+                                                 clusterType.c_str(),
+                                                 ClusterEnergyThreshold));
       gEve->AddElement(topoclusters_3D);
     }
     else
+    {
       topoclusters_3D->DestroyElements();
+      topoclustersCenter = nullptr;
+    }
     clusters_3D = topoclusters_3D;
   }
   else
   {
     if (swclusters_3D == nullptr)
     {
-      swclusters_3D = new TEveElementList(Form("%s clusters in 3D (no E cut)", clusterType.c_str()));
+      swclusters_3D = new TEveElementList(Form("%sclusters (E>%.1f GeV)",
+                                               clusterType.c_str(),
+                                               ClusterEnergyThreshold));
       gEve->AddElement(swclusters_3D);
     }
     else
@@ -460,6 +399,69 @@ void EventDisplay::DrawClusters(std::string clusterType)
     clusters_rhoz = swclusters_rhoz;
     clusters_rhophi = swclusters_rhophi;
   }
+
+  unsigned int nClusters = (clusterType == "topo") ? eventReader->CorrectedCaloTopoClusters_position_x->GetSize() : eventReader->CaloClusters_position_x->GetSize();
+  if (debug)
+  {
+    std::cout << "  n(clusters) = " << nClusters << std::endl;
+    std::cout << "  Looping over clusters to retrieve barycenter" << std::endl;
+  }
+
+  if (clusterType == "topo")
+  {
+    if (topoclustersCenter == nullptr)
+    {
+      topoclustersCenter = new TEvePointSet();
+      topoclustersCenter->SetName("cluster barycenters");
+      topoclustersCenter->SetMarkerColor(kWhite);
+      topoclusters_3D->AddElement(topoclustersCenter);
+    }
+    else
+      topoclustersCenter->Reset();
+    clustersCenter = topoclustersCenter;
+  }
+  else
+  {
+    if (swclustersCenter == nullptr)
+    {
+      swclustersCenter = new TEvePointSet();
+      swclustersCenter->SetName("cluster barycenters");
+      swclustersCenter->SetMarkerColor(kGray);
+      swclusters_3D->AddElement(swclustersCenter);
+    }
+    else
+      swclustersCenter->Reset();
+    clustersCenter = swclustersCenter;
+  }
+  clustersCenter->SetMarkerStyle(4);
+  clustersCenter->SetMarkerSize(5);
+
+  for (unsigned int i = 0; i < nClusters; i++)
+  {
+    float E = (clusterType == "topo") ? (*eventReader->CorrectedCaloTopoClusters_energy)[i] : (*eventReader->CaloClusters_energy)[i];
+    if (E < ClusterEnergyThreshold)
+      continue;
+    // topo cluster positions are in cm while calo clusters and hits/cells in mm ... ?
+    if (clusterType == "topo")
+    {
+      clustersCenter->SetNextPoint((*eventReader->CorrectedCaloTopoClusters_position_x)[i] * cm,
+                                   (*eventReader->CorrectedCaloTopoClusters_position_y)[i] * cm,
+                                   (*eventReader->CorrectedCaloTopoClusters_position_z)[i] * cm);
+    }
+    else
+    {
+      clustersCenter->SetNextPoint((*eventReader->CaloClusters_position_x)[i] * mm,
+                                   (*eventReader->CaloClusters_position_y)[i] * mm,
+                                   (*eventReader->CaloClusters_position_z)[i] * mm);
+    }
+  }
+
+  // now create the visual representation of the clustered cells
+  std::vector<TEveQuadSet *> qs_rhoz;
+  std::vector<TEveQuadSet *> qs_rhophi;
+  std::vector<TEveBoxSet *> bs;
+
+
 
   // now loop over the clusters and fill the containers
   // in 3D this is done in this first loop
@@ -1376,21 +1378,11 @@ void EventDisplay::loadEvent(int event)
   //
   if (drawTopoClusters)
   {
-    if (topoclusters == nullptr)
-    {
-      topoclusters  = new TEveElementList(Form("topoclusters (E > %.1f GeV)", ClusterEnergyThreshold));
-      gEve->AddElement(topoclusters);
-    }
     FillClusters("topo");
     DrawClusters("topo");
   }
   if (drawSWClusters)
   {
-    if (swclusters == nullptr)
-    {
-      swclusters  = new TEveElementList(Form("SW clusters (E > %.1f GeV)", ClusterEnergyThreshold));
-      gEve->AddElement(swclusters);
-    }
     FillClusters("sw");
     DrawClusters("sw");
   }
