@@ -1488,8 +1488,65 @@ void EventDisplay::startDisplay(int initialEvent)
 
     if (showFullDetector)
     {
-      geom->AddElement(world);
-      world->SetRnrSelfChildren(false, true);
+      // geom->AddElement(world);
+      // world->SetRnrSelfChildren(false, true);
+
+      // group together elements
+      TPRegexp re_bp("AV_*");
+      TPRegexp re_bp2("HOM_*");
+      TPRegexp re_lc("LumiCal_*");
+      TPRegexp re_vtx("Vertex_*");
+      TPRegexp re_dch("CDCH_*");
+      TPRegexp re_ecalb("ECalBarrel*");
+      TPRegexp re_ecalec("CalEndcap*");
+      TPRegexp re_ecalec2("EMEC*");
+      TPRegexp re_hcal("HCal*");
+      TPRegexp re_muon("MuonTagger*");
+
+      TEveElementList* beampipe = new TEveElementList("Beampipe");
+      geom->AddElement(beampipe);
+      TEveElementList* lumical = new TEveElementList("LumiCal");
+      geom->AddElement(lumical);
+      TEveElementList* vertex = new TEveElementList("Vertex");
+      geom->AddElement(vertex);
+      TEveElementList* dch = new TEveElementList("Drift chamber");
+      geom->AddElement(dch);
+      TEveElementList* ecalb = new TEveElementList("ECal barrel");
+      geom->AddElement(ecalb);
+      TEveElementList* calendcap = new TEveElementList("ECal endcaps");
+      geom->AddElement(calendcap);
+      TEveElementList* hcal = new TEveElementList("HCal");
+      geom->AddElement(hcal);
+      TEveElementList* muontagger = new TEveElementList("Muon tagger");
+      geom->AddElement(muontagger);
+
+      for (TEveElement::List_i itr = world->BeginChildren();  itr!=world->EndChildren(); itr++)
+      {
+        TEveElement* a = *itr;
+        TString s = a->GetElementName();
+        if (re_bp.MatchB(s))
+          beampipe->AddElement(a);
+        else if (re_bp2.MatchB(s))
+          beampipe->AddElement(a);
+        else if (re_lc.MatchB(s))
+          lumical->AddElement(a);
+        else if (re_vtx.MatchB(s))
+          vertex->AddElement(a);
+        else if (re_dch.MatchB(s))
+          dch->AddElement(a);
+        else if (re_ecalb.MatchB(s))
+          ecalb->AddElement(a);
+        else if (re_ecalec.MatchB(s))
+          calendcap->AddElement(a);
+        else if (re_ecalec2.MatchB(s))
+          calendcap->AddElement(a);
+        else if (re_hcal.MatchB(s))
+          hcal->AddElement(a);
+        else if (re_muon.MatchB(s))
+          muontagger->AddElement(a);
+        else
+          geom->AddElement(a);
+      }
     }
     else
     {
@@ -1526,14 +1583,33 @@ void EventDisplay::startDisplay(int initialEvent)
         TEveElement::List_t matches2;
         re = TPRegexp("active*");
         bath->FindChildren(matches2, re);
-        for (auto a : matches2)
+        for (TEveElement* a : matches2)
+        {
           actives->AddElement(a);
+          ((TEveGeoShape*) a)->SetMainTransparency(100);
+          // increase line width of active layers from 1.0 to 5.0
+          // make them transparent so that passive elements are not covered
+          TEveElement::List_t _matches;
+          re = TPRegexp("layer*");
+          a->FindChildren(_matches, re);
+          for (TEveElement* l : _matches)
+          {
+            ((TEveGeoShape*) l)->SetLineWidth(5.0);
+            ((TEveGeoShape*) l)->SetMainTransparency(100);
+          }
+        }
         newbath->AddElement(actives);
         TEveElement::List_t matches3;
         re = TPRegexp("passive*");
         bath->FindChildren(matches3, re);
-        for (auto a : matches3)
+        for (TEveElement* a : matches3)
+        {
           passives->AddElement(a);
+          //decrease transparency from 60 to 20
+          // ((TEveGeoShape*) a)->SetMainTransparency(20);
+          // do not draw individual constituents of passive elements
+          // a->SetRnrSelfChildren(true, false);
+        }
         newbath->AddElement(passives);
         ecalbarrel->RemoveElement(bath);
         // hide elements inside bath by default because they are slow in 3D
