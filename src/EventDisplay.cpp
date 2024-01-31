@@ -1555,6 +1555,7 @@ void EventDisplay::startDisplay(int initialEvent)
       re = TPRegexp("ECalBarrel*");
       TEveElement *ecalbarrel = world->FindChild(re);
       ecalbarrel->SetPickableRecursively(kTRUE);
+      ((TEveGeoShape*) ecalbarrel)->SetNSegments(256);
       geom->AddElement(ecalbarrel);
 
       // set transparency of the subvolumes of the bath
@@ -1564,11 +1565,17 @@ void EventDisplay::startDisplay(int initialEvent)
       re = TPRegexp("ECAL_Cryo*");
       ecalbarrel->FindChildren(matches, re);
       for (auto a : matches)
+      {
         a->SetMainTransparency(70);
+        ((TEveGeoShape*) a)->SetNSegments(256);
+      }
       re = TPRegexp("services*");
       ecalbarrel->FindChildren(matches, re);
       for (auto a : matches)
+      {
         a->SetMainTransparency(70);
+        ((TEveGeoShape*) a)->SetNSegments(256);
+      }
       // make lists of elements inside bath to turn on/off simultaneously
       if (bath)
       {
