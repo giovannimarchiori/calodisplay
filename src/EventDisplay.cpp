@@ -1495,43 +1495,66 @@ void EventDisplay::startDisplay(int initialEvent)
       TPRegexp re_bp("AV_*");
       TPRegexp re_bp2("HOM_*");
       TPRegexp re_lc("LumiCal_*");
-      TPRegexp re_vtx("Vertex_*");
+      TPRegexp re_vtxb("VertexBarrel_*");
+      TPRegexp re_vtxec("VertexEndcap_*");
       TPRegexp re_dch("CDCH_*");
       TPRegexp re_ecalb("ECalBarrel*");
       TPRegexp re_ecalec("CalEndcap*");
       TPRegexp re_ecalec2("EMEC*");
-      TPRegexp re_hcal("HCal*");
-      TPRegexp re_muon("MuonTagger*");
+      TPRegexp re_hcalb("HCalEnvelopeVolume*");
+      TPRegexp re_hcalec("HCal(\\w+)Endcap(\\w+)");
+      TPRegexp re_muonb("MuonTaggerBarrel*");
+      TPRegexp re_muonec("MuonTaggerEndcap*");
 
       TEveElementList* beampipe = new TEveElementList("Beampipe");
       geom->AddElement(beampipe);
       TEveElementList* lumical = new TEveElementList("LumiCal");
       geom->AddElement(lumical);
-      TEveElementList* vertex = new TEveElementList("Vertex");
-      geom->AddElement(vertex);
+      TEveElementList* vertexBarrel = new TEveElementList("Vertex barrel");
+      geom->AddElement(vertexBarrel);
+      TEveElementList* vertexEndcap = new TEveElementList("Vertex endcaps");
+      geom->AddElement(vertexEndcap);
       TEveElementList* dch = new TEveElementList("Drift chamber");
       geom->AddElement(dch);
       TEveElementList* ecalb = new TEveElementList("ECal barrel");
       geom->AddElement(ecalb);
       TEveElementList* calendcap = new TEveElementList("ECal endcaps");
       geom->AddElement(calendcap);
-      TEveElementList* hcal = new TEveElementList("HCal");
-      geom->AddElement(hcal);
-      TEveElementList* muontagger = new TEveElementList("Muon tagger");
-      geom->AddElement(muontagger);
+      TEveElementList* hcalb = new TEveElementList("HCal barrel");
+      geom->AddElement(hcalb);
+      TEveElementList* hcalec = new TEveElementList("HCal endcaps");
+      geom->AddElement(hcalec);
+      TEveElementList* muontaggerb = new TEveElementList("Muon tagger barrel");
+      geom->AddElement(muontaggerb);
+      TEveElementList* muontaggerec = new TEveElementList("Muon tagger endcaps");
+      geom->AddElement(muontaggerec);
 
       for (TEveElement::List_i itr = world->BeginChildren();  itr!=world->EndChildren(); itr++)
       {
         TEveElement* a = *itr;
-        TString s = a->GetElementName();
+        TString s(a->GetElementName());
+        cout << s << endl;
         if (re_bp.MatchB(s))
           beampipe->AddElement(a);
         else if (re_bp2.MatchB(s))
           beampipe->AddElement(a);
         else if (re_lc.MatchB(s))
           lumical->AddElement(a);
-        else if (re_vtx.MatchB(s))
-          vertex->AddElement(a);
+        else if (s.Contains("Vertex"))
+        {
+          // for vertex, loop over children to add them either to barrel or endcap
+          for (TEveElement::List_i itrVtx = a->BeginChildren();  itrVtx!=a->EndChildren(); itrVtx++)
+          {
+            TEveElement* elVtx = *itrVtx;
+            TString sVtx(elVtx->GetElementName());
+            if (re_vtxb.MatchB(sVtx))
+              vertexBarrel->AddElement(elVtx);
+            else if (re_vtxec.MatchB(sVtx))
+              vertexEndcap->AddElement(elVtx);
+            else
+              cout << "Unexpected volume: " << sVtx << endl;
+          }
+        }
         else if (re_dch.MatchB(s))
           dch->AddElement(a);
         else if (re_ecalb.MatchB(s))
@@ -1540,10 +1563,14 @@ void EventDisplay::startDisplay(int initialEvent)
           calendcap->AddElement(a);
         else if (re_ecalec2.MatchB(s))
           calendcap->AddElement(a);
-        else if (re_hcal.MatchB(s))
-          hcal->AddElement(a);
-        else if (re_muon.MatchB(s))
-          muontagger->AddElement(a);
+        else if (re_hcalb.MatchB(s))
+          hcalb->AddElement(a);
+        else if (re_hcalec.MatchB(s))
+          hcalec->AddElement(a);
+        else if (re_muonb.MatchB(s))
+          muontaggerb->AddElement(a);
+        else if (re_muonec.MatchB(s))
+          muontaggerec->AddElement(a);
         else
           geom->AddElement(a);
       }
@@ -1564,7 +1591,7 @@ void EventDisplay::startDisplay(int initialEvent)
       TEveElement::List_t matches;
       re = TPRegexp("ECAL_Cryo*");
       ecalbarrel->FindChildren(matches, re);
-      for (auto a : matches)
+      for (TEveElement* a : matches)
       {
         a->SetMainTransparency(70);
         ((TEveGeoShape*) a)->SetNSegments(256);
@@ -1630,33 +1657,65 @@ void EventDisplay::startDisplay(int initialEvent)
         re = TPRegexp("HCalEnvelopeVolume*");
         TEveElement *hcalbarrel = world->FindChild(re);
         hcalbarrel->SetPickableRecursively(kTRUE);
+        ((TEveGeoShape*) hcalbarrel)->SetNSegments(256);
         geom->AddElement(hcalbarrel);
 
         // re = TPRegexp("HCalLayerVol*");
         // hcalbarrel->FindChildren(matches, re);
         // for (auto a : matches) a->SetRnrSelfChildren(true, false);
 
-        // set transparency of plate faces and steel
-        re = TPRegexp("HCal*PlateVol*");
-        hcalbarrel->FindChildren(matches, re);
-        for (auto a : matches)
-          a->SetMainTransparency(70);
+        // set transparency and number of segments in 2D projection of plate faces and steel
+        {
+          re = TPRegexp("HCal(\\w+)PlateVol(\\w+)");
+          TEveElement::List_t matches;
+          hcalbarrel->FindChildren(matches, re);
+          for (TEveElement* a : matches)
+          {
+            a->SetMainTransparency(70);
+            ((TEveGeoShape*) a)->SetNSegments(256);
+          }
+        }
 
         re = TPRegexp("HCal*Steel*");
         hcalbarrel->FindChildren(matches, re);
         for (auto a : matches)
+        {
           a->SetMainTransparency(70);
+          ((TEveGeoShape*) a)->SetNSegments(256);
+        }
 
         // group together the layers so that they can be turned on/off together
+        // set number of segments of 2D projection of layer envelopes
         TEveElementList *hcalLayers = new TEveElementList("HCalLayers");
         hcalbarrel->AddElement(hcalLayers);
         re = TPRegexp("HCalLayerVol*");
         TEveElement::List_t matches4;
         hcalbarrel->FindChildren(matches4, re);
-        for (auto a : matches4)
+        for (TEveElement* a : matches4)
         {
           hcalLayers->AddElement(a);
           hcalbarrel->RemoveElement(a);
+          ((TEveGeoShape*) a)->SetNSegments(256);
+          // set number of segments of 2D projection of TileSequenceVol and TileVol
+          // slow, don't do it!
+          // instead, hide by default the single tiles because they are slow in 3D
+          a->SetRnrSelfChildren(true, false);
+          /*
+          TPRegexp re2("HCalTileSequenceVol*");
+          TEveElement::List_t matches_tsv;
+          a->FindChildren(matches_tsv, re2);
+          for (TEveElement* tsv : matches_tsv)
+          {
+            ((TEveGeoShape*) tsv)->SetNSegments(256);
+            TPRegexp re3("HCalTileVol*");
+            TEveElement::List_t matches_tv;
+            tsv->FindChildren(matches_tv, re3);
+            for (TEveElement* tv : matches_tv)
+            {
+              ((TEveGeoShape*) tv)->SetNSegments(256);
+            }
+          }
+          */
         }
       }
     }
