@@ -1586,6 +1586,8 @@ void EventDisplay::startDisplay(int initialEvent)
       ecalbarrel->SetPickableRecursively(kTRUE);
       ((TEveGeoShape*) ecalbarrel)->SetNSegments(256);
       geom->AddElement(ecalbarrel);
+      // hide the envelope, only show physical volumes in it
+      ecalbarrel->SetRnrSelfChildren(false,true);
 
       // set transparency of the subvolumes of the bath
       re = TPRegexp("LAr_bath*");
@@ -1673,11 +1675,14 @@ void EventDisplay::startDisplay(int initialEvent)
           for (TEveElement* a : matches_ec2)
           {
             ecalendcap->AddElement(a);
+            // do not draw envelope, only physical elements inside
+            a->SetRnrSelfChildren(false,true);
             // hide elements inside layerEnvelope by default because they are slow in 3D
             // tree is EMEC_vol->EMEC_positive/negative_vol->layerEnvelope
             for (TEveElement::List_i itr = a->BeginChildren();  itr!=a->EndChildren(); itr++)
             {
               TEveElement* emec_posneg_vol = (*itr);
+              emec_posneg_vol->SetRnrSelfChildren(false,true);
               for (TEveElement::List_i itr2 = emec_posneg_vol->BeginChildren();  itr2!=emec_posneg_vol->EndChildren(); itr2++)
               {
                 (*itr2)->SetRnrSelfChildren(true,false);
@@ -1696,6 +1701,8 @@ void EventDisplay::startDisplay(int initialEvent)
         hcalbarrel->SetPickableRecursively(kTRUE);
         ((TEveGeoShape*) hcalbarrel)->SetNSegments(256);
         geom->AddElement(hcalbarrel);
+        // do not draw envelope, only physical elements inside
+        hcalbarrel->SetRnrSelfChildren(false,true);
 
         // re = TPRegexp("HCalLayerVol*");
         // hcalbarrel->FindChildren(matches, re);
@@ -1768,6 +1775,8 @@ void EventDisplay::startDisplay(int initialEvent)
           for (TEveElement* a : matches_ec)
           {
             hcalendcap->AddElement(a);
+            // do not draw envelope, only physical elements inside
+            a->SetRnrSelfChildren(false,true);
             TEveElementList *hcalECLayers = new TEveElementList("HCalECLayers");
             hcalendcap->AddElement(hcalECLayers);
             re = TPRegexp("HCalECLayerVol*");
