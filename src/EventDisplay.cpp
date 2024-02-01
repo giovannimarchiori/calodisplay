@@ -1577,9 +1577,11 @@ void EventDisplay::startDisplay(int initialEvent)
     }
     else
     {
-      TPRegexp re;
 
-      re = TPRegexp("ECalBarrel*");
+      //
+      // ECAL barrel
+      //
+      TPRegexp re("ECalBarrel*");
       TEveElement *ecalbarrel = world->FindChild(re);
       ecalbarrel->SetPickableRecursively(kTRUE);
       ((TEveGeoShape*) ecalbarrel)->SetNSegments(256);
@@ -1609,7 +1611,7 @@ void EventDisplay::startDisplay(int initialEvent)
         TEveElementList *newbath = new TEveElementList("LAr_bath");
         ecalbarrel->AddElement(newbath);
         TEveElement::List_t matches;
-        re = TPRegexp("PCB*");
+        re = TPRegexp("PCB(\\w+)");
         bath->FindChildren(matches, re);
         for (auto a : matches)
           PCBs->AddElement(a);
@@ -1648,6 +1650,41 @@ void EventDisplay::startDisplay(int initialEvent)
         ecalbarrel->RemoveElement(bath);
         // hide elements inside bath by default because they are slow in 3D
         newbath->SetRnrSelfChildren(true, false);
+
+        //
+        // ECAL endcaps
+        //
+        if (doEndcaps)
+        {
+          ecalendcap = new TEveElementList("ECal endcap");
+          geom->AddElement(ecalendcap);
+
+          TPRegexp re_ecalec("CalEndcap(\\w+)");
+          TEveElement::List_t matches_ec;
+          world->FindChildren(matches_ec, re_ecalec);
+          for (TEveElement* a : matches_ec)
+          {
+            ecalendcap->AddElement(a);
+          }
+          
+          TPRegexp re_ecalec2("EMEC(\\w+)");
+          TEveElement::List_t matches_ec2;
+          world->FindChildren(matches_ec2, re_ecalec2);
+          for (TEveElement* a : matches_ec2)
+          {
+            ecalendcap->AddElement(a);
+            // hide elements inside layerEnvelope by default because they are slow in 3D
+            // tree is EMEC_vol->EMEC_positive/negative_vol->layerEnvelope
+            for (TEveElement::List_i itr = a->BeginChildren();  itr!=a->EndChildren(); itr++)
+            {
+              TEveElement* emec_posneg_vol = (*itr);
+              for (TEveElement::List_i itr2 = emec_posneg_vol->BeginChildren();  itr2!=emec_posneg_vol->EndChildren(); itr2++)
+              {
+                (*itr2)->SetRnrSelfChildren(true,false);
+              }
+            }
+          }
+        }
       }
 
       // HCAL
@@ -1716,6 +1753,33 @@ void EventDisplay::startDisplay(int initialEvent)
             }
           }
           */
+        }
+        //
+        // HCAL endcaps
+        //
+        if (doEndcaps)
+        {
+          hcalendcap = new TEveElementList("HCal endcap");
+          geom->AddElement(hcalendcap);
+
+          TPRegexp re_hcalec("HCal(\\w+)Endcap(\\w+)");
+          TEveElement::List_t matches_ec;
+          world->FindChildren(matches_ec, re_hcalec);
+          for (TEveElement* a : matches_ec)
+          {
+            hcalendcap->AddElement(a);
+            TEveElementList *hcalECLayers = new TEveElementList("HCalECLayers");
+            hcalendcap->AddElement(hcalECLayers);
+            re = TPRegexp("HCalECLayerVol*");
+            TEveElement::List_t matches_layer;
+            a->FindChildren(matches_layer, re);
+            for (TEveElement* l : matches_layer)
+            {
+              hcalECLayers->AddElement(l);
+              a->RemoveElement(l);
+              l->SetRnrSelfChildren(true, false);
+            }
+          }
         }
       }
     }
@@ -1793,7 +1857,6 @@ void EventDisplay::startDisplay(int initialEvent)
       gEve->AddToListTree(hcalbarrel, true);
     }
   }
-
   gEve->AddToListTree(readout, true);
 
   // create second tab (R-phi view)

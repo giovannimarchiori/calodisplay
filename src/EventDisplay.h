@@ -64,6 +64,7 @@ public:
   /******************************************************************************/
 
   bool doHCal = false;
+  bool doEndcaps = false;
   bool showFullDetector = false;
 
   bool drawParticles = true;
@@ -123,7 +124,9 @@ public:
   TEveElementList *hits = nullptr;
   TEveElementList *digis = nullptr;
   TEveGeoShape *ecalbarrel = nullptr;
+  TEveElementList *ecalendcap = nullptr;
   TEveGeoShape *hcalbarrel = nullptr;
+  TEveElementList *hcalendcap = nullptr;
   TEveViewer *rhoPhiView = nullptr;
   TEveViewer *rhoZView = nullptr;
   TGLViewer *rhoPhiGLView = nullptr;
