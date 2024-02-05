@@ -1,9 +1,9 @@
 # calodisplay
-Allegro ECal (and HCAL) display
+Allegro ECal (and HCAL) display.
 
 The source files are located in `src`
 
-Setup the environment with `source setup.sh`
+Make sure ROOT is correctly setup, then setup the environment with `source setup.sh`
 
 Compile with `make`
 
