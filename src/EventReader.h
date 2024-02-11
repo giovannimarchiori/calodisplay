@@ -106,22 +106,22 @@ public:
   // For the moment keep both (we might want to have SW clusters in ECAL for
   // EM objects and topoclusters for ECAL+HCAL for jets)
   
-  // the corrected calo topo clusters
-  TTreeReaderArray<Float_t> *CorrectedCaloTopoClusters_energy = nullptr;
-  TTreeReaderArray<Float_t> *CorrectedCaloTopoClusters_position_x = nullptr;
-  TTreeReaderArray<Float_t> *CorrectedCaloTopoClusters_position_y = nullptr;
-  TTreeReaderArray<Float_t> *CorrectedCaloTopoClusters_position_z = nullptr;
-  TTreeReaderArray<UInt_t> *CorrectedCaloTopoClusters_hits_begin = nullptr;
-  TTreeReaderArray<UInt_t> *CorrectedCaloTopoClusters_hits_end = nullptr;  
+  // the (corrected) calo topo clusters
+  TTreeReaderArray<Float_t> *CaloTopoClusters_energy = nullptr;
+  TTreeReaderArray<Float_t> *CaloTopoClusters_position_x = nullptr;
+  TTreeReaderArray<Float_t> *CaloTopoClusters_position_y = nullptr;
+  TTreeReaderArray<Float_t> *CaloTopoClusters_position_z = nullptr;
+  TTreeReaderArray<UInt_t> *CaloTopoClusters_hits_begin = nullptr;
+  TTreeReaderArray<UInt_t> *CaloTopoClusters_hits_end = nullptr;  
   
-  // the cells in the topo clusters
+  // the (positioned) cells in the topo clusters
   TTreeReaderArray<ULong_t> *CaloTopoClusterCells_cellID = nullptr;
   TTreeReaderArray<Float_t> *CaloTopoClusterCells_energy = nullptr;
   TTreeReaderArray<Float_t> *CaloTopoClusterCells_position_x = nullptr;
   TTreeReaderArray<Float_t> *CaloTopoClusterCells_position_y = nullptr;
   TTreeReaderArray<Float_t> *CaloTopoClusterCells_position_z = nullptr;
 
-  // the sliding window clusters (TODO: include upstream/downstream corrections)
+  // the (corrected) sliding window clusters
   TTreeReaderArray<Float_t> *CaloClusters_energy = nullptr;
   TTreeReaderArray<Float_t> *CaloClusters_position_x = nullptr;
   TTreeReaderArray<Float_t> *CaloClusters_position_y = nullptr;
@@ -129,12 +129,12 @@ public:
   TTreeReaderArray<UInt_t> *CaloClusters_hits_begin = nullptr;
   TTreeReaderArray<UInt_t> *CaloClusters_hits_end = nullptr;
 
-  // the cells in the sliding window clusters
-  TTreeReaderArray<ULong_t> *PositionedCaloClusterCells_cellID = nullptr;
-  TTreeReaderArray<Float_t> *PositionedCaloClusterCells_energy = nullptr;
-  TTreeReaderArray<Float_t> *PositionedCaloClusterCells_position_x = nullptr;
-  TTreeReaderArray<Float_t> *PositionedCaloClusterCells_position_y = nullptr;
-  TTreeReaderArray<Float_t> *PositionedCaloClusterCells_position_z = nullptr;
+  // the (positioned) cells in the sliding window clusters
+  TTreeReaderArray<ULong_t> *CaloClusterCells_cellID = nullptr;
+  TTreeReaderArray<Float_t> *CaloClusterCells_energy = nullptr;
+  TTreeReaderArray<Float_t> *CaloClusterCells_position_x = nullptr;
+  TTreeReaderArray<Float_t> *CaloClusterCells_position_y = nullptr;
+  TTreeReaderArray<Float_t> *CaloClusterCells_position_z = nullptr;
 
   
  public:

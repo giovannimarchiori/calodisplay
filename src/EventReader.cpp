@@ -95,28 +95,29 @@ EventReader::EventReader(TFile* f, bool doHCal, bool doSW, bool doTopo, bool dra
 
   if (m_doSW) {
     // SW clusters
-    CaloClusters_energy     = new TTreeReaderArray<Float_t>(*fReader, "CaloClusters.energy");
-    CaloClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, "CaloClusters.position.x");
-    CaloClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, "CaloClusters.position.y");
-    CaloClusters_position_z = new TTreeReaderArray<Float_t>(*fReader, "CaloClusters.position.z");
-    CaloClusters_hits_begin = new TTreeReaderArray<UInt_t>(*fReader, "CaloClusters.hits_begin");
-    CaloClusters_hits_end   = new TTreeReaderArray<UInt_t>(*fReader, "CaloClusters.hits_end");
+    CaloClusters_energy     = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloClusters.energy");
+    CaloClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloClusters.position.x");
+    CaloClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloClusters.position.y");
+    CaloClusters_position_z = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloClusters.position.z");
+    CaloClusters_hits_begin = new TTreeReaderArray<UInt_t>(*fReader, "CorrectedCaloClusters.hits_begin");
+    CaloClusters_hits_end   = new TTreeReaderArray<UInt_t>(*fReader, "CorrectedCaloClusters.hits_end");
     
     // cells in the SW clusters
-    PositionedCaloClusterCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "PositionedCaloClusterCells.cellID");
-    PositionedCaloClusterCells_energy     = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloClusterCells.energy");
-    PositionedCaloClusterCells_position_x = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloClusterCells.position.x");
-    PositionedCaloClusterCells_position_y = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloClusterCells.position.y");
-    PositionedCaloClusterCells_position_z = new TTreeReaderArray<Float_t>(*fReader, "PositionedCaloClusterCells.position.z");
+    CaloClusterCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "CaloClusterCells.cellID");
+    CaloClusterCells_energy     = new TTreeReaderArray<Float_t>(*fReader, "CaloClusterCells.energy");
+    CaloClusterCells_position_x = new TTreeReaderArray<Float_t>(*fReader, "CaloClusterCells.position.x");
+    CaloClusterCells_position_y = new TTreeReaderArray<Float_t>(*fReader, "CaloClusterCells.position.y");
+    CaloClusterCells_position_z = new TTreeReaderArray<Float_t>(*fReader, "CaloClusterCells.position.z");
+
   }
   if (m_doTopo) {
     // corrected calo topo clusters
-    CorrectedCaloTopoClusters_energy     = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.energy");
-    CorrectedCaloTopoClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.x");
-    CorrectedCaloTopoClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.y");
-    CorrectedCaloTopoClusters_position_z = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.z");
-    CorrectedCaloTopoClusters_hits_begin = new TTreeReaderArray<UInt_t>(*fReader, "CorrectedCaloTopoClusters.hits_begin");
-    CorrectedCaloTopoClusters_hits_end   = new TTreeReaderArray<UInt_t>(*fReader, "CorrectedCaloTopoClusters.hits_end");
+    CaloTopoClusters_energy     = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.energy");
+    CaloTopoClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.x");
+    CaloTopoClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.y");
+    CaloTopoClusters_position_z = new TTreeReaderArray<Float_t>(*fReader, "CorrectedCaloTopoClusters.position.z");
+    CaloTopoClusters_hits_begin = new TTreeReaderArray<UInt_t>(*fReader, "CorrectedCaloTopoClusters.hits_begin");
+    CaloTopoClusters_hits_end   = new TTreeReaderArray<UInt_t>(*fReader, "CorrectedCaloTopoClusters.hits_end");
     
     // cells in the topo clusters
     CaloTopoClusterCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, "CaloTopoClusterCells.cellID");
@@ -197,19 +198,19 @@ EventReader::~EventReader() {
     delete CaloClusters_position_z;
     delete CaloClusters_hits_begin;
     delete CaloClusters_hits_end;
-    delete PositionedCaloClusterCells_cellID;
-    delete PositionedCaloClusterCells_energy;
-    delete PositionedCaloClusterCells_position_x;
-    delete PositionedCaloClusterCells_position_y;
-    delete PositionedCaloClusterCells_position_z;
+    delete CaloClusterCells_cellID;
+    delete CaloClusterCells_energy;
+    delete CaloClusterCells_position_x;
+    delete CaloClusterCells_position_y;
+    delete CaloClusterCells_position_z;
   }
   if (m_doTopo) {
-    delete CorrectedCaloTopoClusters_energy;
-    delete CorrectedCaloTopoClusters_position_x;
-    delete CorrectedCaloTopoClusters_position_y;
-    delete CorrectedCaloTopoClusters_position_z;
-    delete CorrectedCaloTopoClusters_hits_begin;
-    delete CorrectedCaloTopoClusters_hits_end;
+    delete CaloTopoClusters_energy;
+    delete CaloTopoClusters_position_x;
+    delete CaloTopoClusters_position_y;
+    delete CaloTopoClusters_position_z;
+    delete CaloTopoClusters_hits_begin;
+    delete CaloTopoClusters_hits_end;
     delete CaloTopoClusterCells_cellID;
     delete CaloTopoClusterCells_energy;
     delete CaloTopoClusterCells_position_x;
