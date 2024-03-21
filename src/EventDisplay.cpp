@@ -1394,7 +1394,7 @@ void EventDisplay::loadEvent(int event)
   //
   if (drawMergedCells)
   {
-    cout << "Creating merged cells" << endl;
+    std::cout << "Creating merged cells" << std::endl;
     if (cells_merged == nullptr)
     {
       cells_merged = new TEvePointSet();
@@ -1467,8 +1467,8 @@ void EventDisplay::loadEvent(int event)
     // rhoZGLView->AddOverlayElement(po2);
   }
 
-  cout << "Done" << endl
-       << endl;
+  std::cout << "Done" << std::endl
+       << std::endl;
 
   textEntry->SetTextColor((Pixel_t)0x000000);
   textEntry->SetText(Form("Event %d loaded", eventId));
@@ -1482,11 +1482,15 @@ void EventDisplay::startDisplay(int initialEvent)
 {
 
   // calculate the geometry parameters
-  geomReader = new DetectorGeometry;
+  if (geomFile.find("v03") != std::string::npos)
+    detectorVersion = 3;
+  else
+    detectorVersion = 2;
+  geomReader = new DetectorGeometry(detectorVersion);
 
-  cout << "******************************************************************************" << endl;
-  cout << "Displaying the geometry" << endl;
-  cout << "******************************************************************************" << endl
+  std::cout << "******************************************************************************" << std::endl;
+  std::cout << "Displaying the geometry" << std::endl;
+  std::cout << "******************************************************************************" << std::endl
        << endl;
 
   // create the eve manageer

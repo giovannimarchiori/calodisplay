@@ -12,8 +12,8 @@
 using std::cout;
 using std::endl;
 
-DetectorGeometry::DetectorGeometry() {
-  calcGeom();
+DetectorGeometry::DetectorGeometry(int version) {
+  calcGeom(version);
 }
 
 
@@ -52,18 +52,32 @@ double DetectorGeometry::getR(double alpha, double r_in, double L) {
 
 
 // calculate the derived geometry parameters of the detector
-void DetectorGeometry::calcGeom() {
+void DetectorGeometry::calcGeom(int version) {
 
   cout << "******************************************************************************" << endl;
   cout << "Calculating the geometry parameters" << endl;
   cout << "******************************************************************************" << endl << endl;
 
   cout << "ECAL" << endl << endl;
-  
+
   drNom = std::vector<double>({
       15.*mm, 35.*mm, 35.*mm, 35.*mm, 35.*mm, 35.*mm, 
       35.*mm, 35.*mm, 35.*mm, 35.*mm, 35.*mm, 35.*mm
     });
+  if (version==3)
+  {
+    // adjust alpha
+    alpha = 50.18 * TMath::Pi()/180.;
+    // reduce number of layers by 1
+    mergedCells_Theta.pop_back();
+    mergedModules.pop_back();
+    // adjust values of radial thicknesses of each layer
+    drNom = std::vector<double>({
+      1.65*cm, 3.36*cm, 3.46*cm, 3.56*cm, 3.68*cm, 3.79*cm,
+      3.92*cm, 4.05*cm, 4.20*cm, 4.35*cm, 4.52*cm
+    });
+  }
+
   nLayers = drNom.size();  
 
   // print initial information
@@ -101,7 +115,7 @@ void DetectorGeometry::calcGeom() {
   for (int iLayer=1; iLayer<=nLayers; iLayer++) {
     r[iLayer] = getR(alpha, r[0], L[iLayer]);
     dr[iLayer-1] = r[iLayer]-r[iLayer-1];
-    cout <<  iLayer-1  <<  r[iLayer-1] << " - " << r[iLayer] << " " << units << endl;
+    cout <<  iLayer-1  <<  " " << r[iLayer-1] << " - " << r[iLayer] << " " << units << endl;
   }
   cout << endl;
 

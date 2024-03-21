@@ -26,8 +26,8 @@ public:
   // used to produce the event file
   /******************************************************************************/
   
-  const std::vector<int> mergedCells_Theta = {4, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
-  const std::vector<int> mergedModules = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+  std::vector<int> mergedCells_Theta = {4, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
+  std::vector<int> mergedModules = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
   
   // units
   // G4 uses mm but Root uses cm..
@@ -41,7 +41,7 @@ public:
   
   // radial extension of barrel
   const double rMin = 217.28*cm;
-  const double rMax = 257.33*cm;
+  const double rMax = 257.83*cm;
 
   // nominal radial thickness of layers
   std::vector<double> drNom;
@@ -53,7 +53,7 @@ public:
   const int nModules = 1536;
   
   // inclination angle of electrodes
-  const double alpha = 50*TMath::Pi()/180.;
+  double alpha = 50*TMath::Pi()/180.;
   
   // grid in theta
   // - size of cell
@@ -145,12 +145,12 @@ public:
   std::vector<double> dL;
 
   // constructor
-  DetectorGeometry();
+  DetectorGeometry(int version=2);
   
   // calculate derived parameters of geometry depending on the main ones
   // (such as radial/electrode length of each layer)
   // and print them to screen
-  void calcGeom();
+  void calcGeom(int version);
 
 
   /******************************************************************************/

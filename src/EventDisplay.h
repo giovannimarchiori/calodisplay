@@ -86,6 +86,7 @@ public:
   // G4 geometry file
   bool useG4geom = true;
   std::string geomFile = "data/allegro.root";
+  int detectorVersion = 2;
 
   // merging along theta and module directions and drawing options
   // std::string evtFile = "output_fullCalo_SimAndDigi_withTopoCluster_MagneticField_False_pMin_10000_MeV_ThetaMinMax_40_140_pdgId_11_pythiaFalse_NoiseFalse.root";
