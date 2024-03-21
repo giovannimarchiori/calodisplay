@@ -135,7 +135,7 @@ public:
   double dPhiAvg;
 
   // phi edge of module 0
-  const double phiMin = -alpha - gridPhi/2.0;
+  double phiMin;
 
   // other quantities, calculated by calcGeom
   // radial position of each layer

@@ -77,6 +77,7 @@ void DetectorGeometry::calcGeom(int version) {
       3.92*cm, 4.05*cm, 4.20*cm, 4.35*cm, 4.52*cm
     });
   }
+  phiMin = -alpha - gridPhi/2.0;
 
   nLayers = drNom.size();  
 
