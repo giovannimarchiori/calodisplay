@@ -5,7 +5,7 @@
 // Run with
 // root
 // .L gdmltoroot.C+
-// gdmltoroot(inFile.gdml, outFile.gdml, volname, false)
+// gdmltoroot(inFile.gdml, outFile.root, volname, false)
 //
 /******************************************************************************/
 
