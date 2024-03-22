@@ -3,9 +3,11 @@
 // author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
 //
 // Compile with make and execute with ./display -h to see available options
+//
 /******************************************************************************/
 
 #include "EventDisplay.h"
+#include "Globals.h"
 
 #include <filesystem>
 #include <string>
@@ -13,11 +15,13 @@
 
 using namespace std;
 
+std::string configFile = "config.json";
+
 std::string usage(bool verbose = false)
 {
   EventDisplay aDisplay;
   std::string use = "Usage:\n";
-  use += "calodisplay [--nog4] [--fulldet] [--dohcal] [--doendcap] [--sw] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-s|--skipEvents <nevents>]\n\n";
+  use += "calodisplay [--nog4] [--fulldet] [--dohcal] [--doendcap] [--sw] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-c|--config <configFile.json>] [-s|--skipEvents <nevents>]\n\n";
   use += "--nog4      : use simplified geometry rather than G4 geometry in file <geomFile.root>\n";
   use += "--fulldet   : show the full detector (including tracker, muon detector, interaction region)\n";
   use += "--dohcal    : show HCAL volume, hits and cells\n";
@@ -33,6 +37,9 @@ std::string usage(bool verbose = false)
     use += "\n";
     use += "eventFile: ";
     use += aDisplay.evtFile;
+    use += "\n";
+    use += "configFile: ";
+    use += configFile;
     use += "\n";
     use += "\n";
   }
@@ -57,7 +64,36 @@ int main(int argc, char *argv[])
     }
   }
 
-  // parse the arguments
+  // check if -c or --config options, to load default configuration
+  for (unsigned int i = 0; i < args.size(); i++)
+  {
+    std::string_view arg = args[i];
+    if (arg == "-c" || arg == "--config")
+    {
+      if (i == args.size() - 1)
+      {
+	throw std::runtime_error("missing config file after -c/--config option!");
+      }
+      else
+      {
+	configFile = args[i+1];
+      }
+      break;
+    }
+  }
+
+  // check that config file exists
+  if (configFile != "" && !std::filesystem::exists(configFile))
+  {
+    std::cerr << "Config file " << configFile << " does not exist!!!" << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  // load default configuration
+  displayConfig.ReadFromFile(configFile);
+  
+ 
+  // parse the other arguments
   try
   {
     for (unsigned int i = 0; i < args.size(); i++)
@@ -90,13 +126,13 @@ int main(int argc, char *argv[])
 
       else if (arg == "--sw")
       {
-        display.drawSWClusters = true;
+        displayConfig.setBoolConfig("drawCaloClusters", true);
         continue;
       }
 
       else if (arg == "--notopo")
       {
-        display.drawTopoClusters = false;
+	displayConfig.setBoolConfig("drawTopoClusters", false);
         continue;
       }
 
@@ -126,6 +162,23 @@ int main(int argc, char *argv[])
           display.evtFile = args[i];
         }
         continue;
+      }
+
+      else if (arg == "-c" || arg == "--config")
+      {
+	/*
+        if (i == args.size() - 1)
+        {
+          throw std::runtime_error("missing config file after -c/--config option!");
+        }
+        else
+        {
+          i++;
+          configFile = args[i];
+        }
+        continue;
+	*/
+	i++; continue;
       }
 
       else if (arg == "-s" || arg == "--skipEvents")
@@ -178,6 +231,10 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
+  // print the configuration
+  displayConfig.Print();
+
+  // start the application
   argc = 0;
   argv = nullptr;
   TRint *gApplication = new TRint("display", &argc, argv);

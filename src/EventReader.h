@@ -31,8 +31,6 @@ public:
   TTreeReader* fReader = nullptr;
 
   // 1a. - primary particles
-  bool m_readGenParticles = true;
-  std::string m_genParticlesBranch = "genParticles";
   TTreeReaderArray<Int_t> *genParticles_PDG = nullptr;
   TTreeReaderArray<Int_t> *genParticles_generatorStatus = nullptr;
   TTreeReaderArray<Int_t> *genParticles_simulatorStatus = nullptr;
@@ -54,8 +52,6 @@ public:
   TTreeReaderArray<Double_t> *genParticles_momentum_z = nullptr;
 
   // 1a. - secondary particles
-  bool m_readSimParticles = true;
-  std::string m_simParticlesBranch = "SimParticlesSecondaries";
   TTreeReaderArray<Int_t> *SimParticleSecondaries_PDG = nullptr;
   //TTreeReaderArray<Int_t> *SimParticleSecondaries_generatorStatus = nullptr;
   //TTreeReaderArray<Int_t> *SimParticleSecondaries_simulatorStatus = nullptr;
@@ -73,8 +69,6 @@ public:
   TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_z = nullptr;
 
   // the hits in ECal barrel
-  bool m_readECalBarrelHits = true;
-  std::string m_ecalBarrelHitsBranch = "ECalBarrelPositionedHits";
   TTreeReaderArray<ULong_t> *ECalBarrelPositionedHits_cellID = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedHits_energy = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedHits_position_x = nullptr;
@@ -82,8 +76,6 @@ public:
   TTreeReaderArray<Float_t> *ECalBarrelPositionedHits_position_z = nullptr;
 
   // the cells in ECal barrel
-  bool m_readECalBarrelCells = true;
-  std::string m_ecalBarrelCellsBranch = "ECalBarrelPositionedCells";
   TTreeReaderArray<ULong_t> *ECalBarrelPositionedCells_cellID = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells_energy = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells_position_x = nullptr;
@@ -91,8 +83,6 @@ public:
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells_position_z = nullptr;
 
   // the cells in ECal barrel with coarser merging
-  bool m_readECalBarrelCells2 = false;
-  std::string m_ecalBarrelCells2Branch = "ECalParrelPositionedCells2";
   TTreeReaderArray<ULong_t> *ECalBarrelPositionedCells2_cellID = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells2_energy = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells2_position_x = nullptr;
@@ -100,8 +90,6 @@ public:
   TTreeReaderArray<Float_t> *ECalBarrelPositionedCells2_position_z = nullptr;
 
   // the hits in HCal barrel
-  bool m_readHCalBarrelHits = true;
-  std::string m_hcalBarrelHitsBranch = "HCalBarrelPositionedHits";
   TTreeReaderArray<ULong_t> *HCalBarrelPositionedHits_cellID = nullptr;
   TTreeReaderArray<Float_t> *HCalBarrelPositionedHits_energy = nullptr;
   TTreeReaderArray<Float_t> *HCalBarrelPositionedHits_position_x = nullptr;
@@ -109,8 +97,6 @@ public:
   TTreeReaderArray<Float_t> *HCalBarrelPositionedHits_position_z = nullptr;
 
   // the cells in HCal barrel
-  bool m_readHCalBarrelCells = true;
-  std::string m_hcalBarrelCellsBranch = "HCalBarrelPositionedCells";
   TTreeReaderArray<ULong_t> *HCalBarrelPositionedCells_cellID = nullptr;
   TTreeReaderArray<Float_t> *HCalBarrelPositionedCells_energy = nullptr;
   TTreeReaderArray<Float_t> *HCalBarrelPositionedCells_position_x = nullptr;
@@ -125,8 +111,6 @@ public:
   // EM objects and topoclusters for ECAL+HCAL for jets)
   
   // the (corrected) calo topo clusters
-  bool m_readTopoClusters = false;
-  std::string m_topoClustersBranch = "CaloTopoClusters";
   TTreeReaderArray<Float_t> *CaloTopoClusters_energy = nullptr;
   TTreeReaderArray<Float_t> *CaloTopoClusters_position_x = nullptr;
   TTreeReaderArray<Float_t> *CaloTopoClusters_position_y = nullptr;
@@ -135,8 +119,6 @@ public:
   TTreeReaderArray<UInt_t> *CaloTopoClusters_hits_end = nullptr;  
   
   // the (positioned) cells in the topo clusters
-  bool m_readTopoClusterCells = false;
-  std::string m_topoClusterCellsBranch = "CaloTopoClusterCells";
   TTreeReaderArray<ULong_t> *CaloTopoClusterCells_cellID = nullptr;
   TTreeReaderArray<Float_t> *CaloTopoClusterCells_energy = nullptr;
   TTreeReaderArray<Float_t> *CaloTopoClusterCells_position_x = nullptr;
@@ -144,8 +126,6 @@ public:
   TTreeReaderArray<Float_t> *CaloTopoClusterCells_position_z = nullptr;
 
   // the (corrected) sliding window clusters
-  bool m_readCaloClusters = false;
-  std::string m_caloClustersBranch = "CaloClusters";
   TTreeReaderArray<Float_t> *CaloClusters_energy = nullptr;
   TTreeReaderArray<Float_t> *CaloClusters_position_x = nullptr;
   TTreeReaderArray<Float_t> *CaloClusters_position_y = nullptr;
@@ -154,8 +134,6 @@ public:
   TTreeReaderArray<UInt_t> *CaloClusters_hits_end = nullptr;
 
   // the (positioned) cells in the sliding window clusters
-  bool m_readCaloClusterCells = false;
-  std::string m_caloClusterCellsBranch = "CaloClusterCells";
   TTreeReaderArray<ULong_t> *CaloClusterCells_cellID = nullptr;
   TTreeReaderArray<Float_t> *CaloClusterCells_energy = nullptr;
   TTreeReaderArray<Float_t> *CaloClusterCells_position_x = nullptr;
@@ -164,7 +142,7 @@ public:
 
   
  public:
-  EventReader(TFile* f, bool doHCal=false, bool doSW=false, bool doTopo=true, bool drawMergedCells=false);
+  EventReader(TFile* f, bool doHCal=false);
   ~EventReader();
   void SetBranches();
   void loadEvent(int event);

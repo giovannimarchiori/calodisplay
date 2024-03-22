@@ -66,22 +66,17 @@ public:
   bool doHCal = false;
   bool doEndcaps = false;
   bool showFullDetector = false;
-
-  bool drawParticles = true;
-  bool drawHits = true;
-  bool drawCells = true;
-  bool drawMergedCells = false;
-  bool drawTopoClusters = true;
-  bool drawSWClusters = false;
   bool drawClustersBarycenterVsLayer = true;
 
+  // will read this from config file
+  // tried to make them private but code was behaving weirdly..
   // min particle energy (GeV)
-  float ParticleEnergyThreshold = 1.0;
+  float ParticleEnergyThreshold;
   // min hit and cell energy (GeV)
-  float HitEnergyThreshold = 0.0;
-  float CellEnergyThreshold = 0.0;
+  float HitEnergyThreshold;
+  float CellEnergyThreshold;
   // min cluster energy (in GeV)
-  float ClusterEnergyThreshold = 1.;
+  float ClusterEnergyThreshold;
 
   // G4 geometry file
   bool useG4geom = true;
@@ -177,6 +172,7 @@ public:
 
   // create the buttons for navigating through the events
   void makeGui();
+
 };
 
 #endif

@@ -8,6 +8,7 @@
 
 #include "EventDisplay.h"
 #include "DetectorGeometry.h"
+#include "Globals.h"
 
 #include <TMath.h>
 #include <TString.h>
@@ -660,9 +661,9 @@ void EventDisplay::DrawClusters(std::string clusterType)
     {
       cellID = (*eventReader->CaloTopoClusterCells_cellID)[i];
       energy = (*eventReader->CaloTopoClusterCells_energy)[i];
-      x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * mm;
-      y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * mm;
-      z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * mm;
+      x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * cm;
+      y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * cm;
+      z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * cm;
     }
     else
     {
@@ -867,9 +868,9 @@ void EventDisplay::DrawClusters(std::string clusterType)
     float r_out = geomReader->r[layer+1];
     float x_center, y_center, z_center;
     if (clusterType=="topo") {
-      x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * mm;
-      y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * mm;
-      z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * mm;
+      x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * cm;
+      y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * cm;
+      z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * cm;
     }
     else {
       x_center = (*eventReader->CaloClusterCells_position_x)[i] * mm;
@@ -1127,7 +1128,7 @@ void EventDisplay::loadEvent(int event)
   //
   // particles
   //
-  if (drawParticles)
+  if (displayConfig.getBoolConfig("drawGenParticles"))
   {
     std::cout << "Creating particles" << std::endl;
     if (particles == nullptr)
@@ -1197,7 +1198,7 @@ void EventDisplay::loadEvent(int event)
 
     // if the particle is a pi0, also draw the two photons, and set the endpoint
     // of the pi0 track
-    if (pdgID == 111)
+    if ( (pdgID == 111) && (displayConfig.getBoolConfig("drawSimParticles")) )
     {
       bool decayVtxSet = false;
       for (unsigned int i = 0; i < eventReader->SimParticleSecondaries_PDG->GetSize(); i++)
@@ -1267,15 +1268,14 @@ void EventDisplay::loadEvent(int event)
   //
   // hits (ECAL/HCAL)
   //
-  if (drawHits)
-  {
+  if (displayConfig.getBoolConfig("drawECalBarrelHits")) {
     if (hits == nullptr)
     {
       hits  = new TEveElementList("hits");
       gEve->AddElement(hits);
     }
     // do we need to Reset() otherwise ?
-    std::cout << "Creating hits" << std::endl;
+    std::cout << "Creating ecal barrel hits" << std::endl;
     if (ecalHits == nullptr)
     {
       ecalHits = new TEvePointSet();
@@ -1301,41 +1301,40 @@ void EventDisplay::loadEvent(int event)
           (*eventReader->ECalBarrelPositionedHits_position_y)[i] * mm,
           (*eventReader->ECalBarrelPositionedHits_position_z)[i] * mm);
     }
-
-    if (doHCal)
+  }
+  
+  if (displayConfig.getBoolConfig("drawHCalBarrelHits")) {
+    std::cout << "Creating hcal barrel hits" << std::endl;
+    if (hcalHits == nullptr)
     {
-      if (hcalHits == nullptr)
-      {
-        hcalHits = new TEvePointSet();
-        hcalHits->SetName(Form("HCAL hits (E>%.1f GeV)", HitEnergyThreshold));
-        hcalHits->SetMarkerStyle(4);
-        hcalHits->SetMarkerSize(1);
-        hcalHits->SetMarkerColor(kRed);
-        hits->AddElement(hcalHits);
+      hcalHits = new TEvePointSet();
+      hcalHits->SetName(Form("HCAL hits (E>%.1f GeV)", HitEnergyThreshold));
+      hcalHits->SetMarkerStyle(4);
+      hcalHits->SetMarkerSize(1);
+      hcalHits->SetMarkerColor(kRed);
+      hits->AddElement(hcalHits);
+    }
+    else
+      hcalHits->Reset();
 
-      }
-      else
-        hcalHits->Reset();
-
-      for (unsigned int i = 0; i < eventReader->HCalBarrelPositionedHits_position_x->GetSize(); i++)
-      {
-        float E = (*eventReader->HCalBarrelPositionedHits_energy)[i];
-        if (E < HitEnergyThreshold)
-          continue;
-        hcalHits->SetNextPoint(
-            (*eventReader->HCalBarrelPositionedHits_position_x)[i] * mm,
-            (*eventReader->HCalBarrelPositionedHits_position_y)[i] * mm,
-            (*eventReader->HCalBarrelPositionedHits_position_z)[i] * mm);
-      }
+    for (unsigned int i = 0; i < eventReader->HCalBarrelPositionedHits_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->HCalBarrelPositionedHits_energy)[i];
+      if (E < HitEnergyThreshold)
+	continue;
+      hcalHits->SetNextPoint(
+			     (*eventReader->HCalBarrelPositionedHits_position_x)[i] * mm,
+			     (*eventReader->HCalBarrelPositionedHits_position_y)[i] * mm,
+			     (*eventReader->HCalBarrelPositionedHits_position_z)[i] * mm);
     }
   }
 
   //
   // cells (ECAL/HCAL)
   //
-  if (drawCells)
+  if (displayConfig.getBoolConfig("drawECalBarrelCells"))
   {
-    std::cout << "Creating cells" << std::endl;
+    std::cout << "Creating ecal barrel cells" << std::endl;
     if (digis == nullptr)
     {
       digis  = new TEveElementList("digis");
@@ -1357,44 +1356,48 @@ void EventDisplay::loadEvent(int event)
       float E = (*eventReader->ECalBarrelPositionedCells_energy)[i];
       if (E < CellEnergyThreshold)
         continue;
-      // ULong_t cellID = (*eventReader->ECalBarrelPositionedCells_cellID)[i];
-      // ULong_t layer = DetectorGeometry::Layer(cellID);
-      ecalCells->SetNextPoint((*eventReader->ECalBarrelPositionedCells_position_x)[i] * mm,
-                              (*eventReader->ECalBarrelPositionedCells_position_y)[i] * mm,
-                              (*eventReader->ECalBarrelPositionedCells_position_z)[i] * mm);
+      // temporary hack since I am drawing topoclustered cells
+      // TO FIX
+      //      ecalCells->SetNextPoint((*eventReader->ECalBarrelPositionedCells_position_x)[i] * mm,
+      //                        (*eventReader->ECalBarrelPositionedCells_position_y)[i] * mm,
+      //                        (*eventReader->ECalBarrelPositionedCells_position_z)[i] * mm);
+      ecalCells->SetNextPoint((*eventReader->ECalBarrelPositionedCells_position_x)[i] * cm,
+                              (*eventReader->ECalBarrelPositionedCells_position_y)[i] * cm,
+                              (*eventReader->ECalBarrelPositionedCells_position_z)[i] * cm);
     }
+  }
 
-    if (doHCal)
+  if (displayConfig.getBoolConfig("drawHCalBarrelCells"))
+  {
+    std::cout << "Creating hcal barrel cells" << std::endl;
+    if (hcalCells == nullptr)
     {
-      if (hcalCells == nullptr)
-      {
-        hcalCells = new TEvePointSet();
-        hcalCells->SetName(Form("HCAL cells (E>%.1f GeV)", CellEnergyThreshold));
-        hcalCells->SetMarkerStyle(4);
-        hcalCells->SetMarkerSize(2);
-        hcalCells->SetMarkerColor(kYellow);
-        digis->AddElement(hcalCells);
-      }
-      else
-        hcalCells->Reset();
-      for (unsigned int i = 0; i < eventReader->HCalBarrelPositionedCells_position_x->GetSize(); i++)
-      {
-        float E = (*eventReader->HCalBarrelPositionedCells_energy)[i];
-        if (E < CellEnergyThreshold)
-          continue;
-        hcalCells->SetNextPoint((*eventReader->HCalBarrelPositionedCells_position_x)[i] * mm,
-                                (*eventReader->HCalBarrelPositionedCells_position_y)[i] * mm,
-                                (*eventReader->HCalBarrelPositionedCells_position_z)[i] * mm);
-      }
+      hcalCells = new TEvePointSet();
+      hcalCells->SetName(Form("HCAL cells (E>%.1f GeV)", CellEnergyThreshold));
+      hcalCells->SetMarkerStyle(4);
+      hcalCells->SetMarkerSize(2);
+      hcalCells->SetMarkerColor(kYellow);
+      digis->AddElement(hcalCells);
+    }
+    else
+      hcalCells->Reset();
+    for (unsigned int i = 0; i < eventReader->HCalBarrelPositionedCells_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->HCalBarrelPositionedCells_energy)[i];
+      if (E < CellEnergyThreshold)
+	continue;
+      hcalCells->SetNextPoint((*eventReader->HCalBarrelPositionedCells_position_x)[i] * mm,
+			      (*eventReader->HCalBarrelPositionedCells_position_y)[i] * mm,
+			      (*eventReader->HCalBarrelPositionedCells_position_z)[i] * mm);
     }
   }
 
   //
   // cells merged (ECAL)
   //
-  if (drawMergedCells)
+  if (displayConfig.getBoolConfig("drawECalBarrelMergedCells"))
   {
-    std::cout << "Creating merged cells" << std::endl;
+    std::cout << "Creating merged ecal barrel cells" << std::endl;
     if (cells_merged == nullptr)
     {
       cells_merged = new TEvePointSet();
@@ -1421,12 +1424,12 @@ void EventDisplay::loadEvent(int event)
   //
   // clusters
   //
-  if (drawTopoClusters)
+  if (displayConfig.getBoolConfig("drawTopoClusters"))
   {
     FillClusters("topo");
     DrawClusters("topo");
   }
-  if (drawSWClusters)
+  if (displayConfig.getBoolConfig("drawCaloClusters"))
   {
     FillClusters("sw");
     DrawClusters("sw");
@@ -1480,7 +1483,12 @@ EventDisplay::EventDisplay()
 
 void EventDisplay::startDisplay(int initialEvent)
 {
-
+  //read some display setup from config file
+  ClusterEnergyThreshold = displayConfig.getFloatConfig("energyThresholdClusters");
+  ParticleEnergyThreshold = displayConfig.getFloatConfig("energyThresholdParticles");
+  HitEnergyThreshold = displayConfig.getFloatConfig("energyThresholdHits");
+  CellEnergyThreshold = displayConfig.getFloatConfig("energyThresholdCells");
+  
   // calculate the geometry parameters
   if (geomFile.find("v03") != std::string::npos)
     detectorVersion = 3;
@@ -1921,17 +1929,17 @@ void EventDisplay::startDisplay(int initialEvent)
   rhoPhiView = gEve->SpawnNewViewer("Projection Rho-Phi");
   // two scenes, for geometry and event
   rhoPhiScene = gEve->SpawnNewScene("Rho-Phi geometry",
-                                    "Scene holding projected geometry data for the RhoPhi view.");
+                                    "Scene holding projected geometry data for the Rho-Phi view.");
   rhoPhiView->AddScene(rhoPhiScene);
   if (evtFile != "")
   {
-    rhoPhiEventScene = gEve->SpawnNewScene("RhoPhi Event Data",
-                                           "Scene holding projected event-data for the RhoPhi view.");
+    rhoPhiEventScene = gEve->SpawnNewScene("Rho-Phi Event Data",
+                                           "Scene holding projected event-data for the Rho-Phi view.");
     rhoPhiView->AddScene(rhoPhiEventScene);
   }
 
-  rhoPhiEventSceneManual = gEve->SpawnNewScene("RhoPhi Event Data 2",
-                                               "Scene holding hand-crafted event-data for the RhoPhi view.");
+  rhoPhiEventSceneManual = gEve->SpawnNewScene("Rho-Phi Event Data 2",
+                                               "Scene holding hand-crafted event-data for the Rho-Phi view.");
   rhoPhiView->AddScene(rhoPhiEventSceneManual);
   rhoPhiGLView = rhoPhiView->GetGLViewer();
   // set camera orientation
@@ -1952,7 +1960,22 @@ void EventDisplay::startDisplay(int initialEvent)
     if (doHCal)
       rhoPhiProjManager->ImportElements(hcalbarrel, rhoPhiScene);
   }
-
+  // do not draw the cryo side in the rho-phi view as it renders poorly
+  {
+    TEveElement* element = rhoPhiScene->FindChild("Geometry [P]");
+    if (element) {
+      TPRegexp re("ECalBarrel_vol_(\\w+)");
+      TEveElement *projbarrel = element->FindChild(re);
+      if (projbarrel) {
+	TPRegexp re("ECAL_Cryo_side_(\\w+)");
+	TEveElement *projcryoside = projbarrel->FindChild(re);
+	if (projcryoside) {
+	  projcryoside->SetRnrSelf(false);
+	}
+      }
+    }
+  }
+  
   // draw the merged ECAL readout segmentation in rho-phi
   TEveStraightLineSet *gridmod = new TEveStraightLineSet("ECAL phi readout merged");
   gridmod->SetLineColor(kViolet + 2);
@@ -2003,16 +2026,16 @@ void EventDisplay::startDisplay(int initialEvent)
   // third tab (R-z view)
   rhoZView = gEve->SpawnNewViewer("Projection Rho-Z");
   rhoZScene = gEve->SpawnNewScene("Rho-Z geometry",
-                                  "Scene holding projected geometry data for the RhoZ view.");
+                                  "Scene holding projected geometry data for the Rho-Z view.");
   rhoZView->AddScene(rhoZScene);
   if (evtFile != "")
   {
-    rhoZEventScene = gEve->SpawnNewScene("RhoZ Event Data",
-                                         "Scene holding projected event-data for the RhoZ view.");
+    rhoZEventScene = gEve->SpawnNewScene("Rho-Z Event Data",
+                                         "Scene holding projected event-data for the Rho-Z view.");
     rhoZView->AddScene(rhoZEventScene);
   }
-  rhoZEventSceneManual = gEve->SpawnNewScene("RhoZ Event Data 2",
-                                             "Scene holding hand-crafted event-data for the RhoZ view.");
+  rhoZEventSceneManual = gEve->SpawnNewScene("Rho-Z Event Data 2",
+                                             "Scene holding hand-crafted event-data for the Rho-Z view.");
   rhoZView->AddScene(rhoZEventSceneManual);
   rhoZGLView = rhoZView->GetGLViewer();
   rhoZGLView->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
@@ -2143,6 +2166,7 @@ void EventDisplay::startDisplay(int initialEvent)
   //
   // display the events
   //
+  if (debug) std::cout << "evtFile: " << evtFile << std::endl;
   if (evtFile != "")
   {
 
@@ -2158,8 +2182,18 @@ void EventDisplay::startDisplay(int initialEvent)
 
     cout << "Reading event data from file " << evtFile << endl
          << endl;
+
+    // open the file with the events and create the reader
     TFile *f = TFile::Open(evtFile.c_str(), "READ");
-    eventReader = new EventReader(f, doHCal, drawSWClusters, drawTopoClusters, drawMergedCells);
+    eventReader = new EventReader(f, doHCal);
+
+    // setup the branches
+    eventReader->SetBranches();
+
+    // print updated draw settings based on info found in ROOT file
+    displayConfig.Print();
+    
+    // read the number of events in the file
     nEvents = eventReader->nEvents;
 
     // load and display the requested event
