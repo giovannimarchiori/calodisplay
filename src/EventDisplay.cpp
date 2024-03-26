@@ -2139,6 +2139,7 @@ void EventDisplay::startDisplay(int initialEvent)
     }
 
     // when drawing the full detector - do not draw endcap volumes in rho-phi view
+    // and show active volumes in ecal barrel
     if (showFullDetector && element)
     {
       for (TEveElement::List_i itr = element->BeginChildren(); itr != element->EndChildren(); itr++)
@@ -2147,6 +2148,26 @@ void EventDisplay::startDisplay(int initialEvent)
         TString s(a->GetElementName());
         if (s.Contains("endcap"))
           a->SetRnrSelfChildren(false, false);
+        
+        if (s.BeginsWith("ECal barrel"))
+        {
+          TPRegexp re("ECalBarrel_vol_(\\w+)");
+          TEveElement *projbarrel = a->FindChild(re);
+          TPRegexp rebath("LAr_bath(\\w+)");
+          TEveElement *projbath = projbarrel->FindChild(rebath);
+          //TEveElement *projbath = projbarrel->FindChild("LAr_bath*");
+          if (projbath)
+          {
+            projbath->SetRnrSelfChildren(false, true);
+            for (TEveElement::List_i itr2 = projbath->BeginChildren(); itr2 != projbath->EndChildren(); itr2++)
+            {
+              TEveElement *el = *itr2;
+              TString s2(el->GetElementName());
+              if (s2.BeginsWith("passive_") || s2.BeginsWith("PCB_"))
+                el->SetRnrSelfChildren(false, false);
+            }
+          }
+        }
       }
     }
   }
@@ -2168,7 +2189,7 @@ void EventDisplay::startDisplay(int initialEvent)
       double y1 = geomReader->rMin * sin(phi0) + Lin * sin(phi0 + geomReader->alpha);
       double x2 = geomReader->rMin * cos(phi0) + Lout * cos(phi0 + geomReader->alpha);
       double y2 = geomReader->rMin * sin(phi0) + Lout * sin(phi0 + geomReader->alpha);
-      gridmod->AddLine(x1, y1, 0., x2, y2, 0.);
+      gridmod->AddLine(x1, y1, 0.0, x2, y2, 0.0);
     }
   }
   rhoPhiScene->AddElement(gridmod);
@@ -2321,6 +2342,32 @@ void EventDisplay::startDisplay(int initialEvent)
           if (projpcbs)
           {
             projpcbs->SetRnrSelfChildren(false, false);
+          }
+        }
+      }
+    }
+    if (showFullDetector && element)
+    {
+      for (TEveElement::List_i itr = element->BeginChildren(); itr != element->EndChildren(); itr++)
+      {
+        TEveElement *a = *itr;
+        TString s(a->GetElementName());
+        if (s.BeginsWith("ECal barrel"))
+        {
+          TPRegexp re("ECalBarrel_vol_(\\w+)");
+          TEveElement *projbarrel = a->FindChild(re);
+          TPRegexp rebath("LAr_bath(\\w+)");
+          TEveElement *projbath = projbarrel->FindChild(rebath);
+          if (projbath)
+          {
+            projbath->SetRnrSelfChildren(false, true);
+            for (TEveElement::List_i itr2 = projbath->BeginChildren(); itr2 != projbath->EndChildren(); itr2++)
+            {
+              TEveElement *el = *itr2;
+              TString s2(el->GetElementName());
+              if (s2.BeginsWith("passive_") || s2.BeginsWith("PCB_"))
+                el->SetRnrSelfChildren(false, false);
+            }
           }
         }
       }
