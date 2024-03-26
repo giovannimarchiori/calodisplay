@@ -1,5 +1,5 @@
 /******************************************************************************/
-// Simple event display for the LAr calorimeter with inclined modules
+// Simple event display for the ALLEGRO detector with ECAL with inclined modules
 // author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
 //
 // class EventReader: sets up the TTreeReader branches for reading event data

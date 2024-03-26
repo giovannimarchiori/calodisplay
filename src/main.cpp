@@ -1,8 +1,10 @@
 /******************************************************************************/
-// Simple event display for the LAr calorimeter with inclined modules
+// Simple event display for the ALLEGRO detector with ECAL with inclined modules
 // author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
 //
-// Compile with make and execute with ./display -h to see available options
+// main.cpp: source for executable
+// 
+// Compile with make and execute with ./calodisplay -h to see available options
 //
 /******************************************************************************/
 

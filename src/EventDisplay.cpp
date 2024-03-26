@@ -1,5 +1,5 @@
 /******************************************************************************/
-// Simple event display for the LAr calorimeter with inclined modules
+// Simple event display for the ALLEGRO detector with ECAL with inclined modules
 // author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
 //
 // class EventDisplay: creates and populates the event display
@@ -327,7 +327,6 @@ void EventDisplay::DrawClusters(std::string clusterType)
   const double gridPhiHCal = geomReader->gridPhiHCal;
   const double phiMinHCal = geomReader->phiMinHCal;
 
-
   // create the graphic containers
   TEveRGBAPalette *pal = new TEveRGBAPalette(0, 1000);
 
@@ -341,7 +340,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
   {
     if (topoclusters_3D == nullptr)
     {
-      topoclusters_3D = new TEveElementList(Form("%sclusters (E>%.1f GeV)", 
+      topoclusters_3D = new TEveElementList(Form("%sclusters (E>%.1f GeV)",
                                                  clusterType.c_str(),
                                                  ClusterEnergyThreshold));
       gEve->AddElement(topoclusters_3D);
@@ -499,13 +498,10 @@ void EventDisplay::DrawClusters(std::string clusterType)
     std::cout << "  Creating the cluster graphic objects" << std::endl;
   }
 
-
   // now create the visual representation of the clustered cells
   std::vector<TEveQuadSet *> qs_rhoz;
   std::vector<TEveQuadSet *> qs_rhophi;
   std::vector<TEveBoxSet *> bs;
-
-
 
   // now loop over the clusters and fill the containers
   // in 3D this is done in this first loop
@@ -598,27 +594,25 @@ void EventDisplay::DrawClusters(std::string clusterType)
         layerBarycenters->SetMarkerStyle(4);
         layerBarycenters->SetMarkerSize(3);
         clusters_3D->AddElement(layerBarycenters);
-        CaloCluster* clus = (*clusterData)[icl];
+        CaloCluster *clus = (*clusterData)[icl];
         for (unsigned int iLayer = 0; iLayer < clus->getNLayersECal(); iLayer++)
         {
-          if (clus->getEnergyInECalLayer(iLayer)>0)
+          if (clus->getEnergyInECalLayer(iLayer) > 0)
           {
             layerBarycenters->SetNextPoint(
-              clus->getBarycenterInECalLayer(iLayer).X() / cm,
-              clus->getBarycenterInECalLayer(iLayer).Y() / cm,
-              clus->getBarycenterInECalLayer(iLayer).Z() / cm
-            );
+                clus->getBarycenterInECalLayer(iLayer).X() / cm,
+                clus->getBarycenterInECalLayer(iLayer).Y() / cm,
+                clus->getBarycenterInECalLayer(iLayer).Z() / cm);
           }
         }
         for (unsigned int iLayer = 0; iLayer < (*clusterData)[icl]->getNLayersHCal(); iLayer++)
         {
-          if (clus->getEnergyInHCalLayer(iLayer)>0)
+          if (clus->getEnergyInHCalLayer(iLayer) > 0)
           {
             layerBarycenters->SetNextPoint(
-              clus->getBarycenterInHCalLayer(iLayer).X() / cm,
-              clus->getBarycenterInHCalLayer(iLayer).Y() / cm,
-              clus->getBarycenterInHCalLayer(iLayer).Z() / cm
-            );
+                clus->getBarycenterInHCalLayer(iLayer).X() / cm,
+                clus->getBarycenterInHCalLayer(iLayer).Y() / cm,
+                clus->getBarycenterInHCalLayer(iLayer).Z() / cm);
           }
         }
       }
@@ -753,98 +747,98 @@ void EventDisplay::DrawClusters(std::string clusterType)
     // cluster cells in 3D
     if (bs[icl] != nullptr)
     {
-    float verts3D[24];
-    if (systemID == 4)
-    {
-      double Lin = geomReader->getL(alpha, rMin, r_in);
-      double Lout = geomReader->getL(alpha, rMin, r_out);
-      double deltaL = rMin * sin(gridPhi / 2.0) * sin(alpha);
-      for (int j = 0; j < geomReader->mergedModules[layer]; j++)
+      float verts3D[24];
+      if (systemID == 4)
       {
-        int iModule = moduleID + j;
-        double phi0 = phiMin + iModule * gridPhi;
+        double Lin = geomReader->getL(alpha, rMin, r_in);
+        double Lout = geomReader->getL(alpha, rMin, r_out);
+        double deltaL = rMin * sin(gridPhi / 2.0) * sin(alpha);
+        for (int j = 0; j < geomReader->mergedModules[layer]; j++)
+        {
+          int iModule = moduleID + j;
+          double phi0 = phiMin + iModule * gridPhi;
 
-        verts3D[0] = rMin * cos(phi0) + (Lin + deltaL) * cos(phi0 + alpha);
-        verts3D[1] = rMin * sin(phi0) + (Lin + deltaL) * sin(phi0 + alpha);
-        verts3D[2] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+          verts3D[0] = rMin * cos(phi0) + (Lin + deltaL) * cos(phi0 + alpha);
+          verts3D[1] = rMin * sin(phi0) + (Lin + deltaL) * sin(phi0 + alpha);
+          verts3D[2] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
 
-        verts3D[3] = rMin * cos(phi0 + gridPhi) + (Lin - deltaL) * cos(phi0 + gridPhi + alpha);
-        verts3D[4] = rMin * sin(phi0 + gridPhi) + (Lin - deltaL) * sin(phi0 + gridPhi + alpha);
-        verts3D[5] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+          verts3D[3] = rMin * cos(phi0 + gridPhi) + (Lin - deltaL) * cos(phi0 + gridPhi + alpha);
+          verts3D[4] = rMin * sin(phi0 + gridPhi) + (Lin - deltaL) * sin(phi0 + gridPhi + alpha);
+          verts3D[5] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
 
-        verts3D[6] = rMin * cos(phi0 + gridPhi) + (Lin - deltaL) * cos(phi0 + gridPhi + alpha);
-        verts3D[7] = rMin * sin(phi0 + gridPhi) + (Lin - deltaL) * sin(phi0 + gridPhi + alpha);
-        verts3D[8] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+          verts3D[6] = rMin * cos(phi0 + gridPhi) + (Lin - deltaL) * cos(phi0 + gridPhi + alpha);
+          verts3D[7] = rMin * sin(phi0 + gridPhi) + (Lin - deltaL) * sin(phi0 + gridPhi + alpha);
+          verts3D[8] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
 
-        verts3D[9] = rMin * cos(phi0) + (Lin + deltaL) * cos(phi0 + alpha);
-        verts3D[10] = rMin * sin(phi0) + (Lin + deltaL) * sin(phi0 + alpha);
-        verts3D[11] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+          verts3D[9] = rMin * cos(phi0) + (Lin + deltaL) * cos(phi0 + alpha);
+          verts3D[10] = rMin * sin(phi0) + (Lin + deltaL) * sin(phi0 + alpha);
+          verts3D[11] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
 
-        verts3D[12] = rMin * cos(phi0) + (Lout + deltaL) * cos(phi0 + alpha);
-        verts3D[13] = rMin * sin(phi0) + (Lout + deltaL) * sin(phi0 + alpha);
-        verts3D[14] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+          verts3D[12] = rMin * cos(phi0) + (Lout + deltaL) * cos(phi0 + alpha);
+          verts3D[13] = rMin * sin(phi0) + (Lout + deltaL) * sin(phi0 + alpha);
+          verts3D[14] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
 
-        verts3D[15] = rMin * cos(phi0 + gridPhi) + (Lout - deltaL) * cos(phi0 + gridPhi + alpha);
-        verts3D[16] = rMin * sin(phi0 + gridPhi) + (Lout - deltaL) * sin(phi0 + gridPhi + alpha);
-        verts3D[17] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+          verts3D[15] = rMin * cos(phi0 + gridPhi) + (Lout - deltaL) * cos(phi0 + gridPhi + alpha);
+          verts3D[16] = rMin * sin(phi0 + gridPhi) + (Lout - deltaL) * sin(phi0 + gridPhi + alpha);
+          verts3D[17] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
 
-        verts3D[18] = rMin * cos(phi0 + gridPhi) + (Lout - deltaL) * cos(phi0 + gridPhi + alpha);
-        verts3D[19] = rMin * sin(phi0 + gridPhi) + (Lout - deltaL) * sin(phi0 + gridPhi + alpha);
-        verts3D[20] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+          verts3D[18] = rMin * cos(phi0 + gridPhi) + (Lout - deltaL) * cos(phi0 + gridPhi + alpha);
+          verts3D[19] = rMin * sin(phi0 + gridPhi) + (Lout - deltaL) * sin(phi0 + gridPhi + alpha);
+          verts3D[20] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
 
-        verts3D[21] = rMin * cos(phi0) + (Lout + deltaL) * cos(phi0 + alpha);
-        verts3D[22] = rMin * sin(phi0) + (Lout + deltaL) * sin(phi0 + alpha);
-        verts3D[23] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+          verts3D[21] = rMin * cos(phi0) + (Lout + deltaL) * cos(phi0 + alpha);
+          verts3D[22] = rMin * sin(phi0) + (Lout + deltaL) * sin(phi0 + alpha);
+          verts3D[23] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.);
+
+          bs[icl]->AddBox(verts3D);
+          bs[icl]->DigitValue((int)(1000 * energy));
+          // bs->BoxId(new TNamed(Form("Cell %lu", cellID), "Dong!"));
+        }
+      }
+      else
+      {
+        // HCAL
+        float phiMin = phiMinHCal + gridPhiHCal * phiID;
+        float phiMax = phiMinHCal + gridPhiHCal * (phiID + 1);
+        float thetaMin = theta_center - thetaGridHCal / 2.;
+        float thetaMax = theta_center + thetaGridHCal / 2.;
+
+        verts3D[0] = r_in * cos(phiMin);
+        verts3D[1] = r_in * sin(phiMin);
+        verts3D[2] = r_in / tan(thetaMin);
+
+        verts3D[3] = r_in * cos(phiMax);
+        verts3D[4] = r_in * sin(phiMax);
+        verts3D[5] = r_in / tan(thetaMin);
+
+        verts3D[6] = r_in * cos(phiMax);
+        verts3D[7] = r_in * sin(phiMax);
+        verts3D[8] = r_in / tan(thetaMax);
+
+        verts3D[9] = r_in * cos(phiMin);
+        verts3D[10] = r_in * sin(phiMin);
+        verts3D[11] = r_in / tan(thetaMax);
+
+        verts3D[12] = r_out * cos(phiMin);
+        verts3D[13] = r_out * sin(phiMin);
+        verts3D[14] = r_out / tan(thetaMin);
+
+        verts3D[15] = r_out * cos(phiMax);
+        verts3D[16] = r_out * sin(phiMax);
+        verts3D[17] = r_out / tan(thetaMin);
+
+        verts3D[18] = r_out * cos(phiMax);
+        verts3D[19] = r_out * sin(phiMax);
+        verts3D[20] = r_out / tan(thetaMax);
+
+        verts3D[21] = r_out * cos(phiMin);
+        verts3D[22] = r_out * sin(phiMin);
+        verts3D[23] = r_out / tan(thetaMax);
 
         bs[icl]->AddBox(verts3D);
         bs[icl]->DigitValue((int)(1000 * energy));
         // bs->BoxId(new TNamed(Form("Cell %lu", cellID), "Dong!"));
       }
-    }
-    else
-    {
-      // HCAL
-      float phiMin = phiMinHCal + gridPhiHCal * phiID;
-      float phiMax = phiMinHCal + gridPhiHCal * (phiID + 1);
-      float thetaMin = theta_center - thetaGridHCal / 2.;
-      float thetaMax = theta_center + thetaGridHCal / 2.;
-
-      verts3D[0] = r_in * cos(phiMin);
-      verts3D[1] = r_in * sin(phiMin);
-      verts3D[2] = r_in / tan(thetaMin);
-
-      verts3D[3] = r_in * cos(phiMax);
-      verts3D[4] = r_in * sin(phiMax);
-      verts3D[5] = r_in / tan(thetaMin);
-
-      verts3D[6] = r_in * cos(phiMax);
-      verts3D[7] = r_in * sin(phiMax);
-      verts3D[8] = r_in / tan(thetaMax);
-
-      verts3D[9] = r_in * cos(phiMin);
-      verts3D[10] = r_in * sin(phiMin);
-      verts3D[11] = r_in / tan(thetaMax);
-
-      verts3D[12] = r_out * cos(phiMin);
-      verts3D[13] = r_out * sin(phiMin);
-      verts3D[14] = r_out / tan(thetaMin);
-
-      verts3D[15] = r_out * cos(phiMax);
-      verts3D[16] = r_out * sin(phiMax);
-      verts3D[17] = r_out / tan(thetaMin);
-
-      verts3D[18] = r_out * cos(phiMax);
-      verts3D[19] = r_out * sin(phiMax);
-      verts3D[20] = r_out / tan(thetaMax);
-
-      verts3D[21] = r_out * cos(phiMin);
-      verts3D[22] = r_out * sin(phiMin);
-      verts3D[23] = r_out / tan(thetaMax);
-
-      bs[icl]->AddBox(verts3D);
-      bs[icl]->DigitValue((int)(1000 * energy));
-      // bs->BoxId(new TNamed(Form("Cell %lu", cellID), "Dong!"));
-    }
     }
   }
 
@@ -1134,7 +1128,7 @@ void EventDisplay::loadEvent(int event)
     {
       particles = new TEveTrackList("particles");
       TEveTrackPropagator *trkProp = particles->GetPropagator();
-      //trkProp->SetMagField(0.00001);
+      // trkProp->SetMagField(0.00001);
       trkProp->SetMagField(0.0);
       trkProp->SetMaxR(rMax);
       trkProp->SetMaxZ(geomReader->zMax);
@@ -1198,7 +1192,7 @@ void EventDisplay::loadEvent(int event)
 
     // if the particle is a pi0, also draw the two photons, and set the endpoint
     // of the pi0 track
-    if ( (pdgID == 111) && (displayConfig.getBoolConfig("drawSimParticles")) )
+    if ((pdgID == 111) && (displayConfig.getBoolConfig("drawSimParticles")))
     {
       bool decayVtxSet = false;
       for (unsigned int i = 0; i < eventReader->SimParticleSecondaries_PDG->GetSize(); i++)
@@ -1225,6 +1219,7 @@ void EventDisplay::loadEvent(int event)
         z1 = (*eventReader->SimParticleSecondaries_vertex_z)[i] * mm;
         double r1 = sqrt(x1 * x1 + y1 * y1);
         // the two photons from a pi0 in the origin must come from small R
+        // TODO IMPROVE FOR DDSIM FILES - WHERE PARTICLES PARENTS ARE STORED!
         if (r1 > 1.)
           continue;
         double sintheta = sqrt(px * px + py * py) / p;
@@ -1265,14 +1260,14 @@ void EventDisplay::loadEvent(int event)
     particles->MakeTracks();
   }
 
-
   //
   // hits (VTX/DCH)
   //
-  if (displayConfig.getBoolConfig("drawVertexHits")) {
+  if (displayConfig.getBoolConfig("drawVertexHits"))
+  {
     if (hits == nullptr)
     {
-      hits  = new TEveElementList("hits");
+      hits = new TEveElementList("hits");
       gEve->AddElement(hits);
     }
     // do we need to Reset() otherwise ?
@@ -1285,7 +1280,7 @@ void EventDisplay::loadEvent(int event)
       vtxHits->SetMarkerStyle(4);
       vtxHits->SetMarkerSize(1.6);
       vtxHits->SetMarkerColor(kRed);
-      //gEve->AddElement(dchHits);
+      // gEve->AddElement(dchHits);
       hits->AddElement(vtxHits);
     }
     else
@@ -1312,10 +1307,11 @@ void EventDisplay::loadEvent(int event)
     }
   }
 
-  if (displayConfig.getBoolConfig("drawDriftChamberHits")) {
+  if (displayConfig.getBoolConfig("drawDriftChamberHits"))
+  {
     if (hits == nullptr)
     {
-      hits  = new TEveElementList("hits");
+      hits = new TEveElementList("hits");
       gEve->AddElement(hits);
     }
     // do we need to Reset() otherwise ?
@@ -1328,7 +1324,7 @@ void EventDisplay::loadEvent(int event)
       dchHits->SetMarkerStyle(4);
       dchHits->SetMarkerSize(1.6);
       dchHits->SetMarkerColor(kRed);
-      //gEve->AddElement(dchHits);
+      // gEve->AddElement(dchHits);
       hits->AddElement(dchHits);
     }
     else
@@ -1348,10 +1344,11 @@ void EventDisplay::loadEvent(int event)
   //
   // hits (ECAL/HCAL)
   //
-  if (displayConfig.getBoolConfig("drawECalBarrelHits")) {
+  if (displayConfig.getBoolConfig("drawECalBarrelHits"))
+  {
     if (hits == nullptr)
     {
-      hits  = new TEveElementList("hits");
+      hits = new TEveElementList("hits");
       gEve->AddElement(hits);
     }
     // do we need to Reset() otherwise ?
@@ -1363,7 +1360,7 @@ void EventDisplay::loadEvent(int event)
       ecalHits->SetMarkerStyle(4);
       ecalHits->SetMarkerSize(1);
       ecalHits->SetMarkerColor(kRed);
-      //gEve->AddElement(ecalHits);
+      // gEve->AddElement(ecalHits);
       hits->AddElement(ecalHits);
     }
     else
@@ -1382,8 +1379,9 @@ void EventDisplay::loadEvent(int event)
           (*eventReader->ECalBarrelHits_position_z)[i] * mm);
     }
   }
-  
-  if (displayConfig.getBoolConfig("drawHCalBarrelHits")) {
+
+  if (displayConfig.getBoolConfig("drawHCalBarrelHits"))
+  {
     std::cout << "Creating hcal barrel hits" << std::endl;
     if (hcalHits == nullptr)
     {
@@ -1401,11 +1399,11 @@ void EventDisplay::loadEvent(int event)
     {
       float E = (*eventReader->HCalBarrelHits_energy)[i];
       if (E < HitEnergyThreshold)
-	continue;
+        continue;
       hcalHits->SetNextPoint(
-			     (*eventReader->HCalBarrelHits_position_x)[i] * mm,
-			     (*eventReader->HCalBarrelHits_position_y)[i] * mm,
-			     (*eventReader->HCalBarrelHits_position_z)[i] * mm);
+          (*eventReader->HCalBarrelHits_position_x)[i] * mm,
+          (*eventReader->HCalBarrelHits_position_y)[i] * mm,
+          (*eventReader->HCalBarrelHits_position_z)[i] * mm);
     }
   }
 
@@ -1417,7 +1415,7 @@ void EventDisplay::loadEvent(int event)
     std::cout << "Creating ecal barrel cells" << std::endl;
     if (digis == nullptr)
     {
-      digis  = new TEveElementList("digis");
+      digis = new TEveElementList("digis");
       gEve->AddElement(digis);
     }
     if (ecalCells == nullptr)
@@ -1437,8 +1435,8 @@ void EventDisplay::loadEvent(int event)
       if (E < CellEnergyThreshold)
         continue;
       ecalCells->SetNextPoint((*eventReader->ECalBarrelCells_position_x)[i] * mm,
-			      (*eventReader->ECalBarrelCells_position_y)[i] * mm,
-			      (*eventReader->ECalBarrelCells_position_z)[i] * mm);
+                              (*eventReader->ECalBarrelCells_position_y)[i] * mm,
+                              (*eventReader->ECalBarrelCells_position_z)[i] * mm);
     }
   }
 
@@ -1460,10 +1458,10 @@ void EventDisplay::loadEvent(int event)
     {
       float E = (*eventReader->HCalBarrelCells_energy)[i];
       if (E < CellEnergyThreshold)
-	continue;
+        continue;
       hcalCells->SetNextPoint((*eventReader->HCalBarrelCells_position_x)[i] * mm,
-			      (*eventReader->HCalBarrelCells_position_y)[i] * mm,
-			      (*eventReader->HCalBarrelCells_position_z)[i] * mm);
+                              (*eventReader->HCalBarrelCells_position_y)[i] * mm,
+                              (*eventReader->HCalBarrelCells_position_z)[i] * mm);
     }
   }
 
@@ -1546,7 +1544,7 @@ void EventDisplay::loadEvent(int event)
   }
 
   std::cout << "Done" << std::endl
-       << std::endl;
+            << std::endl;
 
   textEntry->SetTextColor((Pixel_t)0x000000);
   textEntry->SetText(Form("Event %d loaded", eventId));
@@ -1558,12 +1556,12 @@ EventDisplay::EventDisplay()
 
 void EventDisplay::startDisplay(int initialEvent)
 {
-  //read some display setup from config file
+  // read some display setup from config file
   ClusterEnergyThreshold = displayConfig.getFloatConfig("energyThresholdClusters");
   ParticleEnergyThreshold = displayConfig.getFloatConfig("energyThresholdParticles");
   HitEnergyThreshold = displayConfig.getFloatConfig("energyThresholdHits");
   CellEnergyThreshold = displayConfig.getFloatConfig("energyThresholdCells");
-  
+
   // calculate the geometry parameters
   if (geomFile.find("v03") != std::string::npos)
     detectorVersion = 3;
@@ -1574,7 +1572,7 @@ void EventDisplay::startDisplay(int initialEvent)
   std::cout << "******************************************************************************" << std::endl;
   std::cout << "Displaying the geometry" << std::endl;
   std::cout << "******************************************************************************" << std::endl
-       << endl;
+            << endl;
 
   // create the eve manageer
   TEveManager::Create();
@@ -1601,7 +1599,7 @@ void EventDisplay::startDisplay(int initialEvent)
   if (useG4geom)
   {
     // auto fGeom = TFile::Open(geomFile.c_str(), "CACHEREAD");
-    cout << "Reading Geant4 geometry from file " << geomFile << endl;
+    std::cout << "Reading Geant4 geometry from file " << geomFile << std::endl;
     auto fGeom = TFile::Open(geomFile.c_str(), "READ");
     if (!fGeom)
       return;
@@ -1638,34 +1636,48 @@ void EventDisplay::startDisplay(int initialEvent)
       TPRegexp re_muonb("MuonTaggerBarrel*");
       TPRegexp re_muonec("MuonTaggerEndcap*");
 
-      TEveElementList* beampipe = new TEveElementList("Beampipe");
+      TEveElementList *beampipe = new TEveElementList("Beampipe");
       geom->AddElement(beampipe);
-      TEveElementList* lumical = new TEveElementList("LumiCal");
+      // disable beampipe rendering by default
+      beampipe->SetRnrSelfChildren(false, false);
+
+      TEveElementList *lumical = new TEveElementList("LumiCal");
       geom->AddElement(lumical);
-      TEveElementList* vertexBarrel = new TEveElementList("Vertex barrel");
+      // disable lumical rendering by default
+      lumical->SetRnrSelfChildren(false, false);
+
+      TEveElementList *vertexBarrel = new TEveElementList("Vertex barrel");
       geom->AddElement(vertexBarrel);
-      TEveElementList* vertexEndcap = new TEveElementList("Vertex endcaps");
+
+      TEveElementList *vertexEndcap = new TEveElementList("Vertex endcaps");
       geom->AddElement(vertexEndcap);
-      TEveElementList* dch = new TEveElementList("Drift chamber");
+
+      TEveElementList *dch = new TEveElementList("Drift chamber");
       geom->AddElement(dch);
-      TEveElementList* ecalb = new TEveElementList("ECal barrel");
+
+      TEveElementList *ecalb = new TEveElementList("ECal barrel");
       geom->AddElement(ecalb);
-      TEveElementList* calendcap = new TEveElementList("ECal endcaps");
+
+      TEveElementList *calendcap = new TEveElementList("ECal endcaps");
       geom->AddElement(calendcap);
-      TEveElementList* hcalb = new TEveElementList("HCal barrel");
+
+      TEveElementList *hcalb = new TEveElementList("HCal barrel");
       geom->AddElement(hcalb);
-      TEveElementList* hcalec = new TEveElementList("HCal endcaps");
+
+      TEveElementList *hcalec = new TEveElementList("HCal endcaps");
       geom->AddElement(hcalec);
-      TEveElementList* muontaggerb = new TEveElementList("Muon tagger barrel");
+
+      TEveElementList *muontaggerb = new TEveElementList("Muon tagger barrel");
       geom->AddElement(muontaggerb);
-      TEveElementList* muontaggerec = new TEveElementList("Muon tagger endcaps");
+
+      TEveElementList *muontaggerec = new TEveElementList("Muon tagger endcaps");
       geom->AddElement(muontaggerec);
 
-      for (TEveElement::List_i itr = world->BeginChildren();  itr!=world->EndChildren(); itr++)
+      for (TEveElement::List_i itr = world->BeginChildren(); itr != world->EndChildren(); itr++)
       {
-        TEveElement* a = *itr;
+        TEveElement *a = *itr;
         TString s(a->GetElementName());
-        cout << s << endl;
+        std::cout << s << std::endl;
         if (re_bp.MatchB(s))
           beampipe->AddElement(a);
         else if (re_bp2.MatchB(s))
@@ -1675,34 +1687,81 @@ void EventDisplay::startDisplay(int initialEvent)
         else if (s.Contains("Vertex"))
         {
           // for vertex, loop over children to add them either to barrel or endcap
-          for (TEveElement::List_i itrVtx = a->BeginChildren();  itrVtx!=a->EndChildren(); itrVtx++)
+          for (TEveElement::List_i itrVtx = a->BeginChildren(); itrVtx != a->EndChildren(); itrVtx++)
           {
-            TEveElement* elVtx = *itrVtx;
+            TEveElement *elVtx = *itrVtx;
             TString sVtx(elVtx->GetElementName());
             if (re_vtxb.MatchB(sVtx))
               vertexBarrel->AddElement(elVtx);
             else if (re_vtxec.MatchB(sVtx))
               vertexEndcap->AddElement(elVtx);
             else
-              cout << "Unexpected volume: " << sVtx << endl;
+              std::cout << "Unexpected volume: " << sVtx << std::endl;
           }
         }
         else if (re_dch.MatchB(s))
+        {
           dch->AddElement(a);
+          a->SetRnrSelfChildren(true, false);
+          a->SetMainTransparency(60);
+          ((TEveGeoShape *)a)->SetNSegments(128);
+        }
         else if (re_ecalb.MatchB(s))
+        {
           ecalb->AddElement(a);
+          a->SetRnrSelfChildren(false, true);
+          for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
+          {
+            TEveElement *el = *itr2;
+            TString elname(el->GetElementName());
+            std::cout << elname << std::endl;
+            el->SetRnrSelfChildren(false, false);
+            if (elname.BeginsWith("ECAL_Cryo_side"))
+              el->SetRnrSelfChildren(false, false);
+            else
+              el->SetRnrSelfChildren(true, false);
+            el->SetMainTransparency(60);
+            ((TEveGeoShape *)el)->SetNSegments(128);
+          }
+        }
         else if (re_ecalec.MatchB(s))
+        {
           calendcap->AddElement(a);
+          a->SetRnrSelfChildren(true, false);
+          a->SetMainTransparency(60);
+        }
         else if (re_ecalec2.MatchB(s))
+        {
           calendcap->AddElement(a);
+          a->SetRnrSelfChildren(true, false);
+          a->SetMainTransparency(60);
+        }
         else if (re_hcalb.MatchB(s))
+        {
           hcalb->AddElement(a);
+          a->SetRnrSelfChildren(true, false);
+          a->SetMainTransparency(60);
+          ((TEveGeoShape *)a)->SetNSegments(128);
+        }
         else if (re_hcalec.MatchB(s))
+        {
           hcalec->AddElement(a);
+          a->SetRnrSelfChildren(true, false);
+          a->SetMainTransparency(60);
+        }
         else if (re_muonb.MatchB(s))
+        {
           muontaggerb->AddElement(a);
+          a->SetRnrSelfChildren(true, false);
+          a->SetMainTransparency(60);
+          ((TEveGeoShape *)a)->SetNSegments(128);
+        }
         else if (re_muonec.MatchB(s))
+        {
           muontaggerec->AddElement(a);
+          a->SetRnrSelfChildren(true, false);
+          a->SetMainTransparency(60);
+        }
         else
           geom->AddElement(a);
       }
@@ -1716,10 +1775,10 @@ void EventDisplay::startDisplay(int initialEvent)
       TPRegexp re("ECalBarrel*");
       TEveElement *ecalbarrel = world->FindChild(re);
       ecalbarrel->SetPickableRecursively(kTRUE);
-      ((TEveGeoShape*) ecalbarrel)->SetNSegments(256);
+      ((TEveGeoShape *)ecalbarrel)->SetNSegments(256);
       geom->AddElement(ecalbarrel);
       // hide the envelope, only show physical volumes in it
-      ecalbarrel->SetRnrSelfChildren(false,true);
+      ecalbarrel->SetRnrSelfChildren(false, true);
 
       // set transparency of the subvolumes of the bath
       re = TPRegexp("LAr_bath*");
@@ -1727,17 +1786,17 @@ void EventDisplay::startDisplay(int initialEvent)
       TEveElement::List_t matches;
       re = TPRegexp("ECAL_Cryo*");
       ecalbarrel->FindChildren(matches, re);
-      for (TEveElement* a : matches)
+      for (TEveElement *a : matches)
       {
         a->SetMainTransparency(70);
-        ((TEveGeoShape*) a)->SetNSegments(256);
+        ((TEveGeoShape *)a)->SetNSegments(256);
       }
       re = TPRegexp("services*");
       ecalbarrel->FindChildren(matches, re);
       for (auto a : matches)
       {
         a->SetMainTransparency(70);
-        ((TEveGeoShape*) a)->SetNSegments(256);
+        ((TEveGeoShape *)a)->SetNSegments(256);
       }
 
       // turn off Cryo side in 3d, weird rendering
@@ -1762,32 +1821,32 @@ void EventDisplay::startDisplay(int initialEvent)
         TEveElement::List_t matches2;
         re = TPRegexp("active*");
         bath->FindChildren(matches2, re);
-        for (TEveElement* a : matches2)
+        for (TEveElement *a : matches2)
         {
           actives->AddElement(a);
-          ((TEveGeoShape*) a)->SetMainTransparency(100);
+          ((TEveGeoShape *)a)->SetMainTransparency(100);
           // increase line width of active layers from 1.0 to 5.0
           // make them transparent so that passive elements are not covered
           TEveElement::List_t _matches;
           re = TPRegexp("layer*");
           a->FindChildren(_matches, re);
-          for (TEveElement* l : _matches)
+          for (TEveElement *l : _matches)
           {
-            ((TEveGeoShape*) l)->SetLineWidth(5.0);
-            ((TEveGeoShape*) l)->SetMainTransparency(100);
+            ((TEveGeoShape *)l)->SetLineWidth(5.0);
+            ((TEveGeoShape *)l)->SetMainTransparency(100);
           }
         }
         newbath->AddElement(actives);
         TEveElement::List_t matches3;
         re = TPRegexp("passive*");
         bath->FindChildren(matches3, re);
-        for (TEveElement* a : matches3)
+        for (TEveElement *a : matches3)
         {
           passives->AddElement(a);
-          //decrease transparency from 60 to 20
-          // ((TEveGeoShape*) a)->SetMainTransparency(20);
-          // do not draw individual constituents of passive elements
-          // a->SetRnrSelfChildren(true, false);
+          // decrease transparency from 60 to 20
+          //  ((TEveGeoShape*) a)->SetMainTransparency(20);
+          //  do not draw individual constituents of passive elements
+          //  a->SetRnrSelfChildren(true, false);
         }
         newbath->AddElement(passives);
         ecalbarrel->RemoveElement(bath);
@@ -1805,28 +1864,28 @@ void EventDisplay::startDisplay(int initialEvent)
           TPRegexp re_ecalec("CalEndcap(\\w+)");
           TEveElement::List_t matches_ec;
           world->FindChildren(matches_ec, re_ecalec);
-          for (TEveElement* a : matches_ec)
+          for (TEveElement *a : matches_ec)
           {
             ecalendcap->AddElement(a);
           }
-          
+
           TPRegexp re_ecalec2("EMEC(\\w+)");
           TEveElement::List_t matches_ec2;
           world->FindChildren(matches_ec2, re_ecalec2);
-          for (TEveElement* a : matches_ec2)
+          for (TEveElement *a : matches_ec2)
           {
             ecalendcap->AddElement(a);
             // do not draw envelope, only physical elements inside
-            a->SetRnrSelfChildren(false,true);
+            a->SetRnrSelfChildren(false, true);
             // hide elements inside layerEnvelope by default because they are slow in 3D
             // tree is EMEC_vol->EMEC_positive/negative_vol->layerEnvelope
-            for (TEveElement::List_i itr = a->BeginChildren();  itr!=a->EndChildren(); itr++)
+            for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++)
             {
-              TEveElement* emec_posneg_vol = (*itr);
-              emec_posneg_vol->SetRnrSelfChildren(false,true);
-              for (TEveElement::List_i itr2 = emec_posneg_vol->BeginChildren();  itr2!=emec_posneg_vol->EndChildren(); itr2++)
+              TEveElement *emec_posneg_vol = (*itr);
+              emec_posneg_vol->SetRnrSelfChildren(false, true);
+              for (TEveElement::List_i itr2 = emec_posneg_vol->BeginChildren(); itr2 != emec_posneg_vol->EndChildren(); itr2++)
               {
-                (*itr2)->SetRnrSelfChildren(true,false);
+                (*itr2)->SetRnrSelfChildren(true, false);
               }
             }
           }
@@ -1840,10 +1899,10 @@ void EventDisplay::startDisplay(int initialEvent)
         re = TPRegexp("HCalEnvelopeVolume*");
         TEveElement *hcalbarrel = world->FindChild(re);
         hcalbarrel->SetPickableRecursively(kTRUE);
-        ((TEveGeoShape*) hcalbarrel)->SetNSegments(256);
+        ((TEveGeoShape *)hcalbarrel)->SetNSegments(256);
         geom->AddElement(hcalbarrel);
         // do not draw envelope, only physical elements inside
-        hcalbarrel->SetRnrSelfChildren(false,true);
+        hcalbarrel->SetRnrSelfChildren(false, true);
 
         // re = TPRegexp("HCalLayerVol*");
         // hcalbarrel->FindChildren(matches, re);
@@ -1854,10 +1913,10 @@ void EventDisplay::startDisplay(int initialEvent)
           re = TPRegexp("HCal(\\w+)PlateVol(\\w+)");
           TEveElement::List_t matches;
           hcalbarrel->FindChildren(matches, re);
-          for (TEveElement* a : matches)
+          for (TEveElement *a : matches)
           {
             a->SetMainTransparency(70);
-            ((TEveGeoShape*) a)->SetNSegments(256);
+            ((TEveGeoShape *)a)->SetNSegments(256);
           }
         }
 
@@ -1866,7 +1925,7 @@ void EventDisplay::startDisplay(int initialEvent)
         for (auto a : matches)
         {
           a->SetMainTransparency(70);
-          ((TEveGeoShape*) a)->SetNSegments(256);
+          ((TEveGeoShape *)a)->SetNSegments(256);
         }
 
         // group together the layers so that they can be turned on/off together
@@ -1876,11 +1935,11 @@ void EventDisplay::startDisplay(int initialEvent)
         re = TPRegexp("HCalLayerVol*");
         TEveElement::List_t matches4;
         hcalbarrel->FindChildren(matches4, re);
-        for (TEveElement* a : matches4)
+        for (TEveElement *a : matches4)
         {
           hcalLayers->AddElement(a);
           hcalbarrel->RemoveElement(a);
-          ((TEveGeoShape*) a)->SetNSegments(256);
+          ((TEveGeoShape *)a)->SetNSegments(256);
           // set number of segments of 2D projection of TileSequenceVol and TileVol
           // slow, don't do it!
           // instead, hide by default the single tiles because they are slow in 3D
@@ -1913,17 +1972,17 @@ void EventDisplay::startDisplay(int initialEvent)
           TPRegexp re_hcalec("HCal(\\w+)Endcap(\\w+)");
           TEveElement::List_t matches_ec;
           world->FindChildren(matches_ec, re_hcalec);
-          for (TEveElement* a : matches_ec)
+          for (TEveElement *a : matches_ec)
           {
             hcalendcap->AddElement(a);
             // do not draw envelope, only physical elements inside
-            a->SetRnrSelfChildren(false,true);
+            a->SetRnrSelfChildren(false, true);
             TEveElementList *hcalECLayers = new TEveElementList("HCalECLayers");
             hcalendcap->AddElement(hcalECLayers);
             re = TPRegexp("HCalECLayerVol*");
             TEveElement::List_t matches_layer;
             a->FindChildren(matches_layer, re);
-            for (TEveElement* l : matches_layer)
+            for (TEveElement *l : matches_layer)
             {
               hcalECLayers->AddElement(l);
               a->RemoveElement(l);
@@ -1936,7 +1995,7 @@ void EventDisplay::startDisplay(int initialEvent)
   }
   else
   {
-    cout << "Creating simplified geometry based on calculated dimensions " << endl;
+    std::cout << "Creating simplified geometry based on calculated dimensions " << std::endl;
 
     // the ECAL barrel envelope
     ecalbarrel = new TEveGeoShape("ECAL barrel");
@@ -2044,35 +2103,54 @@ void EventDisplay::startDisplay(int initialEvent)
     if (doHCal)
       rhoPhiProjManager->ImportElements(hcalbarrel, rhoPhiScene);
   }
-  // do not draw the cryo side in the rho-phi view as it renders poorly
-  // and turn on the active elements so we can see the cell edges
+
   {
-    TEveElement* element = rhoPhiScene->FindChild("Geometry [P]");
-    if (element) {
+    // do not draw the cryo side in the rho-phi view as it renders poorly
+    // and turn on the active elements so we can see the cell edges
+    TEveElement *element = rhoPhiScene->FindChild("Geometry [P]");
+    if (element)
+    {
       TPRegexp re("ECalBarrel_vol_(\\w+)");
       TEveElement *projbarrel = element->FindChild(re);
-      if (projbarrel) {
-	      TPRegexp re("ECAL_Cryo_side_(\\w+)");
-	      TEveElement *projcryoside = projbarrel->FindChild(re);
-	      if (projcryoside) {
-	        projcryoside->SetRnrSelf(false);
-      	}
-        TEveElementList *projbath = (TEveElementList*) projbarrel->FindChild("LAr_bath [P]");
-        if (projbath) {
-          projbath->SetRnrSelfChildren(true,true);
-          TEveElementList *projpassives = (TEveElementList*) projbath->FindChild("Passive elements [P]");
-          if (projpassives) {
+      if (projbarrel)
+      {
+        TPRegexp re("ECAL_Cryo_side_(\\w+)");
+        TEveElement *projcryoside = projbarrel->FindChild(re);
+        if (projcryoside)
+        {
+          projcryoside->SetRnrSelf(false);
+        }
+        TEveElementList *projbath = (TEveElementList *)projbarrel->FindChild("LAr_bath [P]");
+        if (projbath)
+        {
+          projbath->SetRnrSelfChildren(true, true);
+          TEveElementList *projpassives = (TEveElementList *)projbath->FindChild("Passive elements [P]");
+          if (projpassives)
+          {
             projpassives->SetRnrSelfChildren(false, false);
           }
-          TEveElementList *projpcbs = (TEveElementList*) projbath->FindChild("PCBs [P]");
-          if (projpcbs) {
+          TEveElementList *projpcbs = (TEveElementList *)projbath->FindChild("PCBs [P]");
+          if (projpcbs)
+          {
             projpcbs->SetRnrSelfChildren(false, false);
           }
         }
       }
     }
+
+    // when drawing the full detector - do not draw endcap volumes in rho-phi view
+    if (showFullDetector && element)
+    {
+      for (TEveElement::List_i itr = element->BeginChildren(); itr != element->EndChildren(); itr++)
+      {
+        TEveElement *a = *itr;
+        TString s(a->GetElementName());
+        if (s.Contains("endcap"))
+          a->SetRnrSelfChildren(false, false);
+      }
+    }
   }
-  
+
   // draw the merged ECAL readout segmentation in rho-phi
   TEveStraightLineSet *gridmod = new TEveStraightLineSet("ECAL phi readout merged");
   gridmod->SetLineColor(kViolet + 2);
@@ -2223,20 +2301,25 @@ void EventDisplay::startDisplay(int initialEvent)
 
   // turn on the active elements in rho-Z so we can see the cell edges
   {
-    TEveElement* element = rhoZScene->FindChild("Geometry [P]");
-    if (element) {
+    TEveElement *element = rhoZScene->FindChild("Geometry [P]");
+    if (element)
+    {
       TPRegexp re("ECalBarrel_vol_(\\w+)");
       TEveElement *projbarrel = element->FindChild(re);
-      if (projbarrel) {
-        TEveElementList *projbath = (TEveElementList*) projbarrel->FindChild("LAr_bath [P]");
-        if (projbath) {
-          projbath->SetRnrSelfChildren(true,true);
-          TEveElementList *projpassives = (TEveElementList*) projbath->FindChild("Passive elements [P]");
-          if (projpassives) {
+      if (projbarrel)
+      {
+        TEveElementList *projbath = (TEveElementList *)projbarrel->FindChild("LAr_bath [P]");
+        if (projbath)
+        {
+          projbath->SetRnrSelfChildren(true, true);
+          TEveElementList *projpassives = (TEveElementList *)projbath->FindChild("Passive elements [P]");
+          if (projpassives)
+          {
             projpassives->SetRnrSelfChildren(false, false);
           }
-          TEveElementList *projpcbs = (TEveElementList*) projbath->FindChild("PCBs [P]");
-          if (projpcbs) {
+          TEveElementList *projpcbs = (TEveElementList *)projbath->FindChild("PCBs [P]");
+          if (projpcbs)
+          {
             projpcbs->SetRnrSelfChildren(false, false);
           }
         }
@@ -2288,7 +2371,8 @@ void EventDisplay::startDisplay(int initialEvent)
   //
   // display the events
   //
-  if (debug) std::cout << "evtFile: " << evtFile << std::endl;
+  if (debug)
+    std::cout << "evtFile: " << evtFile << std::endl;
   if (evtFile != "")
   {
 
@@ -2296,14 +2380,14 @@ void EventDisplay::startDisplay(int initialEvent)
     makeGui();
 
     // setup the event reader
-    cout << endl;
-    cout << "******************************************************************************" << endl;
-    cout << "Setting up the event reader" << endl;
-    cout << "******************************************************************************" << endl
-         << endl;
+    std::cout << std::endl;
+    std::cout << "******************************************************************************" << std::endl;
+    std::cout << "Setting up the event reader" << std::endl;
+    std::cout << "******************************************************************************" << std::endl
+              << std::endl;
 
-    cout << "Reading event data from file " << evtFile << endl
-         << endl;
+    std::cout << "Reading event data from file " << evtFile << std::endl
+              << std::endl;
 
     // open the file with the events and create the reader
     TFile *f = TFile::Open(evtFile.c_str(), "READ");
@@ -2314,7 +2398,7 @@ void EventDisplay::startDisplay(int initialEvent)
 
     // print updated draw settings based on info found in ROOT file
     displayConfig.Print();
-    
+
     // read the number of events in the file
     nEvents = eventReader->nEvents;
 
