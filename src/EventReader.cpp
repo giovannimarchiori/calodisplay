@@ -192,23 +192,37 @@ void EventReader::SetBranches()
       displayConfig.setBoolConfig("drawECalBarrelHits", false);
     }
     else {
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
       {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling ecal barrel hits" << std::endl;
+        std::cout << "WARNING: branch " << branch << ".energy not found, disabling ecal barrel hits" << std::endl;
         displayConfig.setBoolConfig("drawECalBarrelHits", false);
         displayConfig.setStringConfig("ecalBarrelHits", "");
       }
       else
       {
-        ECalBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-        ECalBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-        ECalBarrelHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-        ECalBarrelHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-        ECalBarrelHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
+        // ECalBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+	      if (fReader->GetTree()->FindBranch(Form("%s.position.x", branch))) {
+          // file produced with FCCSW
+          ECalBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
+          ECalBarrelHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
+          ECalBarrelHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
+          ECalBarrelHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
+        }
+        else if (fReader->GetTree()->FindBranch(Form("%s.stepPosition.x", branch))) {
+          // file produced with ddsim
+          ECalBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
+          ECalBarrelHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
+          ECalBarrelHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
+          ECalBarrelHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.z", branch));
+        }
+        else {
+          std::cout << "WARNING: file format not recognised! Disabling ecal barrel hits" << std::endl;
+          displayConfig.setBoolConfig("drawECalBarrelHits", false);
+          displayConfig.setStringConfig("ecalBarrelHits", "");
+        }
       }
     }
   }
-  
   // cells in ECal barrel
   if (displayConfig.getBoolConfig("drawECalBarrelCells"))
   {
@@ -227,11 +241,11 @@ void EventReader::SetBranches()
       }
       else
       {
-        ECalBarrelPositionedCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-        ECalBarrelPositionedCells_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-        ECalBarrelPositionedCells_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-        ECalBarrelPositionedCells_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-        ECalBarrelPositionedCells_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
+        ECalBarrelCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+        ECalBarrelCells_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
+        ECalBarrelCells_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
+        ECalBarrelCells_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
+        ECalBarrelCells_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
       }
     }
   }
@@ -254,11 +268,11 @@ void EventReader::SetBranches()
       }
       else
       {
-        ECalBarrelPositionedCells2_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));    
-        ECalBarrelPositionedCells2_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));    
-        ECalBarrelPositionedCells2_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-        ECalBarrelPositionedCells2_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-        ECalBarrelPositionedCells2_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
+        // ECalBarrelCells2_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));    
+        ECalBarrelCells2_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));    
+        ECalBarrelCells2_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
+        ECalBarrelCells2_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
+        ECalBarrelCells2_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
       }
     }
   }
@@ -285,11 +299,11 @@ void EventReader::SetBranches()
         }
         else
         {
-          HCalBarrelPositionedHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));    
-          HCalBarrelPositionedHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));    
-          HCalBarrelPositionedHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-          HCalBarrelPositionedHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-          HCalBarrelPositionedHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
+          HCalBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));    
+          HCalBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));    
+          HCalBarrelHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
+          HCalBarrelHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
+          HCalBarrelHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
         }
       }
     }
@@ -312,11 +326,11 @@ void EventReader::SetBranches()
         }
         else
         {
-          HCalBarrelPositionedCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-          HCalBarrelPositionedCells_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-          HCalBarrelPositionedCells_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-          HCalBarrelPositionedCells_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-          HCalBarrelPositionedCells_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
+          HCalBarrelCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+          HCalBarrelCells_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
+          HCalBarrelCells_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
+          HCalBarrelCells_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
+          HCalBarrelCells_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
         }
       }
     }
@@ -500,40 +514,40 @@ EventReader::~EventReader() {
     delete DriftChamberHits_position_y;
     delete DriftChamberHits_position_z;
   }
-  if (ECalBarrelHits_cellID) {
-    delete ECalBarrelHits_cellID;
+  if (ECalBarrelHits_energy) {
+    // delete ECalBarrelHits_cellID;
     delete ECalBarrelHits_energy;
     delete ECalBarrelHits_position_x;
     delete ECalBarrelHits_position_y;
     delete ECalBarrelHits_position_z;
   }
-  if (ECalBarrelPositionedCells_cellID) {
-    delete ECalBarrelPositionedCells_cellID;
-    delete ECalBarrelPositionedCells_energy;
-    delete ECalBarrelPositionedCells_position_x;
-    delete ECalBarrelPositionedCells_position_y;
-    delete ECalBarrelPositionedCells_position_z;
+  if (ECalBarrelCells_cellID) {
+    delete ECalBarrelCells_cellID;
+    delete ECalBarrelCells_energy;
+    delete ECalBarrelCells_position_x;
+    delete ECalBarrelCells_position_y;
+    delete ECalBarrelCells_position_z;
   }
-  if (ECalBarrelPositionedCells2_cellID) {
-    delete ECalBarrelPositionedCells2_cellID;
-    delete ECalBarrelPositionedCells2_energy;
-    delete ECalBarrelPositionedCells2_position_x;
-    delete ECalBarrelPositionedCells2_position_y;
-    delete ECalBarrelPositionedCells2_position_z;
+  if (ECalBarrelCells2_cellID) {
+    delete ECalBarrelCells2_cellID;
+    delete ECalBarrelCells2_energy;
+    delete ECalBarrelCells2_position_x;
+    delete ECalBarrelCells2_position_y;
+    delete ECalBarrelCells2_position_z;
   }
-  if (HCalBarrelPositionedHits_cellID) {
-    delete HCalBarrelPositionedHits_cellID;
-    delete HCalBarrelPositionedHits_energy;
-    delete HCalBarrelPositionedHits_position_x;
-    delete HCalBarrelPositionedHits_position_y;
-    delete HCalBarrelPositionedHits_position_z;
+  if (HCalBarrelHits_cellID) {
+    delete HCalBarrelHits_cellID;
+    delete HCalBarrelHits_energy;
+    delete HCalBarrelHits_position_x;
+    delete HCalBarrelHits_position_y;
+    delete HCalBarrelHits_position_z;
   }
-  if (HCalBarrelPositionedCells_cellID) {
-    delete HCalBarrelPositionedCells_cellID;
-    delete HCalBarrelPositionedCells_energy;
-    delete HCalBarrelPositionedCells_position_x;
-    delete HCalBarrelPositionedCells_position_y;
-    delete HCalBarrelPositionedCells_position_z;
+  if (HCalBarrelCells_cellID) {
+    delete HCalBarrelCells_cellID;
+    delete HCalBarrelCells_energy;
+    delete HCalBarrelCells_position_x;
+    delete HCalBarrelCells_position_y;
+    delete HCalBarrelCells_position_z;
   }
   if (CaloClusters_energy) {
     delete CaloClusters_energy;

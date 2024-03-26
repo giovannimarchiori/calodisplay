@@ -126,16 +126,15 @@ void EventDisplay::FillClusters(std::string clusterType)
     cluster->setEnergy(E);
 
     // set barycenter
-    // topo cluster positions are in cm while calo clusters and hits/cells in mm ... ?
     if (debug)
     {
       std::cout << "  Setting cluster barycenter position .." << std::endl;
     }
     if (clusterType == "topo")
     {
-      cluster->setBarycenterXYZ((*eventReader->CaloTopoClusters_position_x)[i] * cm,
-                                (*eventReader->CaloTopoClusters_position_y)[i] * cm,
-                                (*eventReader->CaloTopoClusters_position_z)[i] * cm);
+      cluster->setBarycenterXYZ((*eventReader->CaloTopoClusters_position_x)[i] * mm,
+                                (*eventReader->CaloTopoClusters_position_y)[i] * mm,
+                                (*eventReader->CaloTopoClusters_position_z)[i] * mm);
     }
     else
     {
@@ -223,9 +222,9 @@ void EventDisplay::FillClusters(std::string clusterType)
       {
         cellID = (*eventReader->CaloTopoClusterCells_cellID)[iCell];
         energy = (*eventReader->CaloTopoClusterCells_energy)[iCell];
-        x = (*eventReader->CaloTopoClusterCells_position_x)[iCell] * cm;
-        y = (*eventReader->CaloTopoClusterCells_position_y)[iCell] * cm;
-        z = (*eventReader->CaloTopoClusterCells_position_z)[iCell] * cm;
+        x = (*eventReader->CaloTopoClusterCells_position_x)[iCell] * mm;
+        y = (*eventReader->CaloTopoClusterCells_position_y)[iCell] * mm;
+        z = (*eventReader->CaloTopoClusterCells_position_z)[iCell] * mm;
       }
       else
       {
@@ -483,9 +482,9 @@ void EventDisplay::DrawClusters(std::string clusterType)
     // topo cluster positions are in cm while calo clusters and hits/cells in mm ... ?
     if (clusterType == "topo")
     {
-      clustersCenter->SetNextPoint((*eventReader->CaloTopoClusters_position_x)[i] * cm,
-                                   (*eventReader->CaloTopoClusters_position_y)[i] * cm,
-                                   (*eventReader->CaloTopoClusters_position_z)[i] * cm);
+      clustersCenter->SetNextPoint((*eventReader->CaloTopoClusters_position_x)[i] * mm,
+                                   (*eventReader->CaloTopoClusters_position_y)[i] * mm,
+                                   (*eventReader->CaloTopoClusters_position_z)[i] * mm);
     }
     else
     {
@@ -661,9 +660,9 @@ void EventDisplay::DrawClusters(std::string clusterType)
     {
       cellID = (*eventReader->CaloTopoClusterCells_cellID)[i];
       energy = (*eventReader->CaloTopoClusterCells_energy)[i];
-      x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * cm;
-      y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * cm;
-      z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * cm;
+      x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * mm;
+      y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * mm;
+      z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * mm;
     }
     else
     {
@@ -868,9 +867,9 @@ void EventDisplay::DrawClusters(std::string clusterType)
     float r_out = geomReader->r[layer+1];
     float x_center, y_center, z_center;
     if (clusterType=="topo") {
-      x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * cm;
-      y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * cm;
-      z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * cm;
+      x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * mm;
+      y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * mm;
+      z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * mm;
     }
     else {
       x_center = (*eventReader->CaloClusterCells_position_x)[i] * mm;
@@ -1141,6 +1140,7 @@ void EventDisplay::loadEvent(int event)
       trkProp->SetMaxZ(geomReader->zMax);
       particles->SetMainColor(kWhite);
       particles->SetLineWidth(2);
+      particles->SetLineStyle(5);
       gEve->AddElement(particles);
     }
     else
@@ -1283,7 +1283,7 @@ void EventDisplay::loadEvent(int event)
       // dchHits->SetName(Form("DCH hits (E>%.1f GeV)", HitEnergyThreshold));
       vtxHits->SetName("VTX hits");
       vtxHits->SetMarkerStyle(4);
-      vtxHits->SetMarkerSize(1);
+      vtxHits->SetMarkerSize(1.6);
       vtxHits->SetMarkerColor(kRed);
       //gEve->AddElement(dchHits);
       hits->AddElement(vtxHits);
@@ -1326,7 +1326,7 @@ void EventDisplay::loadEvent(int event)
       // dchHits->SetName(Form("DCH hits (E>%.1f GeV)", HitEnergyThreshold));
       dchHits->SetName("DCH hits");
       dchHits->SetMarkerStyle(4);
-      dchHits->SetMarkerSize(1);
+      dchHits->SetMarkerSize(1.6);
       dchHits->SetMarkerColor(kRed);
       //gEve->AddElement(dchHits);
       hits->AddElement(dchHits);
@@ -1374,7 +1374,7 @@ void EventDisplay::loadEvent(int event)
       float E = (*eventReader->ECalBarrelHits_energy)[i];
       if (E < HitEnergyThreshold)
         continue;
-      // ULong_t cellID = (*eventReader->ECalBarrelPositionedHits_cellID)[i];
+      // ULong_t cellID = (*eventReader->ECalBarrelHits_cellID)[i];
       // ULong_t layer = DetectorGeometry:::Layer(cellID);
       ecalHits->SetNextPoint(
           (*eventReader->ECalBarrelHits_position_x)[i] * mm,
@@ -1397,15 +1397,15 @@ void EventDisplay::loadEvent(int event)
     else
       hcalHits->Reset();
 
-    for (unsigned int i = 0; i < eventReader->HCalBarrelPositionedHits_position_x->GetSize(); i++)
+    for (unsigned int i = 0; i < eventReader->HCalBarrelHits_position_x->GetSize(); i++)
     {
-      float E = (*eventReader->HCalBarrelPositionedHits_energy)[i];
+      float E = (*eventReader->HCalBarrelHits_energy)[i];
       if (E < HitEnergyThreshold)
 	continue;
       hcalHits->SetNextPoint(
-			     (*eventReader->HCalBarrelPositionedHits_position_x)[i] * mm,
-			     (*eventReader->HCalBarrelPositionedHits_position_y)[i] * mm,
-			     (*eventReader->HCalBarrelPositionedHits_position_z)[i] * mm);
+			     (*eventReader->HCalBarrelHits_position_x)[i] * mm,
+			     (*eventReader->HCalBarrelHits_position_y)[i] * mm,
+			     (*eventReader->HCalBarrelHits_position_z)[i] * mm);
     }
   }
 
@@ -1431,19 +1431,14 @@ void EventDisplay::loadEvent(int event)
     }
     else
       ecalCells->Reset();
-    for (unsigned int i = 0; i < eventReader->ECalBarrelPositionedCells_position_x->GetSize(); i++)
+    for (unsigned int i = 0; i < eventReader->ECalBarrelCells_position_x->GetSize(); i++)
     {
-      float E = (*eventReader->ECalBarrelPositionedCells_energy)[i];
+      float E = (*eventReader->ECalBarrelCells_energy)[i];
       if (E < CellEnergyThreshold)
         continue;
-      // temporary hack since I am drawing topoclustered cells
-      // TO FIX
-      //      ecalCells->SetNextPoint((*eventReader->ECalBarrelPositionedCells_position_x)[i] * mm,
-      //                        (*eventReader->ECalBarrelPositionedCells_position_y)[i] * mm,
-      //                        (*eventReader->ECalBarrelPositionedCells_position_z)[i] * mm);
-      ecalCells->SetNextPoint((*eventReader->ECalBarrelPositionedCells_position_x)[i] * cm,
-                              (*eventReader->ECalBarrelPositionedCells_position_y)[i] * cm,
-                              (*eventReader->ECalBarrelPositionedCells_position_z)[i] * cm);
+      ecalCells->SetNextPoint((*eventReader->ECalBarrelCells_position_x)[i] * mm,
+			      (*eventReader->ECalBarrelCells_position_y)[i] * mm,
+			      (*eventReader->ECalBarrelCells_position_z)[i] * mm);
     }
   }
 
@@ -1461,14 +1456,14 @@ void EventDisplay::loadEvent(int event)
     }
     else
       hcalCells->Reset();
-    for (unsigned int i = 0; i < eventReader->HCalBarrelPositionedCells_position_x->GetSize(); i++)
+    for (unsigned int i = 0; i < eventReader->HCalBarrelCells_position_x->GetSize(); i++)
     {
-      float E = (*eventReader->HCalBarrelPositionedCells_energy)[i];
+      float E = (*eventReader->HCalBarrelCells_energy)[i];
       if (E < CellEnergyThreshold)
 	continue;
-      hcalCells->SetNextPoint((*eventReader->HCalBarrelPositionedCells_position_x)[i] * mm,
-			      (*eventReader->HCalBarrelPositionedCells_position_y)[i] * mm,
-			      (*eventReader->HCalBarrelPositionedCells_position_z)[i] * mm);
+      hcalCells->SetNextPoint((*eventReader->HCalBarrelCells_position_x)[i] * mm,
+			      (*eventReader->HCalBarrelCells_position_y)[i] * mm,
+			      (*eventReader->HCalBarrelCells_position_z)[i] * mm);
     }
   }
 
@@ -1489,15 +1484,15 @@ void EventDisplay::loadEvent(int event)
     }
     else
       cells_merged->Reset();
-    for (unsigned int i = 0; i < eventReader->ECalBarrelPositionedCells2_position_x->GetSize(); i++)
+    for (unsigned int i = 0; i < eventReader->ECalBarrelCells2_position_x->GetSize(); i++)
     {
-      float E = (*eventReader->ECalBarrelPositionedCells2_energy)[i];
+      float E = (*eventReader->ECalBarrelCells2_energy)[i];
       // if (E<minCellE) continue;
-      // ULong_t cellID = (*eventReader->ECalBarrelPositionedCells_cellID)[i];
+      // ULong_t cellID = (*eventReader->ECalBarrelCells_cellID)[i];
       // ULong_t layer = DetectorGeometry::Layer(cellID);
-      cells_merged->SetNextPoint((*eventReader->ECalBarrelPositionedCells2_position_x)[i] * mm,
-                                 (*eventReader->ECalBarrelPositionedCells2_position_y)[i] * mm,
-                                 (*eventReader->ECalBarrelPositionedCells2_position_z)[i] * mm);
+      cells_merged->SetNextPoint((*eventReader->ECalBarrelCells2_position_x)[i] * mm,
+                                 (*eventReader->ECalBarrelCells2_position_y)[i] * mm,
+                                 (*eventReader->ECalBarrelCells2_position_z)[i] * mm);
     }
   }
 
@@ -1585,7 +1580,7 @@ void EventDisplay::startDisplay(int initialEvent)
   TEveManager::Create();
 
   // Set title of main window
-  gEve->GetBrowser()->SetWindowName("Allegro calorimeter event display");
+  gEve->GetBrowser()->SetWindowName("FCC-ee ALLEGRO detector event display");
 
   // see palettes here: https://root.cern.ch/doc/master/classTColor.html
   // gStyle->SetPalette(kAvocado);
@@ -1743,6 +1738,15 @@ void EventDisplay::startDisplay(int initialEvent)
       {
         a->SetMainTransparency(70);
         ((TEveGeoShape*) a)->SetNSegments(256);
+      }
+
+      // turn off Cryo side in 3d, weird rendering
+      re = TPRegexp("ECAL_Cryo_side_(\\w+)");
+      TEveElement::List_t matches2;
+      ecalbarrel->FindChildren(matches2, re);
+      for (auto a : matches2)
+      {
+        a->SetRnrSelf(false);
       }
       // make lists of elements inside bath to turn on/off simultaneously
       if (bath)
@@ -2041,17 +2045,30 @@ void EventDisplay::startDisplay(int initialEvent)
       rhoPhiProjManager->ImportElements(hcalbarrel, rhoPhiScene);
   }
   // do not draw the cryo side in the rho-phi view as it renders poorly
+  // and turn on the active elements so we can see the cell edges
   {
     TEveElement* element = rhoPhiScene->FindChild("Geometry [P]");
     if (element) {
       TPRegexp re("ECalBarrel_vol_(\\w+)");
       TEveElement *projbarrel = element->FindChild(re);
       if (projbarrel) {
-	TPRegexp re("ECAL_Cryo_side_(\\w+)");
-	TEveElement *projcryoside = projbarrel->FindChild(re);
-	if (projcryoside) {
-	  projcryoside->SetRnrSelf(false);
-	}
+	      TPRegexp re("ECAL_Cryo_side_(\\w+)");
+	      TEveElement *projcryoside = projbarrel->FindChild(re);
+	      if (projcryoside) {
+	        projcryoside->SetRnrSelf(false);
+      	}
+        TEveElementList *projbath = (TEveElementList*) projbarrel->FindChild("LAr_bath [P]");
+        if (projbath) {
+          projbath->SetRnrSelfChildren(true,true);
+          TEveElementList *projpassives = (TEveElementList*) projbath->FindChild("Passive elements [P]");
+          if (projpassives) {
+            projpassives->SetRnrSelfChildren(false, false);
+          }
+          TEveElementList *projpcbs = (TEveElementList*) projbath->FindChild("PCBs [P]");
+          if (projpcbs) {
+            projpcbs->SetRnrSelfChildren(false, false);
+          }
+        }
       }
     }
   }
@@ -2163,6 +2180,8 @@ void EventDisplay::startDisplay(int initialEvent)
   }
   rhoZScene->AddElement(grid);
   readout->AddElement(grid);
+  // by default we do not show the unmerged readout
+  grid->SetRnrSelf(false);
 
   // the merged grid
   TEveStraightLineSet *grid2 = new TEveStraightLineSet("ECAL theta readout merged");
@@ -2201,6 +2220,29 @@ void EventDisplay::startDisplay(int initialEvent)
   }
   rhoZScene->AddElement(grid2);
   readout->AddElement(grid2);
+
+  // turn on the active elements in rho-Z so we can see the cell edges
+  {
+    TEveElement* element = rhoZScene->FindChild("Geometry [P]");
+    if (element) {
+      TPRegexp re("ECalBarrel_vol_(\\w+)");
+      TEveElement *projbarrel = element->FindChild(re);
+      if (projbarrel) {
+        TEveElementList *projbath = (TEveElementList*) projbarrel->FindChild("LAr_bath [P]");
+        if (projbath) {
+          projbath->SetRnrSelfChildren(true,true);
+          TEveElementList *projpassives = (TEveElementList*) projbath->FindChild("Passive elements [P]");
+          if (projpassives) {
+            projpassives->SetRnrSelfChildren(false, false);
+          }
+          TEveElementList *projpcbs = (TEveElementList*) projbath->FindChild("PCBs [P]");
+          if (projpcbs) {
+            projpcbs->SetRnrSelfChildren(false, false);
+          }
+        }
+      }
+    }
+  }
 
   // draw the HCAL readout segmentation in eta or theta (rho-z view)
   if (doHCal)
