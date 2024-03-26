@@ -97,32 +97,32 @@ public:
   TTreeReaderArray<Float_t> *ECalBarrelHits_position_z = nullptr;
 
   // the cells in ECal barrel
-  TTreeReaderArray<ULong_t> *ECalBarrelPositionedCells_cellID = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelPositionedCells_energy = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelPositionedCells_position_x = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelPositionedCells_position_y = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelPositionedCells_position_z = nullptr;
+  TTreeReaderArray<ULong_t> *ECalBarrelCells_cellID = nullptr;
+  TTreeReaderArray<Float_t> *ECalBarrelCells_energy = nullptr;
+  TTreeReaderArray<Float_t> *ECalBarrelCells_position_x = nullptr;
+  TTreeReaderArray<Float_t> *ECalBarrelCells_position_y = nullptr;
+  TTreeReaderArray<Float_t> *ECalBarrelCells_position_z = nullptr;
 
   // the cells in ECal barrel with coarser merging
-  TTreeReaderArray<ULong_t> *ECalBarrelPositionedCells2_cellID = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelPositionedCells2_energy = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelPositionedCells2_position_x = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelPositionedCells2_position_y = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelPositionedCells2_position_z = nullptr;
+  TTreeReaderArray<ULong_t> *ECalBarrelCells2_cellID = nullptr;
+  TTreeReaderArray<Float_t> *ECalBarrelCells2_energy = nullptr;
+  TTreeReaderArray<Float_t> *ECalBarrelCells2_position_x = nullptr;
+  TTreeReaderArray<Float_t> *ECalBarrelCells2_position_y = nullptr;
+  TTreeReaderArray<Float_t> *ECalBarrelCells2_position_z = nullptr;
 
   // the hits in HCal barrel
-  TTreeReaderArray<ULong_t> *HCalBarrelPositionedHits_cellID = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelPositionedHits_energy = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelPositionedHits_position_x = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelPositionedHits_position_y = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelPositionedHits_position_z = nullptr;
+  TTreeReaderArray<ULong_t> *HCalBarrelHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelHits_energy = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelHits_position_x = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelHits_position_y = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelHits_position_z = nullptr;
 
   // the cells in HCal barrel
-  TTreeReaderArray<ULong_t> *HCalBarrelPositionedCells_cellID = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelPositionedCells_energy = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelPositionedCells_position_x = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelPositionedCells_position_y = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelPositionedCells_position_z = nullptr;
+  TTreeReaderArray<ULong_t> *HCalBarrelCells_cellID = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelCells_energy = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelCells_position_x = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelCells_position_y = nullptr;
+  TTreeReaderArray<Float_t> *HCalBarrelCells_position_z = nullptr;
 
   // IF WE ARE SURE THAT WE DO NOT PLOT BOTH SW AND TOPOCLUSTERS AT THE SAME TIME
   // we could simplify the code of the EventDisplay class by having a single
