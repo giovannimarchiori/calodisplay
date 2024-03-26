@@ -1139,7 +1139,7 @@ void EventDisplay::loadEvent(int event)
       trkProp->SetMaxR(rMax);
       trkProp->SetMaxZ(geomReader->zMax);
       particles->SetMainColor(kWhite);
-      particles->SetLineWidth(2);
+      particles->SetLineWidth(1.);
       particles->SetLineStyle(5);
       gEve->AddElement(particles);
     }
