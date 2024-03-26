@@ -94,7 +94,94 @@ void EventReader::SetBranches()
       }
     }
   }
-  
+
+
+  // hits in vertex detector
+  if (displayConfig.getBoolConfig("drawVertexHits"))
+  {
+    // check that branch name for barrel is set and branch exists
+    std::string branchName = displayConfig.getStringConfig("vertexBarrelHits");
+    if (branchName == "") {
+      std::cout << "WARNING: vertexBarrelHits not set, disabling vertex hits" << std::endl;
+      displayConfig.setBoolConfig("drawVertexHits", false);
+      displayConfig.setStringConfig("vertexEndcapHits", "");
+    }
+    else {
+      const char* branch = branchName.c_str();
+      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      {
+        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex hits" << std::endl;
+        displayConfig.setBoolConfig("drawVertexHits", false);
+        displayConfig.setStringConfig("vertexBarrelHits", "");
+        displayConfig.setStringConfig("vertexEndcapHits", "");
+      }
+    }
+
+    // check that branch name for endcap is set and branch exists
+    branchName = displayConfig.getStringConfig("vertexEndcapHits");
+    if (branchName == "") {
+      std::cout << "WARNING: vertexEndcapHits not set, disabling vertex hits" << std::endl;
+      displayConfig.setBoolConfig("drawVertexHits", false);
+      displayConfig.setStringConfig("vertexEndcapHits", "");
+    }
+    else {
+      const char* branch = branchName.c_str();
+      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      {
+        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex hits" << std::endl;
+        displayConfig.setBoolConfig("drawVertexHits", false);
+        displayConfig.setStringConfig("vertexBarrelHits", "");
+        displayConfig.setStringConfig("vertexEndcapHits", "");
+      }
+    }
+
+    // read the branches
+    if (displayConfig.getBoolConfig("drawVertexHits")) {
+      branchName = displayConfig.getStringConfig("vertexBarrelHits");
+      const char* branch = branchName.c_str();
+      VertexBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+      VertexBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+      VertexBarrelHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+      VertexBarrelHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+      VertexBarrelHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+
+      branchName = displayConfig.getStringConfig("vertexEndcapHits");
+      branch = branchName.c_str();
+      VertexEndcapHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+      VertexEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+      VertexEndcapHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+      VertexEndcapHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+      VertexEndcapHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+    }
+  }
+
+  // hits in drift chamber
+  if (displayConfig.getBoolConfig("drawDriftChamberHits"))
+  {
+    std::string branchName = displayConfig.getStringConfig("driftChamberHits");
+    const char* branch = branchName.c_str();
+    if (branchName == "") {
+      std::cout << "WARNING: driftChamberHits not set, disabling drift chamber hits" << std::endl;
+      displayConfig.setBoolConfig("drawDriftChamberHits", false);
+    }
+    else {
+      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      {
+        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling drift chamber hits" << std::endl;
+        displayConfig.setBoolConfig("drawDriftChamberHits", false);
+        displayConfig.setStringConfig("driftChamberHits", "");
+      }
+      else
+      {
+        DriftChamberHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+        DriftChamberHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+        DriftChamberHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+        DriftChamberHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+        DriftChamberHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+      }
+    }
+  }
+
   // hits in ECal barrel
   if (displayConfig.getBoolConfig("drawECalBarrelHits"))
   {
@@ -113,11 +200,11 @@ void EventReader::SetBranches()
       }
       else
       {
-        ECalBarrelPositionedHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-        ECalBarrelPositionedHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-        ECalBarrelPositionedHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-        ECalBarrelPositionedHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-        ECalBarrelPositionedHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
+        ECalBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+        ECalBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
+        ECalBarrelHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
+        ECalBarrelHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
+        ECalBarrelHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
       }
     }
   }
@@ -392,12 +479,33 @@ EventReader::~EventReader() {
     delete SimParticleSecondaries_momentum_y;
     delete SimParticleSecondaries_momentum_z;
   }
-  if (ECalBarrelPositionedHits_cellID) {
-    delete ECalBarrelPositionedHits_cellID;
-    delete ECalBarrelPositionedHits_energy;
-    delete ECalBarrelPositionedHits_position_x;
-    delete ECalBarrelPositionedHits_position_y;
-    delete ECalBarrelPositionedHits_position_z;
+  if (VertexBarrelHits_cellID) {
+    delete VertexBarrelHits_cellID;
+    delete VertexBarrelHits_energy;
+    delete VertexBarrelHits_position_x;
+    delete VertexBarrelHits_position_y;
+    delete VertexBarrelHits_position_z;
+  }
+  if (VertexEndcapHits_cellID) {
+    delete VertexEndcapHits_cellID;
+    delete VertexEndcapHits_energy;
+    delete VertexEndcapHits_position_x;
+    delete VertexEndcapHits_position_y;
+    delete VertexEndcapHits_position_z;
+  }
+  if (DriftChamberHits_cellID) {
+    delete DriftChamberHits_cellID;
+    delete DriftChamberHits_energy;
+    delete DriftChamberHits_position_x;
+    delete DriftChamberHits_position_y;
+    delete DriftChamberHits_position_z;
+  }
+  if (ECalBarrelHits_cellID) {
+    delete ECalBarrelHits_cellID;
+    delete ECalBarrelHits_energy;
+    delete ECalBarrelHits_position_x;
+    delete ECalBarrelHits_position_y;
+    delete ECalBarrelHits_position_z;
   }
   if (ECalBarrelPositionedCells_cellID) {
     delete ECalBarrelPositionedCells_cellID;

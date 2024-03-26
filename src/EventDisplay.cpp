@@ -1265,6 +1265,86 @@ void EventDisplay::loadEvent(int event)
     particles->MakeTracks();
   }
 
+
+  //
+  // hits (VTX/DCH)
+  //
+  if (displayConfig.getBoolConfig("drawVertexHits")) {
+    if (hits == nullptr)
+    {
+      hits  = new TEveElementList("hits");
+      gEve->AddElement(hits);
+    }
+    // do we need to Reset() otherwise ?
+    std::cout << "Creating vertex hits" << std::endl;
+    if (vtxHits == nullptr)
+    {
+      vtxHits = new TEvePointSet();
+      // dchHits->SetName(Form("DCH hits (E>%.1f GeV)", HitEnergyThreshold));
+      vtxHits->SetName("VTX hits");
+      vtxHits->SetMarkerStyle(4);
+      vtxHits->SetMarkerSize(1);
+      vtxHits->SetMarkerColor(kRed);
+      //gEve->AddElement(dchHits);
+      hits->AddElement(vtxHits);
+    }
+    else
+      vtxHits->Reset();
+    for (unsigned int i = 0; i < eventReader->VertexBarrelHits_position_x->GetSize(); i++)
+    {
+      // float E = (*eventReader->VertexBarrelHits_energy)[i];
+      // if (E < HitEnergyThreshold) continue;
+      // ULong_t cellID = (*eventReader->VertexBarrelHits_cellID)[i];
+      vtxHits->SetNextPoint(
+          (*eventReader->VertexBarrelHits_position_x)[i] * mm,
+          (*eventReader->VertexBarrelHits_position_y)[i] * mm,
+          (*eventReader->VertexBarrelHits_position_z)[i] * mm);
+    }
+    for (unsigned int i = 0; i < eventReader->VertexEndcapHits_position_x->GetSize(); i++)
+    {
+      // float E = (*eventReader->VertexEndcapHits_energy)[i];
+      // if (E < HitEnergyThreshold) continue;
+      // ULong_t cellID = (*eventReader->VertexEndcapHits_cellID)[i];
+      vtxHits->SetNextPoint(
+          (*eventReader->VertexEndcapHits_position_x)[i] * mm,
+          (*eventReader->VertexEndcapHits_position_y)[i] * mm,
+          (*eventReader->VertexEndcapHits_position_z)[i] * mm);
+    }
+  }
+
+  if (displayConfig.getBoolConfig("drawDriftChamberHits")) {
+    if (hits == nullptr)
+    {
+      hits  = new TEveElementList("hits");
+      gEve->AddElement(hits);
+    }
+    // do we need to Reset() otherwise ?
+    std::cout << "Creating drift chamber hits" << std::endl;
+    if (dchHits == nullptr)
+    {
+      dchHits = new TEvePointSet();
+      // dchHits->SetName(Form("DCH hits (E>%.1f GeV)", HitEnergyThreshold));
+      dchHits->SetName("DCH hits");
+      dchHits->SetMarkerStyle(4);
+      dchHits->SetMarkerSize(1);
+      dchHits->SetMarkerColor(kRed);
+      //gEve->AddElement(dchHits);
+      hits->AddElement(dchHits);
+    }
+    else
+      dchHits->Reset();
+    for (unsigned int i = 0; i < eventReader->DriftChamberHits_position_x->GetSize(); i++)
+    {
+      // float E = (*eventReader->DriftChamberHits_energy)[i];
+      // if (E < HitEnergyThreshold) continue;
+      // ULong_t cellID = (*eventReader->DriftChamberHits_cellID)[i];
+      dchHits->SetNextPoint(
+          (*eventReader->DriftChamberHits_position_x)[i] * mm,
+          (*eventReader->DriftChamberHits_position_y)[i] * mm,
+          (*eventReader->DriftChamberHits_position_z)[i] * mm);
+    }
+  }
+
   //
   // hits (ECAL/HCAL)
   //
@@ -1289,17 +1369,17 @@ void EventDisplay::loadEvent(int event)
     else
       ecalHits->Reset();
 
-    for (unsigned int i = 0; i < eventReader->ECalBarrelPositionedHits_position_x->GetSize(); i++)
+    for (unsigned int i = 0; i < eventReader->ECalBarrelHits_position_x->GetSize(); i++)
     {
-      float E = (*eventReader->ECalBarrelPositionedHits_energy)[i];
+      float E = (*eventReader->ECalBarrelHits_energy)[i];
       if (E < HitEnergyThreshold)
         continue;
       // ULong_t cellID = (*eventReader->ECalBarrelPositionedHits_cellID)[i];
       // ULong_t layer = DetectorGeometry:::Layer(cellID);
       ecalHits->SetNextPoint(
-          (*eventReader->ECalBarrelPositionedHits_position_x)[i] * mm,
-          (*eventReader->ECalBarrelPositionedHits_position_y)[i] * mm,
-          (*eventReader->ECalBarrelPositionedHits_position_z)[i] * mm);
+          (*eventReader->ECalBarrelHits_position_x)[i] * mm,
+          (*eventReader->ECalBarrelHits_position_y)[i] * mm,
+          (*eventReader->ECalBarrelHits_position_z)[i] * mm);
     }
   }
   

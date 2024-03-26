@@ -15,30 +15,6 @@
 class DisplayConfig {
 public:
   std::map<std::string, std::string> configMap;
-
-  /*
-  bool drawGenParticles;
-  bool drawSimParticles;
-  bool drawECalBarrelHits;
-  bool drawECalBarrelCells;
-  bool drawECalBarrelMergedCells;
-  bool drawHCalBarrelHits;
-  bool drawHCalBarrelCells;
-  bool drawTopoClusters;
-  bool drawCaloClusters;
-  
-  std::string genParticles;
-  std::string simParticles;
-  std::string ecalBarrelHits;
-  std::string ecalBarrelCells;
-  std::string ecalBarrelMergedCells;
-  std::string hcalBarrelHits;
-  std::string hcalBarrelCells;
-  std::string topoClusters;
-  std::string topoClusterCells;
-  std::string caloClusters;
-  std::string caloClusterCells;
-  */
   
   DisplayConfig();
   void Print();

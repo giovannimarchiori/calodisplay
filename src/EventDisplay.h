@@ -104,6 +104,8 @@ public:
   // ELEMENTS OF THE EVENT DISPLAY
   /******************************************************************************/
   TEveTrackList *particles = nullptr;
+  TEvePointSet *vtxHits = nullptr;
+  TEvePointSet *dchHits = nullptr;
   TEvePointSet *ecalHits = nullptr;
   TEvePointSet *hcalHits = nullptr;
   TEvePointSet *ecalCells = nullptr;

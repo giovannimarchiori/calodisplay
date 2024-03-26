@@ -68,12 +68,33 @@ public:
   TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_y = nullptr;
   TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_z = nullptr;
 
+  // the hits in the vertex (barrel)
+  TTreeReaderArray<ULong_t> *VertexBarrelHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *VertexBarrelHits_energy = nullptr;
+  TTreeReaderArray<Double_t> *VertexBarrelHits_position_x = nullptr;
+  TTreeReaderArray<Double_t> *VertexBarrelHits_position_y = nullptr;
+  TTreeReaderArray<Double_t> *VertexBarrelHits_position_z = nullptr;
+  
+  // the hits in the vertex (endcap)
+  TTreeReaderArray<ULong_t> *VertexEndcapHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *VertexEndcapHits_energy = nullptr;
+  TTreeReaderArray<Double_t> *VertexEndcapHits_position_x = nullptr;
+  TTreeReaderArray<Double_t> *VertexEndcapHits_position_y = nullptr;
+  TTreeReaderArray<Double_t> *VertexEndcapHits_position_z = nullptr;
+
+  // the hits in the DCH
+  TTreeReaderArray<ULong_t> *DriftChamberHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *DriftChamberHits_energy = nullptr;
+  TTreeReaderArray<Double_t> *DriftChamberHits_position_x = nullptr;
+  TTreeReaderArray<Double_t> *DriftChamberHits_position_y = nullptr;
+  TTreeReaderArray<Double_t> *DriftChamberHits_position_z = nullptr;
+
   // the hits in ECal barrel
-  TTreeReaderArray<ULong_t> *ECalBarrelPositionedHits_cellID = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelPositionedHits_energy = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelPositionedHits_position_x = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelPositionedHits_position_y = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelPositionedHits_position_z = nullptr;
+  TTreeReaderArray<ULong_t> *ECalBarrelHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *ECalBarrelHits_energy = nullptr;
+  TTreeReaderArray<Float_t> *ECalBarrelHits_position_x = nullptr;
+  TTreeReaderArray<Float_t> *ECalBarrelHits_position_y = nullptr;
+  TTreeReaderArray<Float_t> *ECalBarrelHits_position_z = nullptr;
 
   // the cells in ECal barrel
   TTreeReaderArray<ULong_t> *ECalBarrelPositionedCells_cellID = nullptr;
