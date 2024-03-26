@@ -88,9 +88,9 @@ void EventReader::SetBranches()
         SimParticleSecondaries_endpoint_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.x", branch));
         SimParticleSecondaries_endpoint_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.y", branch));
         SimParticleSecondaries_endpoint_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.z", branch));
-        SimParticleSecondaries_momentum_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.momentum.x", branch));
-        SimParticleSecondaries_momentum_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.momentum.y", branch));
-        SimParticleSecondaries_momentum_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.momentum.z", branch));
+        SimParticleSecondaries_momentum_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.x", branch));
+        SimParticleSecondaries_momentum_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.y", branch));
+        SimParticleSecondaries_momentum_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.z", branch));
       }
     }
   }

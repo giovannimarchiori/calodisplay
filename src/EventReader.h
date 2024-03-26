@@ -64,9 +64,13 @@ public:
   TTreeReaderArray<Double_t> *SimParticleSecondaries_endpoint_x = nullptr;
   TTreeReaderArray<Double_t> *SimParticleSecondaries_endpoint_y = nullptr;
   TTreeReaderArray<Double_t> *SimParticleSecondaries_endpoint_z = nullptr;
-  TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_x = nullptr;
-  TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_y = nullptr;
-  TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_z = nullptr;
+  // these variables are double in latest versions
+  // TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_x = nullptr;
+  // TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_y = nullptr;
+  // TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_z = nullptr;
+  TTreeReaderArray<Double_t> *SimParticleSecondaries_momentum_x = nullptr;
+  TTreeReaderArray<Double_t> *SimParticleSecondaries_momentum_y = nullptr;
+  TTreeReaderArray<Double_t> *SimParticleSecondaries_momentum_z = nullptr;
 
   // the hits in the vertex (barrel)
   TTreeReaderArray<ULong_t> *VertexBarrelHits_cellID = nullptr;
