@@ -1739,15 +1739,37 @@ void EventDisplay::startDisplay(int initialEvent)
         else if (re_hcalb.MatchB(s))
         {
           hcalb->AddElement(a);
-          a->SetRnrSelfChildren(true, false);
-          a->SetMainTransparency(60);
-          ((TEveGeoShape *)a)->SetNSegments(128);
+          // for the HCal barrel, rather than the envelope, we draw the volumes
+          // that make up its 3 parts
+          //a->SetRnrSelfChildren(true, false);
+          //a->SetMainTransparency(60);
+          //((TEveGeoShape *)a)->SetNSegments(128);
+          a->SetRnrSelfChildren(false, true);
+          for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
+          {
+            TEveElement *el = *itr2;
+            TString elname(el->GetElementName());
+            // std::cout << elname << std::endl;
+            el->SetRnrSelfChildren(true, false);
+            el->SetMainTransparency(60);
+            ((TEveGeoShape *)el)->SetNSegments(128);
+          }
         }
         else if (re_hcalec.MatchB(s))
         {
           hcalec->AddElement(a);
-          a->SetRnrSelfChildren(true, false);
+          // for the HCal endcap, rather than the envelope, we draw the volumes
+          // that make up its 3 parts
+          a->SetRnrSelfChildren(false, true);
           a->SetMainTransparency(60);
+          for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
+          {
+            TEveElement *el = *itr2;
+            TString elname(el->GetElementName());
+            // std::cout << elname << std::endl;
+            el->SetRnrSelfChildren(true, false);
+            el->SetMainTransparency(60);
+          }
         }
         else if (re_muonb.MatchB(s))
         {
