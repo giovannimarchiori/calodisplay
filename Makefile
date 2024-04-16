@@ -34,11 +34,11 @@ EXECUTABLE_LOCAL=$(BIN_DIR)/$(APP_NAME)-local       # dist/app-local
 
 # Define list of header files (.h), source files (.cpp) and object files (.o)
 H_EXT = h
-HEADERS = $(shell find $(SRC_DIR) -type f -name *.$(H_EXT))
+HEADERS = $(shell find $(SRC_DIR) -type f -name "*.$(H_EXT)")
 HEADERS := $(filter-out $(SRC_DIR)/LinkDef.h,$(HEADERS))
 
 SRC_EXT = cpp
-SOURCES = $(shell find $(SRC_DIR) -type f -name *.$(SRC_EXT))
+SOURCES = $(shell find $(SRC_DIR) -type f -name "*.$(SRC_EXT)")
 
 OBJECTS_TEMP = $(SOURCES:.cpp=.o)
 OBJECTS = $(patsubst $(SRC_DIR)/%,$(OBJ_DIR)/%,$(OBJECTS_TEMP))
