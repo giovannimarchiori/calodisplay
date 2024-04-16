@@ -282,7 +282,7 @@ void EventReader::SetBranches()
 
   if (m_doHCal) {
     // hits in HCal barrel
-    if (displayConfig.getBoolConfig("drawHcalBarrelHits"))
+    if (displayConfig.getBoolConfig("drawHCalBarrelHits"))
     {
       std::string branchName = displayConfig.getStringConfig("hcalBarrelHits");
       const char* branch = branchName.c_str();
@@ -309,7 +309,7 @@ void EventReader::SetBranches()
     }
     
     // cells in HCal barrel
-    if (displayConfig.getBoolConfig("drawHcalBarrelCells"))
+    if (displayConfig.getBoolConfig("drawHCalBarrelCells"))
     {
       std::string branchName = displayConfig.getStringConfig("hcalBarrelCells");
       const char* branch = branchName.c_str();
@@ -336,6 +336,7 @@ void EventReader::SetBranches()
     }
   }
   else {
+    std::cout << "doHCal is false, setting drawHCalBarrelHits and drawHCalBarrelCells to false" << std::endl;
     displayConfig.setBoolConfig("drawHCalBarrelHits", false);
     displayConfig.setStringConfig("hcalBarrelHits", "");
     displayConfig.setBoolConfig("drawHCalBarrelCells", false);

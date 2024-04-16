@@ -550,7 +550,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
       // them on destruction.
       aqs->SetOwnIds(kTRUE);
       aqs->SetPalette(pal);
-      aqs->SetTitle(Form("E = %f GeV\nR = %f cm\ntheta = %f\nphi = %f",
+      aqs->SetTitle(Form("E = %f GeV\nR = %f mm\ntheta = %f\nphi = %f",
                          energy,
                          rcl,
                          thetacl,
@@ -1382,6 +1382,11 @@ void EventDisplay::loadEvent(int event)
 
   if (displayConfig.getBoolConfig("drawHCalBarrelHits"))
   {
+    if (hits == nullptr)
+    {
+      hits = new TEveElementList("hits");
+      gEve->AddElement(hits);
+    }
     std::cout << "Creating hcal barrel hits" << std::endl;
     if (hcalHits == nullptr)
     {
@@ -1394,7 +1399,6 @@ void EventDisplay::loadEvent(int event)
     }
     else
       hcalHits->Reset();
-
     for (unsigned int i = 0; i < eventReader->HCalBarrelHits_position_x->GetSize(); i++)
     {
       float E = (*eventReader->HCalBarrelHits_energy)[i];
@@ -1443,6 +1447,11 @@ void EventDisplay::loadEvent(int event)
   if (displayConfig.getBoolConfig("drawHCalBarrelCells"))
   {
     std::cout << "Creating hcal barrel cells" << std::endl;
+    if (digis == nullptr)
+    {
+      digis = new TEveElementList("digis");
+      gEve->AddElement(digis);
+    }
     if (hcalCells == nullptr)
     {
       hcalCells = new TEvePointSet();

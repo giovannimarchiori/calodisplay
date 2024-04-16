@@ -13,15 +13,16 @@
   "drawTopoClusters": "true",
   "ecalBarrelCells": "ECalBarrelPositionedCells",
   "ecalBarrelHits": "ECalBarrelPositionedHits",
-  "ecalBarrelMergedCells": "ECalParrelPositionedCells2",
+  "ecalBarrelMergedCells": "ECalBarrelPositionedCells2",
   "energyThresholdCells": "0.000000",
   "energyThresholdClusters": "1.000000",
   "energyThresholdHits": "0.000000",
   "energyThresholdParticles": "1.000000",
   "genParticles": "genParticles",
-  "hcalBarrelCells": "HCalBarrelPositionedCells",
+  "hcalBarrelCells": "HCalBarrelPositionedCells2",
   "hcalBarrelHits": "HCalBarrelPositionedHits",
   "simParticles": "SimParticlesSecondaries",
   "topoClusterCells": "CaloTopoClusterCells",
   "topoClusters": "CaloTopoClusters"
 }
+
