@@ -2196,6 +2196,11 @@ void EventDisplay::startDisplay(int initialEvent)
               TString s2(el->GetElementName());
               if (s2.BeginsWith("passive_") || s2.BeginsWith("PCB_"))
                 el->SetRnrSelfChildren(false, false);
+              else if (s2.BeginsWith("active_"))
+              {
+                for (TEveElement::List_i itr3 = el->BeginChildren(); itr3 != el->EndChildren(); itr3++)
+                  (*itr3)->SetMainTransparency(100);
+              }
             }
           }
         }
