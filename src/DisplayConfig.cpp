@@ -28,7 +28,8 @@ DisplayConfig::DisplayConfig() {
 
   setStringConfig("genParticles", "genParticles");
   setStringConfig("simParticles", "SimParticlesSecondaries");
-  setStringConfig("vertexBarrelHits", "VertexBarrelCollection");
+  setStringConfig("vertexInnerBarrelHits", "VertexInnerBarrelCollection");
+  setStringConfig("vertexOuterBarrelHits", "VertexOuterBarrelCollection");
   setStringConfig("vertexEndcapHits", "VertexEndcapCollection");
   setStringConfig("driftChamberHits", "DriftChamber_simHits");
   setStringConfig("ecalBarrelHits", "ECalBarrelPositionedHits");

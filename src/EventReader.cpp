@@ -45,13 +45,9 @@ void EventReader::SetBranches()
         genParticles_vertex_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.vertex.x", branch));
         genParticles_vertex_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.vertex.y", branch));
         genParticles_vertex_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.vertex.z", branch));
-        //genParticles_endpoint_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.x", branch));
-        //genParticles_endpoint_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.y", branch));
-        //genParticles_endpoint_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.z", branch));
-        // these variables are double in the latest version of the EDM
-        // genParticles_momentum_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.momentum.x", branch));
-        // genParticles_momentum_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.momentum.y", branch));
-        // genParticles_momentum_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.momentum.z", branch));
+        genParticles_endpoint_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.x", branch));
+        genParticles_endpoint_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.y", branch));
+        genParticles_endpoint_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.z", branch));
         genParticles_momentum_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.x", branch));
         genParticles_momentum_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.y", branch));
         genParticles_momentum_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.z", branch));
@@ -99,11 +95,12 @@ void EventReader::SetBranches()
   // hits in vertex detector
   if (displayConfig.getBoolConfig("drawVertexHits"))
   {
-    // check that branch name for barrel is set and branch exists
-    std::string branchName = displayConfig.getStringConfig("vertexBarrelHits");
+    // check that branch name for inner barrel is set and branch exists
+    std::string branchName = displayConfig.getStringConfig("vertexInnerBarrelHits");
     if (branchName == "") {
-      std::cout << "WARNING: vertexBarrelHits not set, disabling vertex hits" << std::endl;
+      std::cout << "WARNING: vertexInnerBarrelHits not set, disabling vertex hits" << std::endl;
       displayConfig.setBoolConfig("drawVertexHits", false);
+      displayConfig.setStringConfig("vertexOuterBarrelHits", "");
       displayConfig.setStringConfig("vertexEndcapHits", "");
     }
     else {
@@ -112,7 +109,28 @@ void EventReader::SetBranches()
       {
         std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex hits" << std::endl;
         displayConfig.setBoolConfig("drawVertexHits", false);
-        displayConfig.setStringConfig("vertexBarrelHits", "");
+        displayConfig.setStringConfig("vertexInnerBarrelHits", "");
+	displayConfig.setStringConfig("vertexOuterBarrelHits", "");
+        displayConfig.setStringConfig("vertexEndcapHits", "");
+      }
+    }
+
+    // check that branch name for outer barrel is set and branch exists
+    branchName = displayConfig.getStringConfig("vertexOuterBarrelHits");
+    if (branchName == "") {
+      std::cout << "WARNING: vertexOuterBarrelHits not set, disabling vertex hits" << std::endl;
+      displayConfig.setBoolConfig("drawVertexHits", false);
+      displayConfig.setStringConfig("vertexInnerBarrelHits", "");
+      displayConfig.setStringConfig("vertexEndcapHits", "");
+    }
+    else {
+      const char* branch = branchName.c_str();
+      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      {
+        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex hits" << std::endl;
+        displayConfig.setBoolConfig("drawVertexHits", false);
+        displayConfig.setStringConfig("vertexInnerBarrelHits", "");
+	displayConfig.setStringConfig("vertexOuterBarrelHits", "");
         displayConfig.setStringConfig("vertexEndcapHits", "");
       }
     }
@@ -122,7 +140,8 @@ void EventReader::SetBranches()
     if (branchName == "") {
       std::cout << "WARNING: vertexEndcapHits not set, disabling vertex hits" << std::endl;
       displayConfig.setBoolConfig("drawVertexHits", false);
-      displayConfig.setStringConfig("vertexEndcapHits", "");
+      displayConfig.setStringConfig("vertexInnerBarrelHits", "");
+      displayConfig.setStringConfig("vertexOuterBarrelHits", "");
     }
     else {
       const char* branch = branchName.c_str();
@@ -130,20 +149,29 @@ void EventReader::SetBranches()
       {
         std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex hits" << std::endl;
         displayConfig.setBoolConfig("drawVertexHits", false);
-        displayConfig.setStringConfig("vertexBarrelHits", "");
+        displayConfig.setStringConfig("vertexInnerBarrelHits", "");
+	displayConfig.setStringConfig("vertexOuterBarrelHits", "");
         displayConfig.setStringConfig("vertexEndcapHits", "");
       }
     }
 
     // read the branches
     if (displayConfig.getBoolConfig("drawVertexHits")) {
-      branchName = displayConfig.getStringConfig("vertexBarrelHits");
+      branchName = displayConfig.getStringConfig("vertexInnerBarrelHits");
       const char* branch = branchName.c_str();
-      VertexBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      VertexBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      VertexBarrelHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      VertexBarrelHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      VertexBarrelHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+      VertexInnerBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+      VertexInnerBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+      VertexInnerBarrelHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+      VertexInnerBarrelHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+      VertexInnerBarrelHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+
+      branchName = displayConfig.getStringConfig("vertexOuterBarrelHits");
+      branch = branchName.c_str();
+      VertexOuterBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+      VertexOuterBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+      VertexOuterBarrelHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+      VertexOuterBarrelHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+      VertexOuterBarrelHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
 
       branchName = displayConfig.getStringConfig("vertexEndcapHits");
       branch = branchName.c_str();
@@ -469,9 +497,9 @@ EventReader::~EventReader() {
     delete genParticles_vertex_x;
     delete genParticles_vertex_y;
     delete genParticles_vertex_z;
-    //delete genParticles_endpoint_x;
-    //delete genParticles_endpoint_y;
-    //delete genParticles_endpoint_z;
+    delete genParticles_endpoint_x;
+    delete genParticles_endpoint_y;
+    delete genParticles_endpoint_z;
     delete genParticles_momentum_x;
     delete genParticles_momentum_y;
     delete genParticles_momentum_z;
@@ -494,12 +522,19 @@ EventReader::~EventReader() {
     delete SimParticleSecondaries_momentum_y;
     delete SimParticleSecondaries_momentum_z;
   }
-  if (VertexBarrelHits_cellID) {
-    delete VertexBarrelHits_cellID;
-    delete VertexBarrelHits_energy;
-    delete VertexBarrelHits_position_x;
-    delete VertexBarrelHits_position_y;
-    delete VertexBarrelHits_position_z;
+  if (VertexInnerBarrelHits_cellID) {
+    delete VertexInnerBarrelHits_cellID;
+    delete VertexInnerBarrelHits_energy;
+    delete VertexInnerBarrelHits_position_x;
+    delete VertexInnerBarrelHits_position_y;
+    delete VertexInnerBarrelHits_position_z;
+  }
+  if (VertexOuterBarrelHits_cellID) {
+    delete VertexOuterBarrelHits_cellID;
+    delete VertexOuterBarrelHits_energy;
+    delete VertexOuterBarrelHits_position_x;
+    delete VertexOuterBarrelHits_position_y;
+    delete VertexOuterBarrelHits_position_z;
   }
   if (VertexEndcapHits_cellID) {
     delete VertexEndcapHits_cellID;

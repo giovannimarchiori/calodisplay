@@ -40,13 +40,9 @@ public:
   TTreeReaderArray<Double_t> *genParticles_vertex_x = nullptr;
   TTreeReaderArray<Double_t> *genParticles_vertex_y = nullptr;
   TTreeReaderArray<Double_t> *genParticles_vertex_z = nullptr;
-  // TTreeReaderArray<Double_t> *genParticles_endpoint_x = nullptr;
-  // TTreeReaderArray<Double_t> *genParticles_endpoint_y = nullptr;
-  // TTreeReaderArray<Double_t> *genParticles_endpoint_z = nullptr;
-  // these variables are double in latest versions
-  // TTreeReaderArray<Float_t> *genParticles_momentum_x = nullptr;
-  // TTreeReaderArray<Float_t> *genParticles_momentum_y = nullptr;
-  // TTreeReaderArray<Float_t> *genParticles_momentum_z = nullptr;
+  TTreeReaderArray<Double_t> *genParticles_endpoint_x = nullptr;
+  TTreeReaderArray<Double_t> *genParticles_endpoint_y = nullptr;
+  TTreeReaderArray<Double_t> *genParticles_endpoint_z = nullptr;
   TTreeReaderArray<Double_t> *genParticles_momentum_x = nullptr;
   TTreeReaderArray<Double_t> *genParticles_momentum_y = nullptr;
   TTreeReaderArray<Double_t> *genParticles_momentum_z = nullptr;
@@ -73,12 +69,18 @@ public:
   TTreeReaderArray<Double_t> *SimParticleSecondaries_momentum_z = nullptr;
 
   // the hits in the vertex (barrel)
-  TTreeReaderArray<ULong_t> *VertexBarrelHits_cellID = nullptr;
-  TTreeReaderArray<Float_t> *VertexBarrelHits_energy = nullptr;
-  TTreeReaderArray<Double_t> *VertexBarrelHits_position_x = nullptr;
-  TTreeReaderArray<Double_t> *VertexBarrelHits_position_y = nullptr;
-  TTreeReaderArray<Double_t> *VertexBarrelHits_position_z = nullptr;
-  
+  TTreeReaderArray<ULong_t> *VertexInnerBarrelHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *VertexInnerBarrelHits_energy = nullptr;
+  TTreeReaderArray<Double_t> *VertexInnerBarrelHits_position_x = nullptr;
+  TTreeReaderArray<Double_t> *VertexInnerBarrelHits_position_y = nullptr;
+  TTreeReaderArray<Double_t> *VertexInnerBarrelHits_position_z = nullptr;
+
+  TTreeReaderArray<ULong_t> *VertexOuterBarrelHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *VertexOuterBarrelHits_energy = nullptr;
+  TTreeReaderArray<Double_t> *VertexOuterBarrelHits_position_x = nullptr;
+  TTreeReaderArray<Double_t> *VertexOuterBarrelHits_position_y = nullptr;
+  TTreeReaderArray<Double_t> *VertexOuterBarrelHits_position_z = nullptr;
+
   // the hits in the vertex (endcap)
   TTreeReaderArray<ULong_t> *VertexEndcapHits_cellID = nullptr;
   TTreeReaderArray<Float_t> *VertexEndcapHits_energy = nullptr;

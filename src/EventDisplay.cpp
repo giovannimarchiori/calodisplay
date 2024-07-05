@@ -40,6 +40,21 @@ int sgn(float val)
   return (val > 0.) - (val < 0.);
 }
 
+const char* partType(int pdgID) {
+  if (pdgID == 111)
+    return "pi0";
+  else if (pdgID == 211)
+    return "pi+";
+  else if (pdgID == 22)
+    return "y";
+  else if (pdgID == 11)
+    return "e-";
+  else if (pdgID == -11)
+    return "e+";
+  else
+    return "unknown";
+}
+
 /******************************************************************************/
 // HELPER FUNCTIONS related to the graphic system
 /******************************************************************************/
@@ -1073,7 +1088,7 @@ void EventDisplay::loadEvent(int event)
 
   eventReader->loadEvent(eventId);
 
-  TString partType;
+  // find out pdgID and momentum of primary particle
   double pmax = 0.0;
   int ipmax = -1;
   for (unsigned int i = 0; i < eventReader->genParticles_generatorStatus->GetSize(); i++)
@@ -1094,18 +1109,6 @@ void EventDisplay::loadEvent(int event)
     }
   }
   int pdgID = (*eventReader->genParticles_PDG)[ipmax];
-  if (pdgID == 111)
-    partType = "pi0";
-  else if (pdgID == 211)
-    partType = "pi+";
-  else if (pdgID == 22)
-    partType = "y";
-  else if (pdgID == 11)
-    partType = "e-";
-  else if (pdgID == -11)
-    partType = "e+";
-  else
-    partType = "unknown";
 
   const double cm = geomReader->cm;
   const double mm = geomReader->mm;
@@ -1128,8 +1131,7 @@ void EventDisplay::loadEvent(int event)
     {
       particles = new TEveTrackList("particles");
       TEveTrackPropagator *trkProp = particles->GetPropagator();
-      // trkProp->SetMagField(0.00001);
-      trkProp->SetMagField(0.0);
+      trkProp->SetMagField(-2.0); // tesla
       trkProp->SetMaxR(rMax);
       trkProp->SetMaxZ(geomReader->zMax);
       particles->SetMainColor(kWhite);
@@ -1144,52 +1146,46 @@ void EventDisplay::loadEvent(int event)
     // (for pi0, need to look for the two photons in secondary particle list
     // unfortunately cannot just use the latter to show particles since
     // info about endpoint is broken (identical to vertex)
-    float m = (*eventReader->genParticles_mass)[ipmax];
-    float px = (*eventReader->genParticles_momentum_x)[ipmax];
-    float py = (*eventReader->genParticles_momentum_y)[ipmax];
-    float pz = (*eventReader->genParticles_momentum_z)[ipmax];
-    float p = sqrt(px * px + py * py + pz * pz);
-    float pT = sqrt(px * px + py * py);
+    // TODO: UPDATE NOW ENDPOINT IS FILLED!
 
-    double t = (*eventReader->genParticles_time)[ipmax];
-    double x1 = (*eventReader->genParticles_vertex_x)[ipmax] * mm;
-    double y1 = (*eventReader->genParticles_vertex_y)[ipmax] * mm;
-    double z1 = (*eventReader->genParticles_vertex_z)[ipmax] * mm;
+    for (unsigned int ip = 0; ip < eventReader->genParticles_generatorStatus->GetSize(); ip++)
+    {
+      float m = (*eventReader->genParticles_mass)[ip];
+      float px = (*eventReader->genParticles_momentum_x)[ip];
+      float py = (*eventReader->genParticles_momentum_y)[ip];
+      float pz = (*eventReader->genParticles_momentum_z)[ip];
+      float p = sqrt(px * px + py * py + pz * pz);
+      float pT = sqrt(px * px + py * py);
 
-    // find when particle leaves detector volume (assuming it comes from 0,0,0)
-    // for zMax use ECAL which is a bit larger than HCAL
-    double tmax = rMax / pT;
-    /*
-    if (pz!=0.0) {
-      if (geomReader->zMax/fabs(pz)<tmax)
-        tmax = geomReader->zMax/fabs(pz);
-    }
-    */
-    double x2 = x1 + px * tmax;
-    double y2 = y1 + py * tmax;
-    double z2 = z1 + pz * tmax;
+      double t = (*eventReader->genParticles_time)[ip];
+      double x1 = (*eventReader->genParticles_vertex_x)[ip] * mm;
+      double y1 = (*eventReader->genParticles_vertex_y)[ip] * mm;
+      double z1 = (*eventReader->genParticles_vertex_z)[ip] * mm;
 
-    /*
-    double r1 = sqrt(x1*x1+y1*y1);
-    double r2 = sqrt(x2*x2+y2*y2);
-    cout << "x1 y1 z1 x2 y2 z2 = "
-   << x1 << " " << y1 << " " << z1 << " "
-   << x2 << " " << y2 << " " << z2 << endl;
-    cout << "r1 r2 = "
-         << r1 << " " << r2 << endl;
-    */
-
-    TEveMCTrack mct;
-    mct.SetPdgCode(pdgID);
-    mct.SetMomentum(px, py, pz, sqrt(p * p + m * m));
-    mct.SetProductionVertex(x1, y1, z1, t);
-    TEveTrack *track = new TEveTrack(&mct, particles->GetPropagator());
-    track->SetAttLineAttMarker(particles);
-    track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
-                                p, acos(pz / p), atan2(py, px),
+      TEveMCTrack mct;
+      mct.SetPdgCode((*eventReader->genParticles_PDG)[ip]);
+      mct.SetMomentum(px, py, pz, sqrt(p * p + m * m));
+      mct.SetProductionVertex(x1, y1, z1, t);
+      TEveTrack *track = new TEveTrack(&mct, particles->GetPropagator());
+      track->SetAttLineAttMarker(particles);
+      track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
+				  p, acos(pz / p), atan2(py, px),
                                 x1 / cm, y1 / cm, z1 / cm));
-    particles->AddElement(track);
+      TEveVectorF v;
+      v[0] = (*eventReader->genParticles_endpoint_x)[ip] * mm;
+      v[1] = (*eventReader->genParticles_endpoint_y)[ip] * mm;
+      v[2] = (*eventReader->genParticles_endpoint_z)[ip] * mm;
+      cout << v[0] << " " << v[1] << " " << v[2] << endl;
+      if ((*eventReader->genParticles_PDG)[ip]==22 ||
+	  (*eventReader->genParticles_PDG)[ip]==111
+	  ) {
+	TEvePathMark mark(TEvePathMark::kDecay, v);
+	track->AddPathMark(mark);
+      }
+      particles->AddElement(track);
+    }
 
+    /*
     // if the particle is a pi0, also draw the two photons, and set the endpoint
     // of the pi0 track
     if ((pdgID == 111) && (displayConfig.getBoolConfig("drawSimParticles")))
@@ -1257,6 +1253,7 @@ void EventDisplay::loadEvent(int event)
         particles->AddElement(track);
       }
     }
+    */
     particles->MakeTracks();
   }
 
@@ -1280,20 +1277,30 @@ void EventDisplay::loadEvent(int event)
       vtxHits->SetMarkerStyle(4);
       vtxHits->SetMarkerSize(1.6);
       vtxHits->SetMarkerColor(kRed);
-      // gEve->AddElement(dchHits);
+      // gEve->AddElement(vtxHits);
       hits->AddElement(vtxHits);
     }
     else
       vtxHits->Reset();
-    for (unsigned int i = 0; i < eventReader->VertexBarrelHits_position_x->GetSize(); i++)
+    for (unsigned int i = 0; i < eventReader->VertexInnerBarrelHits_position_x->GetSize(); i++)
     {
-      // float E = (*eventReader->VertexBarrelHits_energy)[i];
+      // float E = (*eventReader->VertexInnerBarrelHits_energy)[i];
       // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->VertexBarrelHits_cellID)[i];
+      // ULong_t cellID = (*eventReader->VertexInnerBarrelHits_cellID)[i];
       vtxHits->SetNextPoint(
-          (*eventReader->VertexBarrelHits_position_x)[i] * mm,
-          (*eventReader->VertexBarrelHits_position_y)[i] * mm,
-          (*eventReader->VertexBarrelHits_position_z)[i] * mm);
+          (*eventReader->VertexInnerBarrelHits_position_x)[i] * mm,
+          (*eventReader->VertexInnerBarrelHits_position_y)[i] * mm,
+          (*eventReader->VertexInnerBarrelHits_position_z)[i] * mm);
+    }
+    for (unsigned int i = 0; i < eventReader->VertexOuterBarrelHits_position_x->GetSize(); i++)
+    {
+      // float E = (*eventReader->VertexOuterBarrelHits_energy)[i];
+      // if (E < HitEnergyThreshold) continue;
+      // ULong_t cellID = (*eventReader->VertexOuterBarrelHits_cellID)[i];
+      vtxHits->SetNextPoint(
+          (*eventReader->VertexOuterBarrelHits_position_x)[i] * mm,
+          (*eventReader->VertexOuterBarrelHits_position_y)[i] * mm,
+          (*eventReader->VertexOuterBarrelHits_position_z)[i] * mm);
     }
     for (unsigned int i = 0; i < eventReader->VertexEndcapHits_position_x->GetSize(); i++)
     {
@@ -1524,14 +1531,14 @@ void EventDisplay::loadEvent(int event)
   {
     eventLabel = new TGLConstAnnotation(gEve->GetDefaultGLViewer(),
                                         Form("%s, %.1f GeV\nEvent %d",
-                                             partType.Data(), pmax, eventId),
+                                             partType(pdgID), pmax, eventId),
                                         0.1, 0.9);
     eventLabel->SetTextSize(0.05); // % of window diagonal
     eventLabel->SetAllowClose(false);
   }
   else
   {
-    eventLabel->SetText(Form("%s, %.1f GeV\nEvent %d", partType.Data(), pmax, eventId));
+    eventLabel->SetText(Form("%s, %.1f GeV\nEvent %d", partType(pdgID), pmax, eventId));
   }
 
   TEveElement *top = (TEveElement *)gEve->GetCurrentEvent();
