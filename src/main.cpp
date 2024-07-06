@@ -17,7 +17,7 @@
 
 using namespace std;
 
-std::string configFile = "config.json";
+std::string configFile = "config_ddsim.json";
 
 std::string usage(bool verbose = false)
 {

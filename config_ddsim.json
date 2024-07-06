@@ -29,4 +29,5 @@
     "topoClusters": "CaloTopoClusters",
     "vertexInnerBarrelHits": "VTXIBCollection",
     "vertexOuterBarrelHits": "VTXOBCollection",
+    "vertexEndcapHits": "VTXDCollection"
 }

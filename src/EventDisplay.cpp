@@ -1643,7 +1643,7 @@ void EventDisplay::startDisplay(int initialEvent)
       TPRegexp re_lc("LumiCal_*");
       TPRegexp re_vtxb("VertexBarrel_*");
       TPRegexp re_vtxec("VertexEndcap_*");
-      TPRegexp re_dch("CDCH_*");
+      TPRegexp re_dch("DCH_*");
       TPRegexp re_ecalb("ECalBarrel*");
       TPRegexp re_ecalec("CalEndcap*");
       TPRegexp re_ecalec2("EMEC*");
@@ -1707,9 +1707,11 @@ void EventDisplay::startDisplay(int initialEvent)
           {
             TEveElement *elVtx = *itrVtx;
             TString sVtx(elVtx->GetElementName());
-            if (re_vtxb.MatchB(sVtx))
+            //if (re_vtxb.MatchB(sVtx))
+	    if (sVtx.Contains("VTXOB") or sVtx.Contains("VTXIB"))
               vertexBarrel->AddElement(elVtx);
-            else if (re_vtxec.MatchB(sVtx))
+            //else if (re_vtxec.MatchB(sVtx))
+	    else if (sVtx.Contains("VTXD"))
               vertexEndcap->AddElement(elVtx);
             else
               std::cout << "Unexpected volume: " << sVtx << std::endl;
