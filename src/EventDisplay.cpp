@@ -27,6 +27,7 @@
 #include <TEveStraightLineSet.h>
 #include <TEveTrackPropagator.h>
 #include <TEveProjectionAxes.h>
+#include <TTimeStamp.h>
 
 #include <filesystem>
 #include <unordered_map>
@@ -1605,6 +1606,8 @@ void EventDisplay::startDisplay(int initialEvent)
   gEve->GetDefaultGLViewer()->DrawGuides();
   gEve->GetDefaultViewer()->SetElementName("3D view");
   gEve->GetDefaultGLViewer()->CurrentCamera().RotateRad(-.7, 0.5);
+  //gEve->GetDefaultGLViewer()->Connect("Activated()", "EventDisplay", this, "on3DViewActivated()");
+  gEve->GetBrowser()->GetTabRight()->Connect("Selected(Int_t)", "EventDisplay", this, "onTabSelected(Int_t)");
 
   // Create the geometry and the readout
   TEveElementList *geom = new TEveElementList("Geometry");
@@ -2110,6 +2113,7 @@ void EventDisplay::startDisplay(int initialEvent)
 
   // create second tab (R-phi view)
   rhoPhiView = gEve->SpawnNewViewer("Projection Rho-Phi");
+
   // two scenes, for geometry and event
   rhoPhiScene = gEve->SpawnNewScene("Rho-Phi geometry",
                                     "Scene holding projected geometry data for the Rho-Phi view.");
@@ -2125,6 +2129,8 @@ void EventDisplay::startDisplay(int initialEvent)
                                                "Scene holding hand-crafted event-data for the Rho-Phi view.");
   rhoPhiView->AddScene(rhoPhiEventSceneManual);
   rhoPhiGLView = rhoPhiView->GetGLViewer();
+  //rhoPhiGLView->Connect("Activated()", "EventDisplay", this, "onRhoPhiViewActivated()");
+
   // set camera orientation
   rhoPhiGLView->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
   // create 3D->2D projection manager for rho-phi
@@ -2279,6 +2285,7 @@ void EventDisplay::startDisplay(int initialEvent)
                                              "Scene holding hand-crafted event-data for the Rho-Z view.");
   rhoZView->AddScene(rhoZEventSceneManual);
   rhoZGLView = rhoZView->GetGLViewer();
+  //rhoZGLView->Connect("Activated()", "EventDisplay", this, "onRhoZViewActivated()");
   rhoZGLView->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
 
   rhoZProjManager = new TEveProjectionManager();
@@ -2460,6 +2467,9 @@ void EventDisplay::startDisplay(int initialEvent)
 
   gEve->Redraw3D(true);
 
+  // create the gui for event navigation
+  makeGui();
+
   //
   // display the events
   //
@@ -2467,9 +2477,9 @@ void EventDisplay::startDisplay(int initialEvent)
     std::cout << "evtFile: " << evtFile << std::endl;
   if (evtFile != "")
   {
-
     // create the gui for event navigation
-    makeGui();
+    //makeGui();
+
 
     // setup the event reader
     std::cout << std::endl;
@@ -2505,6 +2515,7 @@ void EventDisplay::startDisplay(int initialEvent)
 
   // Set the 3D view as the active tab and rotate the camera
   gEve->GetBrowser()->GetTabRight()->SetTab(0);
+  activeGLViewer = gEve->GetDefaultGLViewer();
 
   // Draw
   gEve->Redraw3D(true);
@@ -2516,7 +2527,13 @@ void EventDisplay::startDisplay(int initialEvent)
 
 void EventDisplay::fwd()
 {
-  if (eventId < nEvents - 1)
+  if (evtFile == "")
+  {
+    textEntry->SetTextColor(0xff0000);
+    textEntry->SetText("No events loaded");
+    printf("\nNo events loaded\n");
+  }
+  else if (eventId < nEvents - 1)
   {
     ++eventId;
     loadEvent(eventId);
@@ -2525,13 +2542,19 @@ void EventDisplay::fwd()
   {
     textEntry->SetTextColor(0xff0000);
     textEntry->SetText("Already at last event");
-    printf("\nAlready at last event.\n");
+    printf("\nAlready at last event\n");
   }
 }
 
 void EventDisplay::bck()
 {
-  if (eventId > 0)
+  if (evtFile == "")
+  {
+    textEntry->SetTextColor(0xff0000);
+    textEntry->SetText("No events loaded");
+    printf("\nNo events loaded\n");
+  }
+  else if (eventId > 0)
   {
     --eventId;
     loadEvent(eventId);
@@ -2540,8 +2563,26 @@ void EventDisplay::bck()
   {
     textEntry->SetTextColor(0xff0000);
     textEntry->SetText("Already at first event");
-    printf("\nAlready at first event.\n");
+    printf("\nAlready at first event\n");
   }
+}
+
+void EventDisplay::takeScreenshot()
+{
+  TString view;
+  if (activeGLViewer == rhoPhiGLView)
+    view = "rhophi";
+  else if (activeGLViewer == rhoZGLView)
+    view = "rhoz";
+  else
+    view = "3d";
+  TTimeStamp ts;
+  TString tss(ts.AsString("s"));
+  tss.ReplaceAll(" ", "_");
+  TString filename = "screenshots/calodisplay_screenshot_" + view + "_" + tss + ".jpg";
+  std::cout << "Saving a screenshot of the selected view to " << filename << " ... ";
+  activeGLViewer->SavePictureScale(filename.Data(), 10.);
+  std::cout << "DONE" << std::endl << std::endl;
 }
 
 void EventDisplay::makeGui()
@@ -2559,17 +2600,21 @@ void EventDisplay::makeGui()
   {
     TGPictureButton *b = 0;
 
-    TString icondir(Form("%s/icons/", gSystem->Getenv("ROOTSYS")));
-    if (!std::filesystem::exists(icondir.Data()))
-    {
-      icondir = Form("%s/share/root/icons/", gSystem->Getenv("ROOTSYS"));
-    }
+    // TString icondir(Form("%s/icons/", gSystem->Getenv("ROOTSYS")));
+    // if (!std::filesystem::exists(icondir.Data()))
+    // {
+    //   icondir = Form("%s/share/root/icons/", gSystem->Getenv("ROOTSYS"));
+    // }
 
-    b = new TGPictureButton(hf, gClient->GetPicture(icondir + "GoBack.gif"));
+    b = new TGPictureButton(hf, gClient->GetPicture("icons/TakeScreenshot.png"));
+    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
+    b->Connect("Clicked()", "EventDisplay", this, "takeScreenshot()");
+
+    b = new TGPictureButton(hf, gClient->GetPicture("icons/GoBack.gif"));
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "bck()");
 
-    b = new TGPictureButton(hf, gClient->GetPicture(icondir + "GoForward.gif"));
+    b = new TGPictureButton(hf, gClient->GetPicture("icons/GoForward.gif"));
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "fwd()");
 
@@ -2586,5 +2631,33 @@ void EventDisplay::makeGui()
   frmMain->MapWindow();
 
   browser->StopEmbedding();
-  browser->SetTabTitle("Event Control", 0);
+  browser->SetTabTitle("Controls", 0);
+}
+
+/*
+void EventDisplay::onRhoPhiViewActivated()
+{
+  std::cout << "rho-phi viewer activated" << std::endl;
+  activeGLViewer = rhoPhiGLView;
+}
+
+void EventDisplay::onRhoZViewActivated()
+{
+  std::cout << "rho-z viewer activated" << std::endl;
+  activeGLViewer = rhoZGLView;
+}
+
+void EventDisplay::on3DViewActivated()
+{
+  std::cout << "3D viewer activated" << std::endl;
+  activeGLViewer = gEve->GetDefaultGLViewer();
+}
+*/
+
+void EventDisplay::onTabSelected(Int_t tab)
+{
+  // std::cout << "tab selected: " << tab << std::endl;
+  if (tab==0) activeGLViewer = gEve->GetDefaultGLViewer();
+  else if (tab==1) activeGLViewer = rhoPhiGLView;
+  else if (tab==2) activeGLViewer = rhoZGLView;
 }

@@ -146,6 +146,8 @@ public:
   std::vector<CaloCluster *> topoclusterData;
   std::vector<CaloCluster *> swclusterData;
 
+  TGLViewer* activeGLViewer = nullptr;
+
   /******************************************************************************/
   // class methods
   /******************************************************************************/
@@ -174,6 +176,14 @@ public:
 
   // create the buttons for navigating through the events
   void makeGui();
+
+  // keep track of active GL viewer
+  // void onRhoPhiViewActivated();
+  // void onRhoZViewActivated();
+  // void on3DViewActivated();
+  void onTabSelected(Int_t tab);
+
+  void takeScreenshot();
 
 };
 
