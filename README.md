@@ -17,6 +17,12 @@ Compile:
 make
 ```
 
+Download detector model file:
+```
+source getdata.sh
+```
+
+
 ## Usage
 Setup ROOT and the environment with:
 ```
@@ -29,7 +35,7 @@ calodisplay -g data/allegro_o1_v03.root  -e events.root -c config_ddsim.json --f
 ```
 Execute with `calodisplay -h` to see available options
 
-To create the root file with the detector geometry:
+To create the root file with the detector geometry (if that on the website is outdated):
 - create the GDML file from Geant4 with ddsim (see `run_all_chain.sh`)
 - convert the GDML to ROOT with `util/gdmltoroot.C`:
 ```

@@ -1273,7 +1273,7 @@ void EventDisplay::loadEvent(int event)
     if (vtxHits == nullptr)
     {
       vtxHits = new TEvePointSet();
-      // dchHits->SetName(Form("DCH hits (E>%.1f GeV)", HitEnergyThreshold));
+      // vtxHits->SetName(Form("VTX hits (E>%.1f GeV)", HitEnergyThreshold));
       vtxHits->SetName("VTX hits");
       vtxHits->SetMarkerStyle(4);
       vtxHits->SetMarkerSize(1.6);
@@ -1710,11 +1710,10 @@ void EventDisplay::startDisplay(int initialEvent)
           {
             TEveElement *elVtx = *itrVtx;
             TString sVtx(elVtx->GetElementName());
-            //if (re_vtxb.MatchB(sVtx))
-	    if (sVtx.Contains("VTXOB") or sVtx.Contains("VTXIB"))
+	    if (sVtx.Contains("VertexBarrel") or sVtx.Contains("VertexInnerBarrel"))
               vertexBarrel->AddElement(elVtx);
-            //else if (re_vtxec.MatchB(sVtx))
-	    else if (sVtx.Contains("VTXD"))
+	    //else if (sVtx.Contains("VTXD"))
+	    else if (sVtx.Contains("VertexDisks"))
               vertexEndcap->AddElement(elVtx);
             else
               std::cout << "Unexpected volume: " << sVtx << std::endl;
