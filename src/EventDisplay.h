@@ -80,7 +80,7 @@ public:
 
   // G4 geometry file
   bool useG4geom = true;
-  std::string geomFile = "data/allegro_o1_v03.root";
+  std::string geomFile = "data/ALLEGRO_o1_v03_noDCHcells.root";
   int detectorVersion = 3;
 
   // merging along theta and module directions and drawing options
