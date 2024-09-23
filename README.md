@@ -30,8 +30,14 @@ calodisplay -g data/allegro_o1_v03.root  -e events.root -c config_ddsim.json --f
 Execute with `calodisplay -h` to see available options
 
 To create the root file with the detector geometry:
-- create the GDML file from Geant4 with ddsim
-- convert the GDML to ROOT with `util/gdmltoroot.C`
+- create the GDML file from Geant4 with ddsim (see `run_all_chain.sh`)
+- convert the GDML to ROOT with `util/gdmltoroot.C`:
+```
+cd util
+root
+.L gdmltoroot.C+
+gdmltoroot("../data/ALLEGRO_o1_v03_noDCHcells.gdml","../data/ALLEGRO_o1_v03_noDCHcells.root", "world")
+```
 - for allegro_o1_v03, I had to remove from the gdml all DCH cells since they use a volume (G4TwistedTube) not available in ROOT
 
 ## Code structure
