@@ -6,7 +6,6 @@ file=ALLEGRO_o1_v03_noDCHcells.root
 download_file() {
     local url="$1"
     local file="$2"
-    #wget -P data "$url/$file" || { echo "Download failed"; exit 1; }
     curl "$url/$file" -o data/$file || { echo "Download failed"; exit 1; }
 }
 
