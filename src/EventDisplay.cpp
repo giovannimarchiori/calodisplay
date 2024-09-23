@@ -2609,14 +2609,17 @@ void EventDisplay::makeGui()
     b = new TGPictureButton(hf, gClient->GetPicture("icons/TakeScreenshot.png"));
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "takeScreenshot()");
+    b->SetToolTipText("Take a screenshot of the selected view");
 
     b = new TGPictureButton(hf, gClient->GetPicture("icons/GoBack.gif"));
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "bck()");
+    b->SetToolTipText("Go to previous event");
 
     b = new TGPictureButton(hf, gClient->GetPicture("icons/GoForward.gif"));
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "fwd()");
+    b->SetToolTipText("Go to next event");
 
     textEntry = new TGTextEntry(hf);
     textEntry->SetEnabled(kFALSE);
