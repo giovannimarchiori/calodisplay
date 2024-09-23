@@ -1647,6 +1647,8 @@ void EventDisplay::startDisplay(int initialEvent)
       TPRegexp re_vtxb("VertexBarrel_*");
       TPRegexp re_vtxec("VertexEndcap_*");
       TPRegexp re_dch("DCH_*");
+      TPRegexp re_siwrapb("SiWrB_*");
+      TPRegexp re_siwrapec("SiWrD_*");
       TPRegexp re_ecalb("ECalBarrel*");
       TPRegexp re_ecalec("CalEndcap*");
       TPRegexp re_ecalec2("EMEC*");
@@ -1673,6 +1675,12 @@ void EventDisplay::startDisplay(int initialEvent)
 
       TEveElementList *dch = new TEveElementList("Drift chamber");
       geom->AddElement(dch);
+
+      TEveElementList *siwrapb = new TEveElementList("Si wrapper barrel");
+      geom->AddElement(siwrapb);
+
+      TEveElementList *siwrapec = new TEveElementList("Si wrapper endcap");
+      geom->AddElement(siwrapec);
 
       TEveElementList *ecalb = new TEveElementList("ECal barrel");
       geom->AddElement(ecalb);
@@ -1722,6 +1730,20 @@ void EventDisplay::startDisplay(int initialEvent)
         else if (re_dch.MatchB(s))
         {
           dch->AddElement(a);
+          a->SetRnrSelfChildren(true, false);
+          a->SetMainTransparency(60);
+          ((TEveGeoShape *)a)->SetNSegments(128);
+        }
+        else if (re_siwrapb.MatchB(s))
+        {
+          siwrapb->AddElement(a);
+          a->SetRnrSelfChildren(true, false);
+          a->SetMainTransparency(60);
+          ((TEveGeoShape *)a)->SetNSegments(128);
+        }
+        else if (re_siwrapec.MatchB(s))
+        {
+          siwrapec->AddElement(a);
           a->SetRnrSelfChildren(true, false);
           a->SetMainTransparency(60);
           ((TEveGeoShape *)a)->SetNSegments(128);
@@ -1805,7 +1827,10 @@ void EventDisplay::startDisplay(int initialEvent)
           a->SetMainTransparency(60);
         }
         else
+	{
+	  std::cout << "Unexpected volume: " << s << std::endl;
           geom->AddElement(a);
+	}
       }
     }
     else
@@ -2575,9 +2600,15 @@ void EventDisplay::takeScreenshot()
     view = "rhoz";
   else
     view = "3d";
+  
   TTimeStamp ts;
   TString tss(ts.AsString("s"));
   tss.ReplaceAll(" ", "_");
+
+  if (!std::filesystem::exists("screenshots/")) {
+    std::filesystem::create_directory("screenshots/");
+  }
+  
   TString filename = "screenshots/calodisplay_screenshot_" + view + "_" + tss + ".jpg";
   std::cout << "Saving a screenshot of the selected view to " << filename << " ... ";
   activeGLViewer->SavePictureScale(filename.Data(), 10.);
