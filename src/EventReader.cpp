@@ -91,16 +91,14 @@ void EventReader::SetBranches()
     }
   }
 
-
   // hits in vertex detector
   if (displayConfig.getBoolConfig("drawVertexHits"))
   {
     // check that branch name for inner barrel is set and branch exists
-    std::string branchName = displayConfig.getStringConfig("vertexInnerBarrelHits");
+    std::string branchName = displayConfig.getStringConfig("vertexBarrelHits");
     if (branchName == "") {
-      std::cout << "WARNING: vertexInnerBarrelHits not set, disabling vertex hits" << std::endl;
+      std::cout << "WARNING: vertexBarrelHits not set, disabling vertex hits" << std::endl;
       displayConfig.setBoolConfig("drawVertexHits", false);
-      displayConfig.setStringConfig("vertexOuterBarrelHits", "");
       displayConfig.setStringConfig("vertexEndcapHits", "");
     }
     else {
@@ -109,28 +107,7 @@ void EventReader::SetBranches()
       {
         std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex hits" << std::endl;
         displayConfig.setBoolConfig("drawVertexHits", false);
-        displayConfig.setStringConfig("vertexInnerBarrelHits", "");
-	displayConfig.setStringConfig("vertexOuterBarrelHits", "");
-        displayConfig.setStringConfig("vertexEndcapHits", "");
-      }
-    }
-
-    // check that branch name for outer barrel is set and branch exists
-    branchName = displayConfig.getStringConfig("vertexOuterBarrelHits");
-    if (branchName == "") {
-      std::cout << "WARNING: vertexOuterBarrelHits not set, disabling vertex hits" << std::endl;
-      displayConfig.setBoolConfig("drawVertexHits", false);
-      displayConfig.setStringConfig("vertexInnerBarrelHits", "");
-      displayConfig.setStringConfig("vertexEndcapHits", "");
-    }
-    else {
-      const char* branch = branchName.c_str();
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex hits" << std::endl;
-        displayConfig.setBoolConfig("drawVertexHits", false);
-        displayConfig.setStringConfig("vertexInnerBarrelHits", "");
-	displayConfig.setStringConfig("vertexOuterBarrelHits", "");
+        displayConfig.setStringConfig("vertexBarrelHits", "");
         displayConfig.setStringConfig("vertexEndcapHits", "");
       }
     }
@@ -140,8 +117,7 @@ void EventReader::SetBranches()
     if (branchName == "") {
       std::cout << "WARNING: vertexEndcapHits not set, disabling vertex hits" << std::endl;
       displayConfig.setBoolConfig("drawVertexHits", false);
-      displayConfig.setStringConfig("vertexInnerBarrelHits", "");
-      displayConfig.setStringConfig("vertexOuterBarrelHits", "");
+      displayConfig.setStringConfig("vertexBarrelHits", "");
     }
     else {
       const char* branch = branchName.c_str();
@@ -149,29 +125,20 @@ void EventReader::SetBranches()
       {
         std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex hits" << std::endl;
         displayConfig.setBoolConfig("drawVertexHits", false);
-        displayConfig.setStringConfig("vertexInnerBarrelHits", "");
-	displayConfig.setStringConfig("vertexOuterBarrelHits", "");
+        displayConfig.setStringConfig("vertexBarrelHits", "");
         displayConfig.setStringConfig("vertexEndcapHits", "");
       }
     }
 
     // read the branches
     if (displayConfig.getBoolConfig("drawVertexHits")) {
-      branchName = displayConfig.getStringConfig("vertexInnerBarrelHits");
+      branchName = displayConfig.getStringConfig("vertexBarrelHits");
       const char* branch = branchName.c_str();
-      VertexInnerBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      VertexInnerBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      VertexInnerBarrelHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      VertexInnerBarrelHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      VertexInnerBarrelHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
-
-      branchName = displayConfig.getStringConfig("vertexOuterBarrelHits");
-      branch = branchName.c_str();
-      VertexOuterBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      VertexOuterBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      VertexOuterBarrelHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      VertexOuterBarrelHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      VertexOuterBarrelHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+      VertexBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+      VertexBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+      VertexBarrelHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+      VertexBarrelHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+      VertexBarrelHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
 
       branchName = displayConfig.getStringConfig("vertexEndcapHits");
       branch = branchName.c_str();
@@ -207,6 +174,65 @@ void EventReader::SetBranches()
         DriftChamberHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
         DriftChamberHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
       }
+    }
+  }
+
+  // hits in si wrapper
+  if (displayConfig.getBoolConfig("drawSiWrapperHits"))
+  {
+    // check that branch name for inner barrel is set and branch exists
+    std::string branchName = displayConfig.getStringConfig("siWrapperBarrelHits");
+    if (branchName == "") {
+      std::cout << "WARNING: siWrapperBarrelHits not set, disabling silicon wrapper hits" << std::endl;
+      displayConfig.setBoolConfig("drawSiWrapperHits", false);
+      displayConfig.setStringConfig("siWrapperEndcapHits", "");
+    }
+    else {
+      const char* branch = branchName.c_str();
+      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      {
+        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling silicon wrapper hits" << std::endl;
+        displayConfig.setBoolConfig("drawSiWrapperHits", false);
+        displayConfig.setStringConfig("siWrapperBarrelHits", "");
+        displayConfig.setStringConfig("siWrapperEndcapHits", "");
+      }
+    }
+
+    // check that branch name for endcap is set and branch exists
+    branchName = displayConfig.getStringConfig("siWrapperEndcapHits");
+    if (branchName == "") {
+      std::cout << "WARNING: siWrapperEndcapHits not set, disabling silicon wrapper hits" << std::endl;
+      displayConfig.setBoolConfig("drawSiWrapperHits", false);
+      displayConfig.setStringConfig("siWrapperBarrelHits", "");
+    }
+    else {
+      const char* branch = branchName.c_str();
+      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      {
+        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling silicon wrapper hits" << std::endl;
+        displayConfig.setBoolConfig("drawSiWrapperHits", false);
+        displayConfig.setStringConfig("siWrapperBarrelHits", "");
+        displayConfig.setStringConfig("siWrapperEndcapHits", "");
+      }
+    }
+
+    // read the branches
+    if (displayConfig.getBoolConfig("drawSiWrapperHits")) {
+      branchName = displayConfig.getStringConfig("siWrapperBarrelHits");
+      const char* branch = branchName.c_str();
+      SiWrapperBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+      SiWrapperBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+      SiWrapperBarrelHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+      SiWrapperBarrelHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+      SiWrapperBarrelHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+
+      branchName = displayConfig.getStringConfig("siWrapperEndcapHits");
+      branch = branchName.c_str();
+      SiWrapperEndcapHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+      SiWrapperEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+      SiWrapperEndcapHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+      SiWrapperEndcapHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+      SiWrapperEndcapHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
     }
   }
 
@@ -522,19 +548,12 @@ EventReader::~EventReader() {
     delete SimParticleSecondaries_momentum_y;
     delete SimParticleSecondaries_momentum_z;
   }
-  if (VertexInnerBarrelHits_cellID) {
-    delete VertexInnerBarrelHits_cellID;
-    delete VertexInnerBarrelHits_energy;
-    delete VertexInnerBarrelHits_position_x;
-    delete VertexInnerBarrelHits_position_y;
-    delete VertexInnerBarrelHits_position_z;
-  }
-  if (VertexOuterBarrelHits_cellID) {
-    delete VertexOuterBarrelHits_cellID;
-    delete VertexOuterBarrelHits_energy;
-    delete VertexOuterBarrelHits_position_x;
-    delete VertexOuterBarrelHits_position_y;
-    delete VertexOuterBarrelHits_position_z;
+  if (VertexBarrelHits_cellID) {
+    delete VertexBarrelHits_cellID;
+    delete VertexBarrelHits_energy;
+    delete VertexBarrelHits_position_x;
+    delete VertexBarrelHits_position_y;
+    delete VertexBarrelHits_position_z;
   }
   if (VertexEndcapHits_cellID) {
     delete VertexEndcapHits_cellID;
@@ -549,6 +568,20 @@ EventReader::~EventReader() {
     delete DriftChamberHits_position_x;
     delete DriftChamberHits_position_y;
     delete DriftChamberHits_position_z;
+  }
+  if (SiWrapperBarrelHits_cellID) {
+    delete SiWrapperBarrelHits_cellID;
+    delete SiWrapperBarrelHits_energy;
+    delete SiWrapperBarrelHits_position_x;
+    delete SiWrapperBarrelHits_position_y;
+    delete SiWrapperBarrelHits_position_z;
+  }
+  if (SiWrapperEndcapHits_cellID) {
+    delete SiWrapperEndcapHits_cellID;
+    delete SiWrapperEndcapHits_energy;
+    delete SiWrapperEndcapHits_position_x;
+    delete SiWrapperEndcapHits_position_y;
+    delete SiWrapperEndcapHits_position_z;
   }
   if (ECalBarrelHits_energy) {
     // delete ECalBarrelHits_cellID;

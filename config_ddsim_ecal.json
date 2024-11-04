@@ -4,6 +4,7 @@
     "caloClusters": "AugmentedEMBCaloClusters",
     "drawVertexHits": "true",
     "drawDriftChamberHits": "true",
+    "drawSiWrapperHits": "true",
     "drawCaloClusters": "true",
     "drawECalBarrelCells": "true",
     "drawECalBarrelHits": "true",
@@ -27,7 +28,8 @@
     "simParticles": "MCParticles",
     "topoClusterCells": "EMBCaloTopoClusterCells",
     "topoClusters": "EMBCaloTopoClusters",
-    "vertexInnerBarrelHits": "VTXIBCollection",
-    "vertexOuterBarrelHits": "VTXOBCollection",
-    "vertexEndcapHits": "VTXDCollection"
+    "vertexBarrelHits": "VertexBarrelCollection",
+    "vertexEndcapHits": "VertexEndcapCollection",
+    "siWrapperBarrelHits": "SiWrBCollection",
+    "siWrapperEndcapHits": "SiWrDCollection"
 }

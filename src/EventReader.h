@@ -69,17 +69,11 @@ public:
   TTreeReaderArray<Double_t> *SimParticleSecondaries_momentum_z = nullptr;
 
   // the hits in the vertex (barrel)
-  TTreeReaderArray<ULong_t> *VertexInnerBarrelHits_cellID = nullptr;
-  TTreeReaderArray<Float_t> *VertexInnerBarrelHits_energy = nullptr;
-  TTreeReaderArray<Double_t> *VertexInnerBarrelHits_position_x = nullptr;
-  TTreeReaderArray<Double_t> *VertexInnerBarrelHits_position_y = nullptr;
-  TTreeReaderArray<Double_t> *VertexInnerBarrelHits_position_z = nullptr;
-
-  TTreeReaderArray<ULong_t> *VertexOuterBarrelHits_cellID = nullptr;
-  TTreeReaderArray<Float_t> *VertexOuterBarrelHits_energy = nullptr;
-  TTreeReaderArray<Double_t> *VertexOuterBarrelHits_position_x = nullptr;
-  TTreeReaderArray<Double_t> *VertexOuterBarrelHits_position_y = nullptr;
-  TTreeReaderArray<Double_t> *VertexOuterBarrelHits_position_z = nullptr;
+  TTreeReaderArray<ULong_t> *VertexBarrelHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *VertexBarrelHits_energy = nullptr;
+  TTreeReaderArray<Double_t> *VertexBarrelHits_position_x = nullptr;
+  TTreeReaderArray<Double_t> *VertexBarrelHits_position_y = nullptr;
+  TTreeReaderArray<Double_t> *VertexBarrelHits_position_z = nullptr;
 
   // the hits in the vertex (endcap)
   TTreeReaderArray<ULong_t> *VertexEndcapHits_cellID = nullptr;
@@ -94,6 +88,20 @@ public:
   TTreeReaderArray<Double_t> *DriftChamberHits_position_x = nullptr;
   TTreeReaderArray<Double_t> *DriftChamberHits_position_y = nullptr;
   TTreeReaderArray<Double_t> *DriftChamberHits_position_z = nullptr;
+
+  // the hits in the Si wrapper (barrel)
+  TTreeReaderArray<ULong_t> *SiWrapperBarrelHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *SiWrapperBarrelHits_energy = nullptr;
+  TTreeReaderArray<Double_t> *SiWrapperBarrelHits_position_x = nullptr;
+  TTreeReaderArray<Double_t> *SiWrapperBarrelHits_position_y = nullptr;
+  TTreeReaderArray<Double_t> *SiWrapperBarrelHits_position_z = nullptr;
+
+  // the hits in the Si wrapper (endcap)
+  TTreeReaderArray<ULong_t> *SiWrapperEndcapHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *SiWrapperEndcapHits_energy = nullptr;
+  TTreeReaderArray<Double_t> *SiWrapperEndcapHits_position_x = nullptr;
+  TTreeReaderArray<Double_t> *SiWrapperEndcapHits_position_y = nullptr;
+  TTreeReaderArray<Double_t> *SiWrapperEndcapHits_position_z = nullptr;
 
   // the hits in ECal barrel
   TTreeReaderArray<ULong_t> *ECalBarrelHits_cellID = nullptr;

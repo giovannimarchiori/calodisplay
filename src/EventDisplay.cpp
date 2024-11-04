@@ -616,9 +616,9 @@ void EventDisplay::DrawClusters(std::string clusterType)
           if (clus->getEnergyInECalLayer(iLayer) > 0)
           {
             layerBarycenters->SetNextPoint(
-                clus->getBarycenterInECalLayer(iLayer).X() / cm,
-                clus->getBarycenterInECalLayer(iLayer).Y() / cm,
-                clus->getBarycenterInECalLayer(iLayer).Z() / cm);
+					   clus->getBarycenterInECalLayer(iLayer).X() / cm,
+					   clus->getBarycenterInECalLayer(iLayer).Y() / cm,
+					   clus->getBarycenterInECalLayer(iLayer).Z() / cm);
           }
         }
         for (unsigned int iLayer = 0; iLayer < (*clusterData)[icl]->getNLayersHCal(); iLayer++)
@@ -626,9 +626,9 @@ void EventDisplay::DrawClusters(std::string clusterType)
           if (clus->getEnergyInHCalLayer(iLayer) > 0)
           {
             layerBarycenters->SetNextPoint(
-                clus->getBarycenterInHCalLayer(iLayer).X() / cm,
-                clus->getBarycenterInHCalLayer(iLayer).Y() / cm,
-                clus->getBarycenterInHCalLayer(iLayer).Z() / cm);
+					   clus->getBarycenterInHCalLayer(iLayer).X() / cm,
+					   clus->getBarycenterInHCalLayer(iLayer).Y() / cm,
+					   clus->getBarycenterInHCalLayer(iLayer).Z() / cm);
           }
         }
       }
@@ -1259,7 +1259,7 @@ void EventDisplay::loadEvent(int event)
   }
 
   //
-  // hits (VTX/DCH)
+  // hits (VTX/DCH/Wrapper)
   //
   if (displayConfig.getBoolConfig("drawVertexHits"))
   {
@@ -1283,25 +1283,15 @@ void EventDisplay::loadEvent(int event)
     }
     else
       vtxHits->Reset();
-    for (unsigned int i = 0; i < eventReader->VertexInnerBarrelHits_position_x->GetSize(); i++)
+    for (unsigned int i = 0; i < eventReader->VertexBarrelHits_position_x->GetSize(); i++)
     {
-      // float E = (*eventReader->VertexInnerBarrelHits_energy)[i];
+      // float E = (*eventReader->VertexBarrelHits_energy)[i];
       // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->VertexInnerBarrelHits_cellID)[i];
+      // ULong_t cellID = (*eventReader->VertexBarrelHits_cellID)[i];
       vtxHits->SetNextPoint(
-          (*eventReader->VertexInnerBarrelHits_position_x)[i] * mm,
-          (*eventReader->VertexInnerBarrelHits_position_y)[i] * mm,
-          (*eventReader->VertexInnerBarrelHits_position_z)[i] * mm);
-    }
-    for (unsigned int i = 0; i < eventReader->VertexOuterBarrelHits_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->VertexOuterBarrelHits_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->VertexOuterBarrelHits_cellID)[i];
-      vtxHits->SetNextPoint(
-          (*eventReader->VertexOuterBarrelHits_position_x)[i] * mm,
-          (*eventReader->VertexOuterBarrelHits_position_y)[i] * mm,
-          (*eventReader->VertexOuterBarrelHits_position_z)[i] * mm);
+			    (*eventReader->VertexBarrelHits_position_x)[i] * mm,
+			    (*eventReader->VertexBarrelHits_position_y)[i] * mm,
+			    (*eventReader->VertexBarrelHits_position_z)[i] * mm);
     }
     for (unsigned int i = 0; i < eventReader->VertexEndcapHits_position_x->GetSize(); i++)
     {
@@ -1309,9 +1299,9 @@ void EventDisplay::loadEvent(int event)
       // if (E < HitEnergyThreshold) continue;
       // ULong_t cellID = (*eventReader->VertexEndcapHits_cellID)[i];
       vtxHits->SetNextPoint(
-          (*eventReader->VertexEndcapHits_position_x)[i] * mm,
-          (*eventReader->VertexEndcapHits_position_y)[i] * mm,
-          (*eventReader->VertexEndcapHits_position_z)[i] * mm);
+			    (*eventReader->VertexEndcapHits_position_x)[i] * mm,
+			    (*eventReader->VertexEndcapHits_position_y)[i] * mm,
+			    (*eventReader->VertexEndcapHits_position_z)[i] * mm);
     }
   }
 
@@ -1343,9 +1333,53 @@ void EventDisplay::loadEvent(int event)
       // if (E < HitEnergyThreshold) continue;
       // ULong_t cellID = (*eventReader->DriftChamberHits_cellID)[i];
       dchHits->SetNextPoint(
-          (*eventReader->DriftChamberHits_position_x)[i] * mm,
-          (*eventReader->DriftChamberHits_position_y)[i] * mm,
-          (*eventReader->DriftChamberHits_position_z)[i] * mm);
+			    (*eventReader->DriftChamberHits_position_x)[i] * mm,
+			    (*eventReader->DriftChamberHits_position_y)[i] * mm,
+			    (*eventReader->DriftChamberHits_position_z)[i] * mm);
+    }
+  }
+
+  if (displayConfig.getBoolConfig("drawSiWrapperHits"))
+  {
+    if (hits == nullptr)
+    {
+      hits = new TEveElementList("hits");
+      gEve->AddElement(hits);
+    }
+    // do we need to Reset() otherwise ?
+    std::cout << "Creating vertex hits" << std::endl;
+    if (siwrHits == nullptr)
+    {
+      siwrHits = new TEvePointSet();
+      // siwrHits->SetName(Form("VTX hits (E>%.1f GeV)", HitEnergyThreshold));
+      siwrHits->SetName("SiWr hits");
+      siwrHits->SetMarkerStyle(4);
+      siwrHits->SetMarkerSize(1.6);
+      siwrHits->SetMarkerColor(kRed);
+      // gEve->AddElement(siwrHits);
+      hits->AddElement(siwrHits);
+    }
+    else
+      siwrHits->Reset();
+    for (unsigned int i = 0; i < eventReader->SiWrapperBarrelHits_position_x->GetSize(); i++)
+    {
+      // float E = (*eventReader->SiWrapperBarrelHits_energy)[i];
+      // if (E < HitEnergyThreshold) continue;
+      // ULong_t cellID = (*eventReader->SiWrapperBarrelHits_cellID)[i];
+      siwrHits->SetNextPoint(
+			     (*eventReader->SiWrapperBarrelHits_position_x)[i] * mm,
+			     (*eventReader->SiWrapperBarrelHits_position_y)[i] * mm,
+			     (*eventReader->SiWrapperBarrelHits_position_z)[i] * mm);
+    }
+    for (unsigned int i = 0; i < eventReader->SiWrapperEndcapHits_position_x->GetSize(); i++)
+    {
+      // float E = (*eventReader->SiWrapperEndcapHits_energy)[i];
+      // if (E < HitEnergyThreshold) continue;
+      // ULong_t cellID = (*eventReader->SiWrapperEndcapHits_cellID)[i];
+      siwrHits->SetNextPoint(
+			     (*eventReader->SiWrapperEndcapHits_position_x)[i] * mm,
+			     (*eventReader->SiWrapperEndcapHits_position_y)[i] * mm,
+			     (*eventReader->SiWrapperEndcapHits_position_z)[i] * mm);
     }
   }
 
@@ -1718,9 +1752,8 @@ void EventDisplay::startDisplay(int initialEvent)
           {
             TEveElement *elVtx = *itrVtx;
             TString sVtx(elVtx->GetElementName());
-	    if (sVtx.Contains("VertexBarrel") or sVtx.Contains("VertexInnerBarrel"))
+	    if (sVtx.Contains("VertexBarrel"))
               vertexBarrel->AddElement(elVtx);
-	    //else if (sVtx.Contains("VTXD"))
 	    else if (sVtx.Contains("VertexDisks"))
               vertexEndcap->AddElement(elVtx);
             else
