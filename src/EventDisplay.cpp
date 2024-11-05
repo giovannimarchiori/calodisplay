@@ -1837,9 +1837,14 @@ void EventDisplay::startDisplay(int initialEvent)
         else if (re_ecalb.MatchB(s))
         {
 	  cout << "Adding " << s << " to ECal barrel" << endl;
-          ecalb->AddElement(a);
-          a->SetRnrSelfChildren(false, true);
+	  // add the overall envelope
+	  // we draw the envelope in the 3d model,
+	  // and the volumes in the 2D views
+          ecalb->AddElement(a);	  
+          //a->SetRnrSelfChildren(false, true);
+	  a->SetRnrSelfChildren(true, false);
 	  a->SetMainColor(kAzure+7);
+	  a->SetMainTransparency(useTransparencies ? 60 : 0);
 	  ((TEveGeoShape *)a)->SetDrawFrame(false);
           for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
           {
@@ -1860,6 +1865,7 @@ void EventDisplay::startDisplay(int initialEvent)
         else if (s.Contains("ECalEndcaps"))
 	{
 	  cout << "Adding " << s << " to ECal endcap" << endl;
+	  // add the two envelopes in the two sides
           ecalec->AddElement(a);
           a->SetRnrSelfChildren(true, false);
 	  a->SetMainColor(kAzure+7);
@@ -1871,7 +1877,7 @@ void EventDisplay::startDisplay(int initialEvent)
 	  cout << "Adding " << s << " to HCal barrel" << endl;
           hcalb->AddElement(a);
           // for the HCal barrel, we draw the envelope in the 3d model,
-	  // and the volumes in the 2D views
+	  // and the subvolumes in the 2D views
           a->SetRnrSelfChildren(true, false);
 	  a->SetMainTransparency(useTransparencies ? 60 : 0);
 	  a->SetMainColor(kAzure-7);
@@ -2339,6 +2345,7 @@ void EventDisplay::startDisplay(int initialEvent)
         {
           TPRegexp re("ECalBarrel_vol_(\\w+)");
           TEveElement *projbarrel = a->FindChild(re);
+	  projbarrel->SetRnrSelfChildren(false, true);
           TPRegexp rebath("LAr_bath(\\w+)");
           TEveElement *projbath = projbarrel->FindChild(rebath);
           if (projbath)
@@ -2610,6 +2617,7 @@ void EventDisplay::startDisplay(int initialEvent)
 	else if (s.BeginsWith("ECal barrel")) {
 	  TPRegexp re("ECalBarrel_vol_(\\w+)");
           TEveElement *projbarrel = a->FindChild(re);
+	  projbarrel->SetMainTransparency(useTransparencies ? 60 : 0);
           TPRegexp rebath("LAr_bath(\\w+)");
           TEveElement *projbath = projbarrel->FindChild(rebath);
           if (projbath) {
