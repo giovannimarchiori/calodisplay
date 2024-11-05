@@ -1870,20 +1870,20 @@ void EventDisplay::startDisplay(int initialEvent)
         {
 	  cout << "Adding " << s << " to HCal barrel" << endl;
           hcalb->AddElement(a);
-          // for the HCal barrel, rather than the envelope, we draw the volumes
-          // that make up its 3 parts
-          //a->SetRnrSelfChildren(true, false);
-          //a->SetMainTransparency(60);
-          //((TEveGeoShape *)a)->SetNSegments(128);
-          a->SetRnrSelfChildren(false, true);
+          // for the HCal barrel, we draw the envelope in the 3d model,
+	  // and the volumes in the 2D views
+          a->SetRnrSelfChildren(true, false);
+	  a->SetMainTransparency(useTransparencies ? 60 : 0);
 	  a->SetMainColor(kAzure-7);
+          ((TEveGeoShape *)a)->SetNSegments(128);
 	  ((TEveGeoShape *)a)->SetDrawFrame(false);
+
+          //a->SetRnrSelfChildren(false, true);
           for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
           {
             TEveElement *el = *itr2;
             TString elname(el->GetElementName());
-            // std::cout << elname << std::endl;
-            el->SetRnrSelfChildren(true, false);
+            //el->SetRnrSelfChildren(true, false);
 	    el->SetMainColor(kAzure-7);
 	    el->SetMainTransparency(useTransparencies ? 60 : 0);
             ((TEveGeoShape *)el)->SetNSegments(128);
@@ -1894,9 +1894,10 @@ void EventDisplay::startDisplay(int initialEvent)
         {
 	  cout << "Adding " << s << " to HCal endcap" << endl;
           hcalec->AddElement(a);
-          // for the HCal endcap, rather than the envelope, we draw the volumes
-          // that make up its 3 parts
-          a->SetRnrSelfChildren(false, true);
+          // for the HCal endcap, we draw the envelope in the 3d model,
+	  // and the volumes in the 2D views
+	  a->SetRnrSelfChildren(true, false);
+          //a->SetRnrSelfChildren(false, true);
 	  a->SetMainColor(kAzure-7);
           a->SetMainTransparency(useTransparencies ? 60 : 0);
 	  ((TEveGeoShape *)a)->SetDrawFrame(false);
@@ -1904,8 +1905,7 @@ void EventDisplay::startDisplay(int initialEvent)
           {
             TEveElement *el = *itr2;
             TString elname(el->GetElementName());
-            // std::cout << elname << std::endl;
-            el->SetRnrSelfChildren(true, false);
+            // el->SetRnrSelfChildren(true, false);
 	    el->SetMainColor(kAzure-7);
 	    el->SetMainTransparency(useTransparencies ? 60 : 0);
 	    ((TEveGeoShape *)el)->SetDrawFrame(false);
@@ -2358,6 +2358,27 @@ void EventDisplay::startDisplay(int initialEvent)
             }
           }
         }
+	// show layers in HCAL barrel
+	else if (s.BeginsWith("HCal barrel"))
+        {
+	  TPRegexp re("HCalEnvelopeVolume*");
+	  TEveElement *envelope = a->FindChild(re);
+          envelope->SetRnrSelfChildren(false, true);
+	  // envelope->SetMainColor(kAzure-7);
+	  ((TEveGeoShape *)envelope)->SetDrawFrame(false);
+          for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
+          {
+            TEveElement *el = *itr2;
+            TString elname(el->GetElementName());
+            el->SetRnrSelfChildren(true, false);
+	    // el->SetMainColor(kAzure-7);
+	    // el->SetMainTransparency(useTransparencies ? 60 : 0);
+	    // TEveGeoShape* gs = (TEveGeoShape *)el;
+	    // if (gs) {
+	    //   gs->SetDrawFrame(false);
+	    // }
+          }
+	}
       }
     }
   }
@@ -2600,6 +2621,21 @@ void EventDisplay::startDisplay(int initialEvent)
                 el->SetRnrSelfChildren(false, false);
             }
 	  }
+	}
+	// HCAL endcap - do not draw the envelope
+	else if (s.BeginsWith("HCal endcap"))
+        {
+	  TPRegexp re("HCalThreePartsEndcap*");
+	  TEveElement *envelope = a->FindChild(re);
+          envelope->SetRnrSelfChildren(false, true);
+	  // envelope->SetMainColor(kAzure-7);
+	  ((TEveGeoShape *)envelope)->SetDrawFrame(false);
+          for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
+          {
+            TEveElement *el = *itr2;
+            TString elname(el->GetElementName());
+            el->SetRnrSelfChildren(true, false);
+          }
 	}
       }
     }
