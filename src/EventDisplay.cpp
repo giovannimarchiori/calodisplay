@@ -1686,7 +1686,6 @@ void EventDisplay::startDisplay(int initialEvent)
       TPRegexp re_muonb("MuonTaggerBarrel*");
       TPRegexp re_muonec("MuonTaggerEndcap*");
 
-
       TEveElementList *mdi = new TEveElementList("MDI");
       geom->AddElement(mdi);
       // disable MDI rendering by default
@@ -1739,20 +1738,23 @@ void EventDisplay::startDisplay(int initialEvent)
       {
         TEveElement *a = *itr;
         TString s(a->GetElementName());
-
+	
         // std::cout << s << std::endl;
 
 	if (s.Contains("ScreenSol") || s.Contains("CompSol")) {
 	  cout << "Adding " << s << " to MDI" << endl;
           mdi->AddElement(a);
+	  ((TEveGeoShape *)a)->SetDrawFrame(false);
 	}
         else if (s.Contains("BeamPipe") || s.Contains("Beampipe")) {
 	  cout << "Adding " << s << " to beampipe" << endl;
           beampipe->AddElement(a);
+	  ((TEveGeoShape *)a)->SetDrawFrame(false);
 	}
         else if (re_lc.MatchB(s)) {
 	  cout << "Adding " << s << " to lumical" << endl;
           lumical->AddElement(a);
+	  ((TEveGeoShape *)a)->SetDrawFrame(false);
 	}
         else if (s.Contains("Vertex"))
         {
@@ -1762,17 +1764,32 @@ void EventDisplay::startDisplay(int initialEvent)
           {
             TEveElement *elVtx = *itrVtx;
             TString sVtx(elVtx->GetElementName());
-	    if (sVtx.Contains("VertexBarrel")) {
+	    if (sVtx.Contains("VertexBarrel") or sVtx.Contains("VertexInnerBarrel")) {
 	      if (debug) cout << "Adding " << sVtx << " to vertex barrel" << endl;
-              vertexBarrel->AddElement(elVtx);
+              // vertexBarrel->AddElement(elVtx);
+	      // elVtx->SetMainColor(kRed);
+	      // rather than the assembly we add directly the layers
+	      for (TEveElement::List_i itr2 = elVtx->BeginChildren(); itr2 != elVtx->EndChildren(); itr2++) {
+		TEveElement *el = *itr2;
+		TString elName(el->GetElementName());
+		vertexBarrel->AddElement(el);
+		el->SetMainColor(kRed);
+		((TEveGeoShape *)el)->SetDrawFrame(false);
+		if (elName.Contains("VertexInnerBarrel"))
+		  ((TEveGeoShape *)el)->SetNSegments(128);
+	      }
 	    }
 	    else if (sVtx.Contains("VertexDisks")) {
 	      if (debug) cout << "Adding " << sVtx << " to vertex endcap" << endl;
-              vertexEndcap->AddElement(elVtx);
-	    }
-	    else if (sVtx.Contains("VertexInnerBarrel")) {
-	      if (debug) cout << "Adding " << sVtx << " to vertex barrel" << endl;
-              vertexBarrel->AddElement(elVtx);
+              // vertexEndcap->AddElement(elVtx);
+	      // elVtx->SetMainColor(kRed);
+	      // rather than the assembly we add directly the layers
+	      for (TEveElement::List_i itr2 = elVtx->BeginChildren(); itr2 != elVtx->EndChildren(); itr2++) {
+		TEveElement *el = *itr2;
+		vertexEndcap->AddElement(el);
+		el->SetMainColor(kRed);
+		((TEveGeoShape *)el)->SetDrawFrame(false);
+	      }	      
 	    }
             else
               std::cout << "Unexpected volume: " << sVtx << std::endl;
@@ -1783,33 +1800,51 @@ void EventDisplay::startDisplay(int initialEvent)
 	  cout << "Adding " << s << " to drift chamber" << endl;
           dch->AddElement(a);
           a->SetRnrSelfChildren(true, false);
-          a->SetMainTransparency(60);
+	  a->SetMainTransparency(useTransparencies ? 60 : 0);
+	  //a->SetMainTransparency(0);
+	  a->SetMainColor(kGreen-5);
           ((TEveGeoShape *)a)->SetNSegments(128);
+	  ((TEveGeoShape *)a)->SetDrawFrame(false);
         }
         else if (re_siwrapb.MatchB(s))
         {
 	  cout << "Adding " << s << " to Si-wrapper barrel" << endl;
-          siwrapb->AddElement(a);
-          a->SetRnrSelfChildren(true, false);
-          a->SetMainTransparency(60);
-          ((TEveGeoShape *)a)->SetNSegments(128);
+	  // rather than the assembly we add directly the layers
+	  for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++) {
+            TEveElement *el = *itr2;
+	    siwrapb->AddElement(el);
+	    el->SetRnrSelfChildren(true, false);
+	    el->SetMainTransparency(useTransparencies ? 60 : 0);
+	    el->SetMainColor(kRed);
+	    ((TEveGeoShape *)el)->SetNSegments(128);
+	    ((TEveGeoShape *)el)->SetDrawFrame(false);
+	  }
         }
         else if (re_siwrapec.MatchB(s))
         {
 	  cout << "Adding " << s << " to Si-wrapper endcap" << endl;
-          siwrapec->AddElement(a);
-          a->SetRnrSelfChildren(true, false);
-          a->SetMainTransparency(60);
-          ((TEveGeoShape *)a)->SetNSegments(128);
+	  // rather than the appendix we add directly the layers
+	  for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++) {
+            TEveElement *el = *itr2;
+	    siwrapec->AddElement(el);
+	    el->SetRnrSelfChildren(true, false);
+	    el->SetMainTransparency(useTransparencies ? 60 : 0);
+	    el->SetMainColor(kRed);
+	    ((TEveGeoShape *)el)->SetNSegments(128);
+	    ((TEveGeoShape *)el)->SetDrawFrame(false);
+	  }
         }
         else if (re_ecalb.MatchB(s))
         {
 	  cout << "Adding " << s << " to ECal barrel" << endl;
           ecalb->AddElement(a);
           a->SetRnrSelfChildren(false, true);
+	  a->SetMainColor(kAzure+7);
+	  ((TEveGeoShape *)a)->SetDrawFrame(false);
           for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
           {
             TEveElement *el = *itr2;
+	    el->SetMainColor(kAzure+7);
             TString elname(el->GetElementName());
             std::cout << elname << std::endl;
             el->SetRnrSelfChildren(false, false);
@@ -1817,8 +1852,9 @@ void EventDisplay::startDisplay(int initialEvent)
               el->SetRnrSelfChildren(false, false);
             else
               el->SetRnrSelfChildren(true, false);
-            el->SetMainTransparency(60);
+	    el->SetMainTransparency(useTransparencies ? 60 : 0);
             ((TEveGeoShape *)el)->SetNSegments(128);
+	    ((TEveGeoShape *)el)->SetDrawFrame(false);
           }
         }
         else if (s.Contains("ECalEndcaps"))
@@ -1826,7 +1862,9 @@ void EventDisplay::startDisplay(int initialEvent)
 	  cout << "Adding " << s << " to ECal endcap" << endl;
           ecalec->AddElement(a);
           a->SetRnrSelfChildren(true, false);
-          a->SetMainTransparency(60);
+	  a->SetMainColor(kAzure+7);
+          a->SetMainTransparency(useTransparencies ? 60 : 0);
+	  ((TEveGeoShape *)a)->SetDrawFrame(false);
         }
         else if (re_hcalb.MatchB(s))
         {
@@ -1838,14 +1876,18 @@ void EventDisplay::startDisplay(int initialEvent)
           //a->SetMainTransparency(60);
           //((TEveGeoShape *)a)->SetNSegments(128);
           a->SetRnrSelfChildren(false, true);
+	  a->SetMainColor(kAzure-7);
+	  ((TEveGeoShape *)a)->SetDrawFrame(false);
           for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
           {
             TEveElement *el = *itr2;
             TString elname(el->GetElementName());
             // std::cout << elname << std::endl;
             el->SetRnrSelfChildren(true, false);
-            el->SetMainTransparency(60);
+	    el->SetMainColor(kAzure-7);
+	    el->SetMainTransparency(useTransparencies ? 60 : 0);
             ((TEveGeoShape *)el)->SetNSegments(128);
+	    ((TEveGeoShape *)el)->SetDrawFrame(false);
           }
         }
         else if (re_hcalec.MatchB(s))
@@ -1855,14 +1897,18 @@ void EventDisplay::startDisplay(int initialEvent)
           // for the HCal endcap, rather than the envelope, we draw the volumes
           // that make up its 3 parts
           a->SetRnrSelfChildren(false, true);
-          a->SetMainTransparency(60);
+	  a->SetMainColor(kAzure-7);
+          a->SetMainTransparency(useTransparencies ? 60 : 0);
+	  ((TEveGeoShape *)a)->SetDrawFrame(false);
           for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
           {
             TEveElement *el = *itr2;
             TString elname(el->GetElementName());
             // std::cout << elname << std::endl;
             el->SetRnrSelfChildren(true, false);
-            el->SetMainTransparency(60);
+	    el->SetMainColor(kAzure-7);
+	    el->SetMainTransparency(useTransparencies ? 60 : 0);
+	    ((TEveGeoShape *)el)->SetDrawFrame(false);
           }
         }
         else if (re_muonb.MatchB(s))
@@ -1870,17 +1916,19 @@ void EventDisplay::startDisplay(int initialEvent)
 	  cout << "Adding " << s << " to Muon tagger barrel" << endl;
           muontaggerb->AddElement(a);
           a->SetRnrSelfChildren(true, false);
-          a->SetMainTransparency(60);
-	  a->SetMainColor(kYellow);
+          a->SetMainTransparency(useTransparencies ? 60 : 0);
+	  a->SetMainColor(kOrange);
           ((TEveGeoShape *)a)->SetNSegments(128);
+	  ((TEveGeoShape *)a)->SetDrawFrame(false);
         }
         else if (re_muonec.MatchB(s))
         {
 	  cout << "Adding " << s << " to Muon tagger endcap" << endl;
           muontaggerec->AddElement(a);
           a->SetRnrSelfChildren(true, false);
-	  a->SetMainColor(kYellow);
-          a->SetMainTransparency(60);
+	  a->SetMainColor(kOrange);
+	  a->SetMainTransparency(useTransparencies ? 60 : 0);
+	  ((TEveGeoShape *)a)->SetDrawFrame(false);
         }
         else
 	{
@@ -2516,7 +2564,9 @@ void EventDisplay::startDisplay(int initialEvent)
 	  a->SetRnrSelfChildren(false, true);
 	  for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
 	    TEveElement *b = *itr;
-	    b->SetRnrSelfChildren(true, true);
+	    b->SetRnrSelfChildren(true, false);
+	    b->SetMainColor(kGreen-5);
+	    ((TEveGeoShape *)b)->SetDrawFrame(false);
 	  }
 	}	
 	// turn off the Si wrapper endcap envelope since it does not render well
@@ -2656,6 +2706,8 @@ void EventDisplay::startDisplay(int initialEvent)
   mainGLView->GetClipSet()->SetClipState(TGLClip::EType(2), data);
   mainGLView->RefreshPadEditor(mainGLView);
   mainGLView->DoDraw();
+  
+  activeGLViewer = mainGLView;
 }
 
 /******************************************************************************/
@@ -2711,9 +2763,11 @@ void EventDisplay::takeScreenshot()
     view = "rhophi";
   else if (activeGLViewer == rhoZGLView)
     view = "rhoz";
-  else
+  else if (activeGLViewer == mainGLView)
     view = "3d";
-  
+  else
+    cout << "Unknown view!!" << endl;
+
   TTimeStamp ts;
   TString tss(ts.AsString("s"));
   tss.ReplaceAll(" ", "_");
@@ -2722,9 +2776,10 @@ void EventDisplay::takeScreenshot()
     std::filesystem::create_directory("screenshots/");
   }
   
-  TString filename = "screenshots/calodisplay_screenshot_" + view + "_" + tss + ".jpg";
+  TString filename = "screenshots/calodisplay_screenshot_" + view + "_" + tss;
   std::cout << "Saving a screenshot of the selected view to " << filename << " ... ";
-  activeGLViewer->SavePictureScale(filename.Data(), 10.);
+  activeGLViewer->SavePictureScale((filename+".png").Data(), 10.);
+  activeGLViewer->SavePicture((filename+".pdf").Data());
   std::cout << "DONE" << std::endl << std::endl;
 }
 

@@ -68,15 +68,17 @@ public:
   bool showFullDetector = false;
   bool drawClustersBarycenterVsLayer = true;
 
+  bool useTransparencies = false;
+  
   // will read this from config file
   // tried to make them private but code was behaving weirdly..
   // min particle energy (GeV)
-  float ParticleEnergyThreshold;
+  float ParticleEnergyThreshold = 0.0;
   // min hit and cell energy (GeV)
-  float HitEnergyThreshold;
-  float CellEnergyThreshold;
+  float HitEnergyThreshold = 0.0;
+  float CellEnergyThreshold = 0.0;
   // min cluster energy (in GeV)
-  float ClusterEnergyThreshold;
+  float ClusterEnergyThreshold = 0.0;
 
   // G4 geometry file
   bool useG4geom = true;
