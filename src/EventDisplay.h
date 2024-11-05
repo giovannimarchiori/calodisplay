@@ -130,6 +130,7 @@ public:
   TEveViewer *rhoZView = nullptr;
   TGLViewer *rhoPhiGLView = nullptr;
   TGLViewer *rhoZGLView = nullptr;
+  TGLViewer *mainGLView = nullptr;
   TEveScene *rhoPhiScene = nullptr;
   TEveScene *rhoPhiEventScene = nullptr;
   TEveScene *rhoPhiEventSceneManual = nullptr;
@@ -149,12 +150,15 @@ public:
 
   TGLViewer* activeGLViewer = nullptr;
 
+  bool initRhoPhiView = false;
+  bool initRhoZView = false;
+
   /******************************************************************************/
   // class methods
   /******************************************************************************/
 
-  // constructor
-  EventDisplay();
+  // constructor - not needed, use compiler-generated one
+  // EventDisplay();
 
   // start event display
   void startDisplay(int initialEvent = 0);

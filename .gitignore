@@ -1,8 +1,9 @@
-dist/
-build/
+dist/*
+build/*
 util/gdmltoroot_C*
 src/DetectorGeometry_cpp*
 old_stuff
 *.root
 .vscode
 screenshots/*
+

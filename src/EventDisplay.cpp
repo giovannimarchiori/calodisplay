@@ -1564,7 +1564,7 @@ void EventDisplay::loadEvent(int event)
   //
   if (eventLabel == nullptr)
   {
-    eventLabel = new TGLConstAnnotation(gEve->GetDefaultGLViewer(),
+    eventLabel = new TGLConstAnnotation(mainGLView,
                                         Form("%s, %.1f GeV\nEvent %d",
                                              partType(pdgID), pmax, eventId),
                                         0.1, 0.9);
@@ -1601,9 +1601,10 @@ void EventDisplay::loadEvent(int event)
   textEntry->SetText(Form("Event %d loaded", eventId));
 }
 
-EventDisplay::EventDisplay()
-{
-}
+// do not implement, use compiler-generated one
+// EventDisplay::EventDisplay()
+// {
+// }
 
 void EventDisplay::startDisplay(int initialEvent)
 {
@@ -1636,14 +1637,14 @@ void EventDisplay::startDisplay(int initialEvent)
   gStyle->SetPalette(kSienna);
 
   // first tab
-  gEve->GetDefaultGLViewer()->SetGuideState(TGLUtil::kAxesOrigin, false, false, 0);
-  gEve->GetDefaultGLViewer()->DrawGuides();
+  mainGLView = gEve->GetDefaultGLViewer();
+  mainGLView->SetGuideState(TGLUtil::kAxesOrigin, false, false, 0);
+  mainGLView->DrawGuides();
   gEve->GetDefaultViewer()->SetElementName("3D view");
-  gEve->GetDefaultGLViewer()->CurrentCamera().RotateRad(-.7, 0.5);
-  //gEve->GetDefaultGLViewer()->Connect("Activated()", "EventDisplay", this, "on3DViewActivated()");
+  mainGLView->CurrentCamera().RotateRad(-.7, 0.5);
   gEve->GetBrowser()->GetTabRight()->Connect("Selected(Int_t)", "EventDisplay", this, "onTabSelected(Int_t)");
 
-  // Create the geometry and the readout
+  // Create the geometry and the readouts
   TEveElementList *geom = new TEveElementList("Geometry");
   TEveElementList *PCBs = new TEveElementList("PCBs");
   TEveElementList *actives = new TEveElementList("Active elements");
@@ -1675,21 +1676,21 @@ void EventDisplay::startDisplay(int initialEvent)
       // world->SetRnrSelfChildren(false, true);
 
       // group together elements
-      TPRegexp re_bp("AV_*");
-      TPRegexp re_bp2("HOM_*");
       TPRegexp re_lc("LumiCal_*");
-      TPRegexp re_vtxb("VertexBarrel_*");
-      TPRegexp re_vtxec("VertexEndcap_*");
       TPRegexp re_dch("DCH_*");
       TPRegexp re_siwrapb("SiWrB_*");
       TPRegexp re_siwrapec("SiWrD_*");
       TPRegexp re_ecalb("ECalBarrel*");
-      TPRegexp re_ecalec("CalEndcap*");
-      TPRegexp re_ecalec2("EMEC*");
       TPRegexp re_hcalb("HCalEnvelopeVolume*");
       TPRegexp re_hcalec("HCal(\\w+)Endcap(\\w+)");
       TPRegexp re_muonb("MuonTaggerBarrel*");
       TPRegexp re_muonec("MuonTaggerEndcap*");
+
+
+      TEveElementList *mdi = new TEveElementList("MDI");
+      geom->AddElement(mdi);
+      // disable MDI rendering by default
+      mdi->SetRnrSelfChildren(false, false);
 
       TEveElementList *beampipe = new TEveElementList("Beampipe");
       geom->AddElement(beampipe);
@@ -1719,8 +1720,8 @@ void EventDisplay::startDisplay(int initialEvent)
       TEveElementList *ecalb = new TEveElementList("ECal barrel");
       geom->AddElement(ecalb);
 
-      TEveElementList *calendcap = new TEveElementList("ECal endcaps");
-      geom->AddElement(calendcap);
+      TEveElementList *ecalec = new TEveElementList("ECal endcaps");
+      geom->AddElement(ecalec);
 
       TEveElementList *hcalb = new TEveElementList("HCal barrel");
       geom->AddElement(hcalb);
@@ -1738,30 +1739,48 @@ void EventDisplay::startDisplay(int initialEvent)
       {
         TEveElement *a = *itr;
         TString s(a->GetElementName());
-        std::cout << s << std::endl;
-        if (re_bp.MatchB(s))
+
+        // std::cout << s << std::endl;
+
+	if (s.Contains("ScreenSol") || s.Contains("CompSol")) {
+	  cout << "Adding " << s << " to MDI" << endl;
+          mdi->AddElement(a);
+	}
+        else if (s.Contains("BeamPipe") || s.Contains("Beampipe")) {
+	  cout << "Adding " << s << " to beampipe" << endl;
           beampipe->AddElement(a);
-        else if (re_bp2.MatchB(s))
-          beampipe->AddElement(a);
-        else if (re_lc.MatchB(s))
+	}
+        else if (re_lc.MatchB(s)) {
+	  cout << "Adding " << s << " to lumical" << endl;
           lumical->AddElement(a);
+	}
         else if (s.Contains("Vertex"))
         {
+	  cout << "Found " << s << ", looping over its children" << endl;
           // for vertex, loop over children to add them either to barrel or endcap
           for (TEveElement::List_i itrVtx = a->BeginChildren(); itrVtx != a->EndChildren(); itrVtx++)
           {
             TEveElement *elVtx = *itrVtx;
             TString sVtx(elVtx->GetElementName());
-	    if (sVtx.Contains("VertexBarrel"))
+	    if (sVtx.Contains("VertexBarrel")) {
+	      if (debug) cout << "Adding " << sVtx << " to vertex barrel" << endl;
               vertexBarrel->AddElement(elVtx);
-	    else if (sVtx.Contains("VertexDisks"))
+	    }
+	    else if (sVtx.Contains("VertexDisks")) {
+	      if (debug) cout << "Adding " << sVtx << " to vertex endcap" << endl;
               vertexEndcap->AddElement(elVtx);
+	    }
+	    else if (sVtx.Contains("VertexInnerBarrel")) {
+	      if (debug) cout << "Adding " << sVtx << " to vertex barrel" << endl;
+              vertexBarrel->AddElement(elVtx);
+	    }
             else
               std::cout << "Unexpected volume: " << sVtx << std::endl;
           }
         }
         else if (re_dch.MatchB(s))
         {
+	  cout << "Adding " << s << " to drift chamber" << endl;
           dch->AddElement(a);
           a->SetRnrSelfChildren(true, false);
           a->SetMainTransparency(60);
@@ -1769,6 +1788,7 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (re_siwrapb.MatchB(s))
         {
+	  cout << "Adding " << s << " to Si-wrapper barrel" << endl;
           siwrapb->AddElement(a);
           a->SetRnrSelfChildren(true, false);
           a->SetMainTransparency(60);
@@ -1776,6 +1796,7 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (re_siwrapec.MatchB(s))
         {
+	  cout << "Adding " << s << " to Si-wrapper endcap" << endl;
           siwrapec->AddElement(a);
           a->SetRnrSelfChildren(true, false);
           a->SetMainTransparency(60);
@@ -1783,6 +1804,7 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (re_ecalb.MatchB(s))
         {
+	  cout << "Adding " << s << " to ECal barrel" << endl;
           ecalb->AddElement(a);
           a->SetRnrSelfChildren(false, true);
           for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
@@ -1799,20 +1821,16 @@ void EventDisplay::startDisplay(int initialEvent)
             ((TEveGeoShape *)el)->SetNSegments(128);
           }
         }
-        else if (re_ecalec.MatchB(s))
-        {
-          calendcap->AddElement(a);
-          a->SetRnrSelfChildren(true, false);
-          a->SetMainTransparency(60);
-        }
-        else if (re_ecalec2.MatchB(s))
-        {
-          calendcap->AddElement(a);
+        else if (s.Contains("ECalEndcaps"))
+	{
+	  cout << "Adding " << s << " to ECal endcap" << endl;
+          ecalec->AddElement(a);
           a->SetRnrSelfChildren(true, false);
           a->SetMainTransparency(60);
         }
         else if (re_hcalb.MatchB(s))
         {
+	  cout << "Adding " << s << " to HCal barrel" << endl;
           hcalb->AddElement(a);
           // for the HCal barrel, rather than the envelope, we draw the volumes
           // that make up its 3 parts
@@ -1832,6 +1850,7 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (re_hcalec.MatchB(s))
         {
+	  cout << "Adding " << s << " to HCal endcap" << endl;
           hcalec->AddElement(a);
           // for the HCal endcap, rather than the envelope, we draw the volumes
           // that make up its 3 parts
@@ -1848,15 +1867,19 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (re_muonb.MatchB(s))
         {
+	  cout << "Adding " << s << " to Muon tagger barrel" << endl;
           muontaggerb->AddElement(a);
           a->SetRnrSelfChildren(true, false);
           a->SetMainTransparency(60);
+	  a->SetMainColor(kYellow);
           ((TEveGeoShape *)a)->SetNSegments(128);
         }
         else if (re_muonec.MatchB(s))
         {
+	  cout << "Adding " << s << " to Muon tagger endcap" << endl;
           muontaggerec->AddElement(a);
           a->SetRnrSelfChildren(true, false);
+	  a->SetMainColor(kYellow);
           a->SetMainTransparency(60);
         }
         else
@@ -1961,7 +1984,7 @@ void EventDisplay::startDisplay(int initialEvent)
           ecalendcap = new TEveElementList("ECal endcap");
           geom->AddElement(ecalendcap);
 
-          TPRegexp re_ecalec("CalEndcap(\\w+)");
+          TPRegexp re_ecalec("(\\w+)ECalEndcap(\\w+)");
           TEveElement::List_t matches_ec;
           world->FindChildren(matches_ec, re_ecalec);
           for (TEveElement *a : matches_ec)
@@ -2167,7 +2190,8 @@ void EventDisplay::startDisplay(int initialEvent)
     }
   }
   gEve->AddToListTree(readout, true);
-
+  gEve->FullRedraw3D(true);
+  
   // create second tab (R-phi view)
   rhoPhiView = gEve->SpawnNewViewer("Projection Rho-Phi");
 
@@ -2186,8 +2210,6 @@ void EventDisplay::startDisplay(int initialEvent)
                                                "Scene holding hand-crafted event-data for the Rho-Phi view.");
   rhoPhiView->AddScene(rhoPhiEventSceneManual);
   rhoPhiGLView = rhoPhiView->GetGLViewer();
-  //rhoPhiGLView->Connect("Activated()", "EventDisplay", this, "onRhoPhiViewActivated()");
-
   // set camera orientation
   rhoPhiGLView->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
   // create 3D->2D projection manager for rho-phi
@@ -2197,7 +2219,6 @@ void EventDisplay::startDisplay(int initialEvent)
   axes->SetElementName("Rho-Phi projection axes");
   axes->SetDrawOrigin(true);
   rhoPhiScene->AddElement(axes);
-
   if (useG4geom)
     rhoPhiProjManager->ImportElements(geom, rhoPhiScene);
   else
@@ -2249,16 +2270,29 @@ void EventDisplay::startDisplay(int initialEvent)
       {
         TEveElement *a = *itr;
         TString s(a->GetElementName());
+	// do not draw endcap volumes
         if (s.Contains("endcap"))
           a->SetRnrSelfChildren(false, false);
-        
-        if (s.BeginsWith("ECal barrel"))
+
+        // turn off the envelopes of the vertex barrel
+	else if (s.BeginsWith("Vertex barrel")) {
+	  a->SetRnrSelfChildren(false, true);
+	  for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
+	    TEveElement *b = *itr;
+	    TString s(b->GetElementName());
+	    if (s.Contains("assembly")) {
+	      b->SetRnrSelfChildren(false, true);
+	    }
+	  }
+	}
+
+	// show active volumes in ecal barrel
+        else if (s.BeginsWith("ECal barrel"))
         {
           TPRegexp re("ECalBarrel_vol_(\\w+)");
           TEveElement *projbarrel = a->FindChild(re);
           TPRegexp rebath("LAr_bath(\\w+)");
           TEveElement *projbath = projbarrel->FindChild(rebath);
-          //TEveElement *projbath = projbarrel->FindChild("LAr_bath*");
           if (projbath)
           {
             projbath->SetRnrSelfChildren(false, true);
@@ -2326,7 +2360,7 @@ void EventDisplay::startDisplay(int initialEvent)
     rhoPhiScene->AddElement(hcalPhiReadout);
     readout->AddElement(hcalPhiReadout);
   }
-
+  
   // third tab (R-z view)
   rhoZView = gEve->SpawnNewViewer("Projection Rho-Z");
   rhoZScene = gEve->SpawnNewScene("Rho-Z geometry",
@@ -2342,9 +2376,9 @@ void EventDisplay::startDisplay(int initialEvent)
                                              "Scene holding hand-crafted event-data for the Rho-Z view.");
   rhoZView->AddScene(rhoZEventSceneManual);
   rhoZGLView = rhoZView->GetGLViewer();
-  //rhoZGLView->Connect("Activated()", "EventDisplay", this, "onRhoZViewActivated()");
+  // set camera orientation
   rhoZGLView->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
-
+  // create 3D->2D projection manager for rho-z
   rhoZProjManager = new TEveProjectionManager();
   rhoZProjManager->SetProjection(TEveProjection::kPT_RhoZ);
   auto axes2 = new TEveProjectionAxes(rhoZProjManager);
@@ -2455,30 +2489,68 @@ void EventDisplay::startDisplay(int initialEvent)
         }
       }
     }
+
     if (showFullDetector && element)
     {
-      for (TEveElement::List_i itr = element->BeginChildren(); itr != element->EndChildren(); itr++)
-      {
-        TEveElement *a = *itr;
-        TString s(a->GetElementName());
-        if (s.BeginsWith("ECal barrel"))
-        {
-          TPRegexp re("ECalBarrel_vol_(\\w+)");
+      for (TEveElement::List_i itr = element->BeginChildren(); itr != element->EndChildren(); itr++) {
+	TEveElement *a = *itr;
+	TString s(a->GetElementName());
+
+	// MDI, beampipe, lumical can be enabled
+	if (s.BeginsWith("MDI") || s.BeginsWith("Beampipe") || s.BeginsWith("LumiCal")) {
+	  a->SetRnrSelfChildren(true, true);
+	}
+	// turn off the envelopes of the vertex barrel
+	else if (s.BeginsWith("Vertex barrel")) {
+	  a->SetRnrSelfChildren(false, true);
+	  for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
+	    TEveElement *b = *itr;
+	    TString s(b->GetElementName());
+	    if (s.Contains("assembly")) {
+	      b->SetRnrSelfChildren(false, true);
+	    }
+	  }
+	}
+	// show vessel and gas for DCH
+	else if (s.BeginsWith("Drift chamber")) {
+	  a->SetRnrSelfChildren(false, true);
+	  for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
+	    TEveElement *b = *itr;
+	    b->SetRnrSelfChildren(true, true);
+	  }
+	}	
+	// turn off the Si wrapper endcap envelope since it does not render well
+	// instead show its daughter volume instead
+	else if (s.BeginsWith("Si wrapper endcap")) {
+	  a->SetRnrSelfChildren(false, true);
+	  for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
+	    TEveElement *b = *itr;
+	    TString s(b->GetElementName());
+	    if (s.BeginsWith("SiWrD_envelope")) {
+	      b->SetRnrSelfChildren(false, true);
+	      for (TEveElement::List_i itr = b->BeginChildren(); itr != b->EndChildren(); itr++) {
+		TEveElement *c = *itr;
+		c->SetRnrSelfChildren(true, false);
+	      }
+	    }
+	  }
+	}
+	// ECAL barrel
+	else if (s.BeginsWith("ECal barrel")) {
+	  TPRegexp re("ECalBarrel_vol_(\\w+)");
           TEveElement *projbarrel = a->FindChild(re);
           TPRegexp rebath("LAr_bath(\\w+)");
           TEveElement *projbath = projbarrel->FindChild(rebath);
-          if (projbath)
-          {
+          if (projbath) {
             projbath->SetRnrSelfChildren(false, true);
-            for (TEveElement::List_i itr2 = projbath->BeginChildren(); itr2 != projbath->EndChildren(); itr2++)
-            {
+            for (TEveElement::List_i itr2 = projbath->BeginChildren(); itr2 != projbath->EndChildren(); itr2++) {
               TEveElement *el = *itr2;
               TString s2(el->GetElementName());
               if (s2.BeginsWith("passive_") || s2.BeginsWith("PCB_"))
                 el->SetRnrSelfChildren(false, false);
             }
-          }
-        }
+	  }
+	}
       }
     }
   }
@@ -2486,14 +2558,9 @@ void EventDisplay::startDisplay(int initialEvent)
   // draw the HCAL readout segmentation in eta or theta (rho-z view)
   if (doHCal)
   {
-    // TEveStraightLineSet *hcalRhoZReadout = new TEveStraightLineSet("HCAL eta readout");
     TEveStraightLineSet *hcalRhoZReadout = new TEveStraightLineSet("HCAL theta readout");
     hcalRhoZReadout->SetLineColor(kViolet);
     hcalRhoZReadout->SetLineWidth(5);
-    // for (int iEta = 0; iEta <= geomReader->nEtaBinsHCal; iEta++)
-    //{
-    //   double eta = geomReader->etaMinHCal + iEta * geomReader->etaGridHCal;
-    //   double theta = 2 * TMath::ATan(TMath::Exp(-eta));
     for (int iTheta = 0; iTheta <= geomReader->nThetaBinsHCal; iTheta++)
     {
       double theta = geomReader->thetaMinHCal + iTheta * geomReader->thetaGridHCal;
@@ -2522,7 +2589,9 @@ void EventDisplay::startDisplay(int initialEvent)
     readout->AddElement(hcalRhoZReadout);
   }
 
-  gEve->Redraw3D(true);
+  // gEve->DoRedraw3D();
+  // gEve->FullRedraw3D(true);
+
 
   // create the gui for event navigation
   makeGui();
@@ -2572,10 +2641,21 @@ void EventDisplay::startDisplay(int initialEvent)
 
   // Set the 3D view as the active tab and rotate the camera
   gEve->GetBrowser()->GetTabRight()->SetTab(0);
-  activeGLViewer = gEve->GetDefaultGLViewer();
 
-  // Draw
-  gEve->Redraw3D(true);
+  // rotate camera
+  mainGLView->CurrentCamera().RotateRad(-0.5, -2.4);
+  mainGLView->DoDraw();
+  
+  // clipping
+  mainGLView->GetClipSet()->SetClipType(TGLClip::EType(2));
+  double data[6];
+  mainGLView->GetClipSet()->GetClipState(TGLClip::EType(2), data);
+  // set center of bounding box at z=0 and deltaZ to full world size
+  data[2]=0.;
+  data[5] = data[5]*2;
+  mainGLView->GetClipSet()->SetClipState(TGLClip::EType(2), data);
+  mainGLView->RefreshPadEditor(mainGLView);
+  mainGLView->DoDraw();
 }
 
 /******************************************************************************/
@@ -2663,12 +2743,6 @@ void EventDisplay::makeGui()
   {
     TGPictureButton *b = 0;
 
-    // TString icondir(Form("%s/icons/", gSystem->Getenv("ROOTSYS")));
-    // if (!std::filesystem::exists(icondir.Data()))
-    // {
-    //   icondir = Form("%s/share/root/icons/", gSystem->Getenv("ROOTSYS"));
-    // }
-
     b = new TGPictureButton(hf, gClient->GetPicture("icons/TakeScreenshot.png"));
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "takeScreenshot()");
@@ -2700,30 +2774,22 @@ void EventDisplay::makeGui()
   browser->SetTabTitle("Controls", 0);
 }
 
-/*
-void EventDisplay::onRhoPhiViewActivated()
-{
-  std::cout << "rho-phi viewer activated" << std::endl;
-  activeGLViewer = rhoPhiGLView;
-}
-
-void EventDisplay::onRhoZViewActivated()
-{
-  std::cout << "rho-z viewer activated" << std::endl;
-  activeGLViewer = rhoZGLView;
-}
-
-void EventDisplay::on3DViewActivated()
-{
-  std::cout << "3D viewer activated" << std::endl;
-  activeGLViewer = gEve->GetDefaultGLViewer();
-}
-*/
-
 void EventDisplay::onTabSelected(Int_t tab)
 {
   // std::cout << "tab selected: " << tab << std::endl;
-  if (tab==0) activeGLViewer = gEve->GetDefaultGLViewer();
-  else if (tab==1) activeGLViewer = rhoPhiGLView;
-  else if (tab==2) activeGLViewer = rhoZGLView;
+  if (tab==0) activeGLViewer = mainGLView;
+  else if (tab==1) {
+    activeGLViewer = rhoPhiGLView;
+    if (!initRhoPhiView) {
+      rhoPhiView->Redraw(true);
+      initRhoPhiView = true;
+    }
+  }
+  else if (tab==2) {
+    activeGLViewer = rhoZGLView;
+    if (!initRhoZView) {
+      rhoZView->Redraw(true);
+      initRhoZView = true;
+    }
+  }
 }
