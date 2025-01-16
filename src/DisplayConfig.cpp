@@ -47,6 +47,9 @@ DisplayConfig::DisplayConfig() {
   setFloatConfig("energyThresholdHits", 0.0);
   setFloatConfig("energyThresholdCells", 0.0);
   setFloatConfig("energyThresholdClusters", 1.0);
+
+  // default bkg color
+  setIntConfig("bkgColor3D", 1);
 }
 
 
@@ -82,7 +85,7 @@ void DisplayConfig::ReadFromFile(std::string filename) {
   std::stringstream buffer;
   buffer << in.rdbuf();
   std::string json = buffer.str();
-  // to read from json if we stream  isplayConfig when it uses bool/string:
+  // to read from json if we stream DisplayConfig when it uses bool/string:
   // std::unique_ptr<DisplayConfig> b = TBufferJSON::FromJSON<DisplayConfig>(json);
   // *this = *b;
   // to read the configMap when a map is used:

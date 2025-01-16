@@ -1,5 +1,6 @@
 {
     "_typename": "map<string,string>",
+    "bkgColor3D" : "1",
     "caloClusterCells": "CaloClusterCells",
     "caloClusters": "CaloClusters",
     "drawVertexHits": "true",

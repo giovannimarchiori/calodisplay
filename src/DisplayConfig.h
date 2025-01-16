@@ -29,6 +29,10 @@ public:
     configMap[key] = value ? "true" : "false";
   }
 
+  void setIntConfig(const std::string& key, int value) {
+    configMap[key] = std::to_string(value);
+  }
+
   void setFloatConfig(const std::string& key, float value) {
     configMap[key] = std::to_string(value);
   }
@@ -45,6 +49,13 @@ public:
       return configMap.at(key) == "true";
     }
     return false; // or throw exception for missing config
+  }
+
+  float getIntConfig(const std::string& key) const {
+    if (configMap.find(key) != configMap.end()) {
+      return std::stoi(configMap.at(key));
+    }
+    return -9999999; // or throw exception for missing config
   }
 
   float getFloatConfig(const std::string& key) const {

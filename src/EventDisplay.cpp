@@ -1638,6 +1638,8 @@ void EventDisplay::startDisplay(int initialEvent)
 
   // first tab
   mainGLView = gEve->GetDefaultGLViewer();
+  int bkgColor = displayConfig.getIntConfig("bkgColor3D");
+  mainGLView->ColorSet().Background().SetColor(bkgColor>=0 ? bkgColor : kBlack);
   mainGLView->SetGuideState(TGLUtil::kAxesOrigin, false, false, 0);
   mainGLView->DrawGuides();
   gEve->GetDefaultViewer()->SetElementName("3D view");
