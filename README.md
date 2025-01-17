@@ -1,8 +1,9 @@
 # calodisplay
 
 ## Description
-Allegro event display (with an emphasis on the calorimeter system)
-
+Allegro event display (with an emphasis on the calorimeter system).
+Note: development of this tool started in early 2023 as a way of helping debugging the ECAL digitisation with the new segmentation classes under development.
+I became aware only later of existing event display tools. It is likely that those tools (e.g. DDEve) can - after proper customisation for the non projective ECAL cell geometry for instance - provide similar functionality as well as many more features with a more robust code.
 
 ## Installation
 Make a local clone of the gitlab repository.
