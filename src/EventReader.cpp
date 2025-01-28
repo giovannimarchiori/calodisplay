@@ -254,7 +254,6 @@ void EventReader::SetBranches()
       }
       else
       {
-        // ECalBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
 	ECalBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
 	ECalBarrelHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
 	ECalBarrelHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
@@ -338,7 +337,6 @@ void EventReader::SetBranches()
       }
       else
       {
-        // ECalEndcapHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
 	ECalEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
 	ECalEndcapHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
 	ECalEndcapHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
@@ -385,15 +383,14 @@ void EventReader::SetBranches()
         displayConfig.setBoolConfig("drawHcalBarrelHits", false);
       }
       else {
-        if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+        if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
         {
-          std::cout << "WARNING: branch " << branch << ".cellID not found, disabling hcal barrel hits" << std::endl;
+          std::cout << "WARNING: branch " << branch << ".energy not found, disabling hcal barrel hits" << std::endl;
           displayConfig.setBoolConfig("drawHcalBarrelHits", false);
           displayConfig.setStringConfig("hcalBarrelHits", "");
         }
         else
         {
-          HCalBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));    
           HCalBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));    
           HCalBarrelHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
           HCalBarrelHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
@@ -439,15 +436,14 @@ void EventReader::SetBranches()
         displayConfig.setBoolConfig("drawHcalEndcapHits", false);
       }
       else {
-        if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+        if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
         {
-          std::cout << "WARNING: branch " << branch << ".cellID not found, disabling hcal endcap hits" << std::endl;
+          std::cout << "WARNING: branch " << branch << ".energy not found, disabling hcal endcap hits" << std::endl;
           displayConfig.setBoolConfig("drawHcalEndcapHits", false);
           displayConfig.setStringConfig("hcalEndcapHits", "");
         }
         else
         {
-          HCalEndcapHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));    
           HCalEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));    
           HCalEndcapHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
           HCalEndcapHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
@@ -802,7 +798,6 @@ EventReader::~EventReader() {
     delete SiWrapperEndcapHits_position_z;
   }
   if (ECalBarrelHits_energy) {
-    // delete ECalBarrelHits_cellID;
     delete ECalBarrelHits_energy;
     delete ECalBarrelHits_position_x;
     delete ECalBarrelHits_position_y;
@@ -823,7 +818,6 @@ EventReader::~EventReader() {
     delete ECalBarrelCells2_position_z;
   }
   if (ECalEndcapHits_energy) {
-    // delete ECalEndcapHits_cellID;
     delete ECalEndcapHits_energy;
     delete ECalEndcapHits_position_x;
     delete ECalEndcapHits_position_y;
@@ -836,8 +830,7 @@ EventReader::~EventReader() {
     delete ECalEndcapCells_position_y;
     delete ECalEndcapCells_position_z;
   }
-  if (HCalBarrelHits_cellID) {
-    delete HCalBarrelHits_cellID;
+  if (HCalBarrelHits_energy) {
     delete HCalBarrelHits_energy;
     delete HCalBarrelHits_position_x;
     delete HCalBarrelHits_position_y;
@@ -850,8 +843,7 @@ EventReader::~EventReader() {
     delete HCalBarrelCells_position_y;
     delete HCalBarrelCells_position_z;
   }
-  if (HCalEndcapHits_cellID) {
-    delete HCalEndcapHits_cellID;
+  if (HCalEndcapHits_energy) {
     delete HCalEndcapHits_energy;
     delete HCalEndcapHits_position_x;
     delete HCalEndcapHits_position_y;

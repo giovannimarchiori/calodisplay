@@ -104,7 +104,6 @@ public:
   TTreeReaderArray<Double_t> *SiWrapperEndcapHits_position_z = nullptr;
 
   // the hits in ECal barrel
-  TTreeReaderArray<ULong_t> *ECalBarrelHits_cellID = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelHits_energy = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelHits_position_x = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelHits_position_y = nullptr;
@@ -125,7 +124,6 @@ public:
   TTreeReaderArray<Float_t> *ECalBarrelCells2_position_z = nullptr;
 
   // the hits in ECal endcap
-  TTreeReaderArray<ULong_t> *ECalEndcapHits_cellID = nullptr;
   TTreeReaderArray<Float_t> *ECalEndcapHits_energy = nullptr;
   TTreeReaderArray<Float_t> *ECalEndcapHits_position_x = nullptr;
   TTreeReaderArray<Float_t> *ECalEndcapHits_position_y = nullptr;
@@ -139,7 +137,6 @@ public:
   TTreeReaderArray<Float_t> *ECalEndcapCells_position_z = nullptr;
 
   // the hits in HCal barrel
-  TTreeReaderArray<ULong_t> *HCalBarrelHits_cellID = nullptr;
   TTreeReaderArray<Float_t> *HCalBarrelHits_energy = nullptr;
   TTreeReaderArray<Float_t> *HCalBarrelHits_position_x = nullptr;
   TTreeReaderArray<Float_t> *HCalBarrelHits_position_y = nullptr;
@@ -153,7 +150,6 @@ public:
   TTreeReaderArray<Float_t> *HCalBarrelCells_position_z = nullptr;
 
   // the hits in HCal endcap
-  TTreeReaderArray<ULong_t> *HCalEndcapHits_cellID = nullptr;
   TTreeReaderArray<Float_t> *HCalEndcapHits_energy = nullptr;
   TTreeReaderArray<Float_t> *HCalEndcapHits_position_x = nullptr;
   TTreeReaderArray<Float_t> *HCalEndcapHits_position_y = nullptr;
