@@ -32,7 +32,7 @@ source setup.sh
 
 Execute with e.g.
 ```
-calodisplay -g data/allegro_o1_v03.root  -e events.root -c config_ddsim.json --fulldet
+calodisplay -g data/allegro_o1_v03.root  -e events.root -c config.json --fulldet
 ```
 Execute with `calodisplay -h` to see available options
 
