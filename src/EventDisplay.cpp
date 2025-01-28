@@ -46,12 +46,18 @@ const char* partType(int pdgID) {
     return "pi0";
   else if (pdgID == 211)
     return "pi+";
+  else if (pdgID == -211)
+    return "pi-";
   else if (pdgID == 22)
     return "y";
   else if (pdgID == 11)
     return "e-";
   else if (pdgID == -11)
     return "e+";
+  else if (pdgID == 13)
+    return "mu-";
+  else if (pdgID == -13)
+    return "mu+";
   else
     return "unknown";
 }
@@ -1346,7 +1352,6 @@ void EventDisplay::loadEvent(int event)
       hits = new TEveElementList("hits");
       gEve->AddElement(hits);
     }
-    // do we need to Reset() otherwise ?
     std::cout << "Creating vertex hits" << std::endl;
     if (siwrHits == nullptr)
     {
@@ -1393,7 +1398,6 @@ void EventDisplay::loadEvent(int event)
       hits = new TEveElementList("hits");
       gEve->AddElement(hits);
     }
-    // do we need to Reset() otherwise ?
     std::cout << "Creating ecal barrel hits" << std::endl;
     if (ecalHits == nullptr)
     {
@@ -1419,6 +1423,37 @@ void EventDisplay::loadEvent(int event)
           (*eventReader->ECalBarrelHits_position_x)[i] * mm,
           (*eventReader->ECalBarrelHits_position_y)[i] * mm,
           (*eventReader->ECalBarrelHits_position_z)[i] * mm);
+    }
+  }
+
+  if (displayConfig.getBoolConfig("drawECalEndcapHits"))
+  {
+    if (hits == nullptr)
+    {
+      hits = new TEveElementList("hits");
+      gEve->AddElement(hits);
+    }
+    std::cout << "Creating ecal endcap hits" << std::endl;
+    if (ecalHits == nullptr)
+    {
+      ecalHits = new TEvePointSet();
+      ecalHits->SetName(Form("ECAL hits (E>%.1f GeV)", HitEnergyThreshold));
+      ecalHits->SetMarkerStyle(4);
+      ecalHits->SetMarkerSize(1);
+      ecalHits->SetMarkerColor(kRed);
+      hits->AddElement(ecalHits);
+    }
+    else
+      ecalHits->Reset(); // should probably not do - will remove ecal barrel hits?
+    for (unsigned int i = 0; i < eventReader->ECalEndcapHits_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->ECalEndcapHits_energy)[i];
+      if (E < HitEnergyThreshold)
+        continue;
+      ecalHits->SetNextPoint(
+          (*eventReader->ECalEndcapHits_position_x)[i] * mm,
+          (*eventReader->ECalEndcapHits_position_y)[i] * mm,
+          (*eventReader->ECalEndcapHits_position_z)[i] * mm);
     }
   }
 
@@ -1453,8 +1488,86 @@ void EventDisplay::loadEvent(int event)
     }
   }
 
+  if (displayConfig.getBoolConfig("drawHCalEndcapHits"))
+  {
+    if (hits == nullptr)
+    {
+      hits = new TEveElementList("hits");
+      gEve->AddElement(hits);
+    }
+    std::cout << "Creating hcal endcap hits" << std::endl;
+    if (hcalHits == nullptr)
+    {
+      hcalHits = new TEvePointSet();
+      hcalHits->SetName(Form("HCAL hits (E>%.1f GeV)", HitEnergyThreshold));
+      hcalHits->SetMarkerStyle(4);
+      hcalHits->SetMarkerSize(1);
+      hcalHits->SetMarkerColor(kRed);
+      hits->AddElement(hcalHits);
+    }
+    else
+      hcalHits->Reset(); // should probably not do - will remove hcal barrel hits?
+    for (unsigned int i = 0; i < eventReader->HCalEndcapHits_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->HCalEndcapHits_energy)[i];
+      if (E < HitEnergyThreshold)
+        continue;
+      hcalHits->SetNextPoint(
+          (*eventReader->HCalEndcapHits_position_x)[i] * mm,
+          (*eventReader->HCalEndcapHits_position_y)[i] * mm,
+          (*eventReader->HCalEndcapHits_position_z)[i] * mm);
+    }
+  }
+
   //
-  // cells (ECAL/HCAL)
+  // hits (muon)
+  //
+  if (displayConfig.getBoolConfig("drawMuonHits"))
+  {
+    if (hits == nullptr)
+    {
+      hits = new TEveElementList("hits");
+      gEve->AddElement(hits);
+    }
+    // do we need to Reset() otherwise ?
+    std::cout << "Creating muon hits" << std::endl;
+    if (muonHits == nullptr)
+    {
+      muonHits = new TEvePointSet();
+      // muonHits->SetName(Form("MUON hits (E>%.1f GeV)", HitEnergyThreshold));
+      muonHits->SetName("MUON hits");
+      muonHits->SetMarkerStyle(4);
+      muonHits->SetMarkerSize(1.6);
+      muonHits->SetMarkerColor(kRed);
+      // gEve->AddElement(muonHits);
+      hits->AddElement(muonHits);
+    }
+    else
+      muonHits->Reset();
+    for (unsigned int i = 0; i < eventReader->MuonBarrelHits_position_x->GetSize(); i++)
+    {
+      // float E = (*eventReader->MuonBarrelHits_energy)[i];
+      // if (E < HitEnergyThreshold) continue;
+      // ULong_t cellID = (*eventReader->MuonBarrelHits_cellID)[i];
+      muonHits->SetNextPoint(
+			    (*eventReader->MuonBarrelHits_position_x)[i] * mm,
+			    (*eventReader->MuonBarrelHits_position_y)[i] * mm,
+			    (*eventReader->MuonBarrelHits_position_z)[i] * mm);
+    }
+    for (unsigned int i = 0; i < eventReader->MuonEndcapHits_position_x->GetSize(); i++)
+    {
+      // float E = (*eventReader->MuonEndcapHits_energy)[i];
+      // if (E < HitEnergyThreshold) continue;
+      // ULong_t cellID = (*eventReader->MuonEndcapHits_cellID)[i];
+      muonHits->SetNextPoint(
+			    (*eventReader->MuonEndcapHits_position_x)[i] * mm,
+			    (*eventReader->MuonEndcapHits_position_y)[i] * mm,
+			    (*eventReader->MuonEndcapHits_position_z)[i] * mm);
+    }
+  }
+
+  //
+  // cells (ECAL/HCAL/muon)
   //
   if (displayConfig.getBoolConfig("drawECalBarrelCells"))
   {
@@ -1486,6 +1599,36 @@ void EventDisplay::loadEvent(int event)
     }
   }
 
+  if (displayConfig.getBoolConfig("drawECalEndcapCells"))
+  {
+    std::cout << "Creating ecal barrel cells" << std::endl;
+    if (digis == nullptr)
+    {
+      digis = new TEveElementList("digis");
+      gEve->AddElement(digis);
+    }
+    if (ecalCells == nullptr)
+    {
+      ecalCells = new TEvePointSet();
+      ecalCells->SetName(Form("ECAL cells (E>%.1f GeV)", CellEnergyThreshold));
+      ecalCells->SetMarkerStyle(4);
+      ecalCells->SetMarkerSize(2);
+      ecalCells->SetMarkerColor(kYellow);
+      digis->AddElement(ecalCells);
+    }
+    else
+      ecalCells->Reset();
+    for (unsigned int i = 0; i < eventReader->ECalEndcapCells_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->ECalEndcapCells_energy)[i];
+      if (E < CellEnergyThreshold)
+        continue;
+      ecalCells->SetNextPoint((*eventReader->ECalEndcapCells_position_x)[i] * mm,
+                              (*eventReader->ECalEndcapCells_position_y)[i] * mm,
+                              (*eventReader->ECalEndcapCells_position_z)[i] * mm);
+    }
+  }
+
   if (displayConfig.getBoolConfig("drawHCalBarrelCells"))
   {
     std::cout << "Creating hcal barrel cells" << std::endl;
@@ -1513,6 +1656,76 @@ void EventDisplay::loadEvent(int event)
       hcalCells->SetNextPoint((*eventReader->HCalBarrelCells_position_x)[i] * mm,
                               (*eventReader->HCalBarrelCells_position_y)[i] * mm,
                               (*eventReader->HCalBarrelCells_position_z)[i] * mm);
+    }
+  }
+
+  if (displayConfig.getBoolConfig("drawHCalEndcapCells"))
+  {
+    std::cout << "Creating hcal endcap cells" << std::endl;
+    if (digis == nullptr)
+    {
+      digis = new TEveElementList("digis");
+      gEve->AddElement(digis);
+    }
+    if (hcalCells == nullptr)
+    {
+      hcalCells = new TEvePointSet();
+      hcalCells->SetName(Form("HCAL cells (E>%.1f GeV)", CellEnergyThreshold));
+      hcalCells->SetMarkerStyle(4);
+      hcalCells->SetMarkerSize(2);
+      hcalCells->SetMarkerColor(kYellow);
+      digis->AddElement(hcalCells);
+    }
+    else
+      hcalCells->Reset();
+    for (unsigned int i = 0; i < eventReader->HCalEndcapCells_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->HCalEndcapCells_energy)[i];
+      if (E < CellEnergyThreshold)
+        continue;
+      hcalCells->SetNextPoint((*eventReader->HCalEndcapCells_position_x)[i] * mm,
+                              (*eventReader->HCalEndcapCells_position_y)[i] * mm,
+                              (*eventReader->HCalEndcapCells_position_z)[i] * mm);
+    }
+  }
+
+  if (displayConfig.getBoolConfig("drawMuonCells"))
+  {
+    std::cout << "Creating muon barrel cells" << std::endl;
+    if (digis == nullptr)
+    {
+      digis = new TEveElementList("digis");
+      gEve->AddElement(digis);
+    }
+    if (muonCells == nullptr)
+    {
+      muonCells = new TEvePointSet();
+      muonCells->SetName(Form("MUON cells (E>%.1f GeV)", CellEnergyThreshold));
+      muonCells->SetMarkerStyle(4);
+      muonCells->SetMarkerSize(2);
+      muonCells->SetMarkerColor(kYellow);
+      digis->AddElement(muonCells);
+    }
+    else
+      muonCells->Reset();
+    for (unsigned int i = 0; i < eventReader->MuonBarrelCells_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->MuonBarrelCells_energy)[i];
+      if (E < CellEnergyThreshold)
+        continue;
+      muonCells->SetNextPoint((*eventReader->MuonBarrelCells_position_x)[i] * mm,
+                              (*eventReader->MuonBarrelCells_position_y)[i] * mm,
+                              (*eventReader->MuonBarrelCells_position_z)[i] * mm);
+    }
+    std::cout << "Creating muon endcap cells" << std::endl;
+    for (unsigned int i = 0; i < eventReader->MuonEndcapCells_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->MuonEndcapCells_energy)[i];
+      if (E < CellEnergyThreshold)
+        continue;
+      muonCells->SetNextPoint((*eventReader->MuonEndcapCells_position_x)[i] * mm,
+                              (*eventReader->MuonEndcapCells_position_y)[i] * mm,
+                              (*eventReader->MuonEndcapCells_position_z)[i] * mm);
     }
   }
 
@@ -1643,7 +1856,7 @@ void EventDisplay::startDisplay(int initialEvent)
   mainGLView->SetGuideState(TGLUtil::kAxesOrigin, false, false, 0);
   mainGLView->DrawGuides();
   gEve->GetDefaultViewer()->SetElementName("3D view");
-  mainGLView->CurrentCamera().RotateRad(-.7, 0.5);
+  mainGLView->CurrentCamera().RotateRad(-.8, 0.5);
   gEve->GetBrowser()->GetTabRight()->Connect("Selected(Int_t)", "EventDisplay", this, "onTabSelected(Int_t)");
 
   // Create the geometry and the readouts

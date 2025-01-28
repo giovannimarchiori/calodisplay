@@ -111,8 +111,10 @@ public:
   TEvePointSet *siwrHits = nullptr;
   TEvePointSet *ecalHits = nullptr;
   TEvePointSet *hcalHits = nullptr;
+  TEvePointSet *muonHits = nullptr;
   TEvePointSet *ecalCells = nullptr;
   TEvePointSet *hcalCells = nullptr;
+  TEvePointSet *muonCells = nullptr;
   TEvePointSet *cells_merged = nullptr;
   TEvePointSet *topoclustersCenter = nullptr;
   TEvePointSet *swclustersCenter = nullptr;

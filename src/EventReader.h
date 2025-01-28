@@ -124,6 +124,20 @@ public:
   TTreeReaderArray<Float_t> *ECalBarrelCells2_position_y = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelCells2_position_z = nullptr;
 
+  // the hits in ECal endcap
+  TTreeReaderArray<ULong_t> *ECalEndcapHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *ECalEndcapHits_energy = nullptr;
+  TTreeReaderArray<Float_t> *ECalEndcapHits_position_x = nullptr;
+  TTreeReaderArray<Float_t> *ECalEndcapHits_position_y = nullptr;
+  TTreeReaderArray<Float_t> *ECalEndcapHits_position_z = nullptr;
+
+  // the cells in ECal endcap
+  TTreeReaderArray<ULong_t> *ECalEndcapCells_cellID = nullptr;
+  TTreeReaderArray<Float_t> *ECalEndcapCells_energy = nullptr;
+  TTreeReaderArray<Float_t> *ECalEndcapCells_position_x = nullptr;
+  TTreeReaderArray<Float_t> *ECalEndcapCells_position_y = nullptr;
+  TTreeReaderArray<Float_t> *ECalEndcapCells_position_z = nullptr;
+
   // the hits in HCal barrel
   TTreeReaderArray<ULong_t> *HCalBarrelHits_cellID = nullptr;
   TTreeReaderArray<Float_t> *HCalBarrelHits_energy = nullptr;
@@ -137,6 +151,48 @@ public:
   TTreeReaderArray<Float_t> *HCalBarrelCells_position_x = nullptr;
   TTreeReaderArray<Float_t> *HCalBarrelCells_position_y = nullptr;
   TTreeReaderArray<Float_t> *HCalBarrelCells_position_z = nullptr;
+
+  // the hits in HCal endcap
+  TTreeReaderArray<ULong_t> *HCalEndcapHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *HCalEndcapHits_energy = nullptr;
+  TTreeReaderArray<Float_t> *HCalEndcapHits_position_x = nullptr;
+  TTreeReaderArray<Float_t> *HCalEndcapHits_position_y = nullptr;
+  TTreeReaderArray<Float_t> *HCalEndcapHits_position_z = nullptr;
+
+  // the cells in HCal endcap
+  TTreeReaderArray<ULong_t> *HCalEndcapCells_cellID = nullptr;
+  TTreeReaderArray<Float_t> *HCalEndcapCells_energy = nullptr;
+  TTreeReaderArray<Float_t> *HCalEndcapCells_position_x = nullptr;
+  TTreeReaderArray<Float_t> *HCalEndcapCells_position_y = nullptr;
+  TTreeReaderArray<Float_t> *HCalEndcapCells_position_z = nullptr;
+
+  // the hits in muon barrel
+  TTreeReaderArray<ULong_t> *MuonBarrelHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *MuonBarrelHits_energy = nullptr;
+  TTreeReaderArray<Double_t> *MuonBarrelHits_position_x = nullptr;
+  TTreeReaderArray<Double_t> *MuonBarrelHits_position_y = nullptr;
+  TTreeReaderArray<Double_t> *MuonBarrelHits_position_z = nullptr;
+
+  // the cells in muon barrel
+  TTreeReaderArray<ULong_t> *MuonBarrelCells_cellID = nullptr;
+  TTreeReaderArray<Float_t> *MuonBarrelCells_energy = nullptr;
+  TTreeReaderArray<Float_t> *MuonBarrelCells_position_x = nullptr;
+  TTreeReaderArray<Float_t> *MuonBarrelCells_position_y = nullptr;
+  TTreeReaderArray<Float_t> *MuonBarrelCells_position_z = nullptr;
+
+  // the hits in muon endcap
+  TTreeReaderArray<ULong_t> *MuonEndcapHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *MuonEndcapHits_energy = nullptr;
+  TTreeReaderArray<Double_t> *MuonEndcapHits_position_x = nullptr;
+  TTreeReaderArray<Double_t> *MuonEndcapHits_position_y = nullptr;
+  TTreeReaderArray<Double_t> *MuonEndcapHits_position_z = nullptr;
+
+  // the cells in muon endcap
+  TTreeReaderArray<ULong_t> *MuonEndcapCells_cellID = nullptr;
+  TTreeReaderArray<Float_t> *MuonEndcapCells_energy = nullptr;
+  TTreeReaderArray<Float_t> *MuonEndcapCells_position_x = nullptr;
+  TTreeReaderArray<Float_t> *MuonEndcapCells_position_y = nullptr;
+  TTreeReaderArray<Float_t> *MuonEndcapCells_position_z = nullptr;
 
   // IF WE ARE SURE THAT WE DO NOT PLOT BOTH SW AND TOPOCLUSTERS AT THE SAME TIME
   // we could simplify the code of the EventDisplay class by having a single
