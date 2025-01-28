@@ -1996,15 +1996,15 @@ void EventDisplay::startDisplay(int initialEvent)
 	    }
 	    else if (sVtx.Contains("VertexDisks")) {
 	      if (debug) cout << "Adding " << sVtx << " to vertex endcap" << endl;
-              // vertexEndcap->AddElement(elVtx);
-	      // elVtx->SetMainColor(kRed);
+              vertexEndcap->AddElement(elVtx);
+	      elVtx->SetMainColor(kRed);
 	      // rather than the assembly we add directly the layers
-	      for (TEveElement::List_i itr2 = elVtx->BeginChildren(); itr2 != elVtx->EndChildren(); itr2++) {
-		TEveElement *el = *itr2;
-		vertexEndcap->AddElement(el);
-		el->SetMainColor(kRed);
-		((TEveGeoShape *)el)->SetDrawFrame(false);
-	      }	      
+	      //for (TEveElement::List_i itr2 = elVtx->BeginChildren(); itr2 != elVtx->EndChildren(); itr2++) {
+	      //TEveElement *el = *itr2;
+	      //vertexEndcap->AddElement(el);
+	      //el->SetMainColor(kRed);
+	      //((TEveGeoShape *)el)->SetDrawFrame(false);
+	      //}	      
 	    }
             else
               std::cout << "Unexpected volume: " << sVtx << std::endl;
