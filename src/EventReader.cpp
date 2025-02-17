@@ -254,10 +254,10 @@ void EventReader::SetBranches()
       }
       else
       {
-	ECalBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-	ECalBarrelHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
-	ECalBarrelHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
-	ECalBarrelHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.z", branch));
+        ECalBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
+        ECalBarrelHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
+        ECalBarrelHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
+        ECalBarrelHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.z", branch));
       }
     }
   }
@@ -337,10 +337,10 @@ void EventReader::SetBranches()
       }
       else
       {
-	ECalEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-	ECalEndcapHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
-	ECalEndcapHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
-	ECalEndcapHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.z", branch));
+        ECalEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
+        ECalEndcapHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
+        ECalEndcapHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
+        ECalEndcapHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.z", branch));
       }
     }
   }
@@ -504,7 +504,10 @@ void EventReader::SetBranches()
     }
     else {
       const char* branch = branchName.c_str();
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      // tracker-based
+      // if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      // calo-based
+      if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
       {
         std::cout << "WARNING: branch " << branch << ".cellID not found, disabling muon hits" << std::endl;
         displayConfig.setBoolConfig("drawMuonHits", false);
@@ -535,19 +538,31 @@ void EventReader::SetBranches()
     if (displayConfig.getBoolConfig("drawMuonHits")) {
       branchName = displayConfig.getStringConfig("muonBarrelHits");
       const char* branch = branchName.c_str();
-      MuonBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      MuonBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      MuonBarrelHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      MuonBarrelHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      MuonBarrelHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+      // for tracker-based SD
+      // MuonBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+      // MuonBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+      // MuonBarrelHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+      // MuonBarrelHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+      // MuonBarrelHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+      // for calo-based SD
+      MuonBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
+      MuonBarrelHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
+      MuonBarrelHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
+      MuonBarrelHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.z", branch));
 
       branchName = displayConfig.getStringConfig("muonEndcapHits");
       branch = branchName.c_str();
       MuonEndcapHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+      // for tracker-based SD
       MuonEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
       MuonEndcapHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
       MuonEndcapHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
       MuonEndcapHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+      // for calo-based SD
+      // MuonEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
+      // MuonEndcapHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
+      // MuonEndcapHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
+      // MuonEndcapHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
     }
   }
 

@@ -37,7 +37,7 @@
     "hcalEndcapCells": "HCalEndcapReadoutPositioned",
     "hcalEndcapHits": "HCalEndcapReadoutContributions",
     "muonBarrelCells": "MuonTaggerBarrelPhiThetaPositioned",
-    "muonBarrelHits": "MuonTaggerBarrelPhiTheta",
+    "muonBarrelHits": "MuonTaggerBarrelPhiThetaContributions",
     "muonEndcapCells": "MuonTaggerEndcapPhiThetaPositioned",
     "muonEndcapHits": "MuonTaggerEndcapPhiTheta",
     "simParticles": "MCParticles",

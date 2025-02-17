@@ -622,9 +622,9 @@ void EventDisplay::DrawClusters(std::string clusterType)
           if (clus->getEnergyInECalLayer(iLayer) > 0)
           {
             layerBarycenters->SetNextPoint(
-					   clus->getBarycenterInECalLayer(iLayer).X() / cm,
-					   clus->getBarycenterInECalLayer(iLayer).Y() / cm,
-					   clus->getBarycenterInECalLayer(iLayer).Z() / cm);
+                                           clus->getBarycenterInECalLayer(iLayer).X() / cm,
+                                           clus->getBarycenterInECalLayer(iLayer).Y() / cm,
+                                           clus->getBarycenterInECalLayer(iLayer).Z() / cm);
           }
         }
         for (unsigned int iLayer = 0; iLayer < (*clusterData)[icl]->getNLayersHCal(); iLayer++)
@@ -632,9 +632,9 @@ void EventDisplay::DrawClusters(std::string clusterType)
           if (clus->getEnergyInHCalLayer(iLayer) > 0)
           {
             layerBarycenters->SetNextPoint(
-					   clus->getBarycenterInHCalLayer(iLayer).X() / cm,
-					   clus->getBarycenterInHCalLayer(iLayer).Y() / cm,
-					   clus->getBarycenterInHCalLayer(iLayer).Z() / cm);
+                                           clus->getBarycenterInHCalLayer(iLayer).X() / cm,
+                                           clus->getBarycenterInHCalLayer(iLayer).Y() / cm,
+                                           clus->getBarycenterInHCalLayer(iLayer).Z() / cm);
           }
         }
       }
@@ -1176,7 +1176,7 @@ void EventDisplay::loadEvent(int event)
       TEveTrack *track = new TEveTrack(&mct, particles->GetPropagator());
       track->SetAttLineAttMarker(particles);
       track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
-				  p, acos(pz / p), atan2(py, px),
+                                  p, acos(pz / p), atan2(py, px),
                                 x1 / cm, y1 / cm, z1 / cm));
       TEveVectorF v;
       v[0] = (*eventReader->genParticles_endpoint_x)[ip] * mm;
@@ -1184,10 +1184,10 @@ void EventDisplay::loadEvent(int event)
       v[2] = (*eventReader->genParticles_endpoint_z)[ip] * mm;
       cout << v[0] << " " << v[1] << " " << v[2] << endl;
       if ((*eventReader->genParticles_PDG)[ip]==22 ||
-	  (*eventReader->genParticles_PDG)[ip]==111
-	  ) {
-	TEvePathMark mark(TEvePathMark::kDecay, v);
-	track->AddPathMark(mark);
+          (*eventReader->genParticles_PDG)[ip]==111
+          ) {
+        TEvePathMark mark(TEvePathMark::kDecay, v);
+        track->AddPathMark(mark);
       }
       particles->AddElement(track);
     }
@@ -1295,9 +1295,9 @@ void EventDisplay::loadEvent(int event)
       // if (E < HitEnergyThreshold) continue;
       // ULong_t cellID = (*eventReader->VertexBarrelHits_cellID)[i];
       vtxHits->SetNextPoint(
-			    (*eventReader->VertexBarrelHits_position_x)[i] * mm,
-			    (*eventReader->VertexBarrelHits_position_y)[i] * mm,
-			    (*eventReader->VertexBarrelHits_position_z)[i] * mm);
+                            (*eventReader->VertexBarrelHits_position_x)[i] * mm,
+                            (*eventReader->VertexBarrelHits_position_y)[i] * mm,
+                            (*eventReader->VertexBarrelHits_position_z)[i] * mm);
     }
     for (unsigned int i = 0; i < eventReader->VertexEndcapHits_position_x->GetSize(); i++)
     {
@@ -1305,9 +1305,9 @@ void EventDisplay::loadEvent(int event)
       // if (E < HitEnergyThreshold) continue;
       // ULong_t cellID = (*eventReader->VertexEndcapHits_cellID)[i];
       vtxHits->SetNextPoint(
-			    (*eventReader->VertexEndcapHits_position_x)[i] * mm,
-			    (*eventReader->VertexEndcapHits_position_y)[i] * mm,
-			    (*eventReader->VertexEndcapHits_position_z)[i] * mm);
+                            (*eventReader->VertexEndcapHits_position_x)[i] * mm,
+                            (*eventReader->VertexEndcapHits_position_y)[i] * mm,
+                            (*eventReader->VertexEndcapHits_position_z)[i] * mm);
     }
   }
 
@@ -1339,9 +1339,9 @@ void EventDisplay::loadEvent(int event)
       // if (E < HitEnergyThreshold) continue;
       // ULong_t cellID = (*eventReader->DriftChamberHits_cellID)[i];
       dchHits->SetNextPoint(
-			    (*eventReader->DriftChamberHits_position_x)[i] * mm,
-			    (*eventReader->DriftChamberHits_position_y)[i] * mm,
-			    (*eventReader->DriftChamberHits_position_z)[i] * mm);
+                            (*eventReader->DriftChamberHits_position_x)[i] * mm,
+                            (*eventReader->DriftChamberHits_position_y)[i] * mm,
+                            (*eventReader->DriftChamberHits_position_z)[i] * mm);
     }
   }
 
@@ -1372,9 +1372,9 @@ void EventDisplay::loadEvent(int event)
       // if (E < HitEnergyThreshold) continue;
       // ULong_t cellID = (*eventReader->SiWrapperBarrelHits_cellID)[i];
       siwrHits->SetNextPoint(
-			     (*eventReader->SiWrapperBarrelHits_position_x)[i] * mm,
-			     (*eventReader->SiWrapperBarrelHits_position_y)[i] * mm,
-			     (*eventReader->SiWrapperBarrelHits_position_z)[i] * mm);
+                             (*eventReader->SiWrapperBarrelHits_position_x)[i] * mm,
+                             (*eventReader->SiWrapperBarrelHits_position_y)[i] * mm,
+                             (*eventReader->SiWrapperBarrelHits_position_z)[i] * mm);
     }
     for (unsigned int i = 0; i < eventReader->SiWrapperEndcapHits_position_x->GetSize(); i++)
     {
@@ -1382,9 +1382,9 @@ void EventDisplay::loadEvent(int event)
       // if (E < HitEnergyThreshold) continue;
       // ULong_t cellID = (*eventReader->SiWrapperEndcapHits_cellID)[i];
       siwrHits->SetNextPoint(
-			     (*eventReader->SiWrapperEndcapHits_position_x)[i] * mm,
-			     (*eventReader->SiWrapperEndcapHits_position_y)[i] * mm,
-			     (*eventReader->SiWrapperEndcapHits_position_z)[i] * mm);
+                             (*eventReader->SiWrapperEndcapHits_position_x)[i] * mm,
+                             (*eventReader->SiWrapperEndcapHits_position_y)[i] * mm,
+                             (*eventReader->SiWrapperEndcapHits_position_z)[i] * mm);
     }
   }
 
@@ -1443,8 +1443,11 @@ void EventDisplay::loadEvent(int event)
       ecalHits->SetMarkerColor(kRed);
       hits->AddElement(ecalHits);
     }
-    else
-      ecalHits->Reset(); // should probably not do - will remove ecal barrel hits?
+    else {
+      // dont do it if ecal barrel hits are drawn - this was already done before
+      if (not displayConfig.getBoolConfig("drawECalBarrelHits"))
+        ecalHits->Reset();
+    }
     for (unsigned int i = 0; i < eventReader->ECalEndcapHits_position_x->GetSize(); i++)
     {
       float E = (*eventReader->ECalEndcapHits_energy)[i];
@@ -1505,8 +1508,11 @@ void EventDisplay::loadEvent(int event)
       hcalHits->SetMarkerColor(kRed);
       hits->AddElement(hcalHits);
     }
-    else
-      hcalHits->Reset(); // should probably not do - will remove hcal barrel hits?
+    else {
+      // dont do it if hcal barrel hits are drawn - this was already done before
+      if (not displayConfig.getBoolConfig("drawHCalBarrelHits"))
+        hcalHits->Reset();
+    }
     for (unsigned int i = 0; i < eventReader->HCalEndcapHits_position_x->GetSize(); i++)
     {
       float E = (*eventReader->HCalEndcapHits_energy)[i];
@@ -1542,17 +1548,18 @@ void EventDisplay::loadEvent(int event)
       // gEve->AddElement(muonHits);
       hits->AddElement(muonHits);
     }
-    else
+    else {
       muonHits->Reset();
+    }
     for (unsigned int i = 0; i < eventReader->MuonBarrelHits_position_x->GetSize(); i++)
     {
       // float E = (*eventReader->MuonBarrelHits_energy)[i];
       // if (E < HitEnergyThreshold) continue;
       // ULong_t cellID = (*eventReader->MuonBarrelHits_cellID)[i];
       muonHits->SetNextPoint(
-			    (*eventReader->MuonBarrelHits_position_x)[i] * mm,
-			    (*eventReader->MuonBarrelHits_position_y)[i] * mm,
-			    (*eventReader->MuonBarrelHits_position_z)[i] * mm);
+                            (*eventReader->MuonBarrelHits_position_x)[i] * mm,
+                            (*eventReader->MuonBarrelHits_position_y)[i] * mm,
+                            (*eventReader->MuonBarrelHits_position_z)[i] * mm);
     }
     for (unsigned int i = 0; i < eventReader->MuonEndcapHits_position_x->GetSize(); i++)
     {
@@ -1560,9 +1567,9 @@ void EventDisplay::loadEvent(int event)
       // if (E < HitEnergyThreshold) continue;
       // ULong_t cellID = (*eventReader->MuonEndcapHits_cellID)[i];
       muonHits->SetNextPoint(
-			    (*eventReader->MuonEndcapHits_position_x)[i] * mm,
-			    (*eventReader->MuonEndcapHits_position_y)[i] * mm,
-			    (*eventReader->MuonEndcapHits_position_z)[i] * mm);
+                            (*eventReader->MuonEndcapHits_position_x)[i] * mm,
+                            (*eventReader->MuonEndcapHits_position_y)[i] * mm,
+                            (*eventReader->MuonEndcapHits_position_z)[i] * mm);
     }
   }
 
@@ -1616,8 +1623,11 @@ void EventDisplay::loadEvent(int event)
       ecalCells->SetMarkerColor(kYellow);
       digis->AddElement(ecalCells);
     }
-    else
-      ecalCells->Reset();
+    else {
+      // dont do it if ecal barrel cells are drawn - this was already done before
+      if (not displayConfig.getBoolConfig("drawECalBarrelCells"))
+        ecalCells->Reset();
+    }
     for (unsigned int i = 0; i < eventReader->ECalEndcapCells_position_x->GetSize(); i++)
     {
       float E = (*eventReader->ECalEndcapCells_energy)[i];
@@ -1676,8 +1686,11 @@ void EventDisplay::loadEvent(int event)
       hcalCells->SetMarkerColor(kYellow);
       digis->AddElement(hcalCells);
     }
-    else
-      hcalCells->Reset();
+    else {
+      // dont do it if hcal barrel cells are drawn - this was already done before
+      if (not displayConfig.getBoolConfig("drawHCalBarrelCells"))
+        hcalCells->Reset();
+    }
     for (unsigned int i = 0; i < eventReader->HCalEndcapCells_position_x->GetSize(); i++)
     {
       float E = (*eventReader->HCalEndcapCells_energy)[i];
@@ -1953,118 +1966,116 @@ void EventDisplay::startDisplay(int initialEvent)
       {
         TEveElement *a = *itr;
         TString s(a->GetElementName());
-	
-        // std::cout << s << std::endl;
 
-	if (s.Contains("ScreenSol") || s.Contains("CompSol")) {
-	  cout << "Adding " << s << " to MDI" << endl;
+        if (s.Contains("ScreenSol") || s.Contains("CompSol")) {
+          cout << "Adding " << s << " to MDI" << endl;
           mdi->AddElement(a);
-	  ((TEveGeoShape *)a)->SetDrawFrame(false);
-	}
+          ((TEveGeoShape *)a)->SetDrawFrame(false);
+        }
         else if (s.Contains("BeamPipe") || s.Contains("Beampipe")) {
-	  cout << "Adding " << s << " to beampipe" << endl;
+          cout << "Adding " << s << " to beampipe" << endl;
           beampipe->AddElement(a);
-	  ((TEveGeoShape *)a)->SetDrawFrame(false);
-	}
+          ((TEveGeoShape *)a)->SetDrawFrame(false);
+        }
         else if (re_lc.MatchB(s)) {
-	  cout << "Adding " << s << " to lumical" << endl;
+          cout << "Adding " << s << " to lumical" << endl;
           lumical->AddElement(a);
-	  ((TEveGeoShape *)a)->SetDrawFrame(false);
-	}
+          ((TEveGeoShape *)a)->SetDrawFrame(false);
+        }
         else if (s.Contains("Vertex"))
         {
-	  cout << "Found " << s << ", looping over its children" << endl;
+          cout << "Found " << s << ", looping over its children" << endl;
           // for vertex, loop over children to add them either to barrel or endcap
           for (TEveElement::List_i itrVtx = a->BeginChildren(); itrVtx != a->EndChildren(); itrVtx++)
           {
             TEveElement *elVtx = *itrVtx;
             TString sVtx(elVtx->GetElementName());
-	    if (sVtx.Contains("VertexBarrel") or sVtx.Contains("VertexInnerBarrel")) {
-	      if (debug) cout << "Adding " << sVtx << " to vertex barrel" << endl;
+            if (sVtx.Contains("VertexBarrel") or sVtx.Contains("VertexInnerBarrel")) {
+              if (debug) cout << "Adding " << sVtx << " to vertex barrel" << endl;
               // vertexBarrel->AddElement(elVtx);
-	      // elVtx->SetMainColor(kRed);
-	      // rather than the assembly we add directly the layers
-	      for (TEveElement::List_i itr2 = elVtx->BeginChildren(); itr2 != elVtx->EndChildren(); itr2++) {
-		TEveElement *el = *itr2;
-		TString elName(el->GetElementName());
-		vertexBarrel->AddElement(el);
-		el->SetMainColor(kRed);
-		((TEveGeoShape *)el)->SetDrawFrame(false);
-		if (elName.Contains("VertexInnerBarrel"))
-		  ((TEveGeoShape *)el)->SetNSegments(128);
-	      }
-	    }
-	    else if (sVtx.Contains("VertexDisks")) {
-	      if (debug) cout << "Adding " << sVtx << " to vertex endcap" << endl;
+              // elVtx->SetMainColor(kRed);
+              // rather than the assembly we add directly the layers
+              for (TEveElement::List_i itr2 = elVtx->BeginChildren(); itr2 != elVtx->EndChildren(); itr2++) {
+                TEveElement *el = *itr2;
+                TString elName(el->GetElementName());
+                vertexBarrel->AddElement(el);
+                el->SetMainColor(kRed);
+                ((TEveGeoShape *)el)->SetDrawFrame(false);
+                if (elName.Contains("VertexInnerBarrel"))
+                  ((TEveGeoShape *)el)->SetNSegments(128);
+              }
+            }
+            else if (sVtx.Contains("VertexDisks")) {
+              if (debug) cout << "Adding " << sVtx << " to vertex endcap" << endl;
               vertexEndcap->AddElement(elVtx);
-	      elVtx->SetMainColor(kRed);
-	      // rather than the assembly we add directly the layers
-	      //for (TEveElement::List_i itr2 = elVtx->BeginChildren(); itr2 != elVtx->EndChildren(); itr2++) {
-	      //TEveElement *el = *itr2;
-	      //vertexEndcap->AddElement(el);
-	      //el->SetMainColor(kRed);
-	      //((TEveGeoShape *)el)->SetDrawFrame(false);
-	      //}	      
-	    }
+              elVtx->SetMainColor(kRed);
+              // rather than the assembly we add directly the layers
+              //for (TEveElement::List_i itr2 = elVtx->BeginChildren(); itr2 != elVtx->EndChildren(); itr2++) {
+              //TEveElement *el = *itr2;
+              //vertexEndcap->AddElement(el);
+              //el->SetMainColor(kRed);
+              //((TEveGeoShape *)el)->SetDrawFrame(false);
+              //}
+            }
             else
               std::cout << "Unexpected volume: " << sVtx << std::endl;
           }
         }
         else if (re_dch.MatchB(s))
         {
-	  cout << "Adding " << s << " to drift chamber" << endl;
+          cout << "Adding " << s << " to drift chamber" << endl;
           dch->AddElement(a);
           a->SetRnrSelfChildren(true, false);
-	  a->SetMainTransparency(useTransparencies ? 60 : 0);
-	  //a->SetMainTransparency(0);
-	  a->SetMainColor(kGreen-5);
+          a->SetMainTransparency(useTransparencies ? 60 : 0);
+          //a->SetMainTransparency(0);
+          a->SetMainColor(kGreen-5);
           ((TEveGeoShape *)a)->SetNSegments(128);
-	  ((TEveGeoShape *)a)->SetDrawFrame(false);
+          ((TEveGeoShape *)a)->SetDrawFrame(false);
         }
         else if (re_siwrapb.MatchB(s))
         {
-	  cout << "Adding " << s << " to Si-wrapper barrel" << endl;
-	  // rather than the assembly we add directly the layers
-	  for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++) {
+          cout << "Adding " << s << " to Si-wrapper barrel" << endl;
+          // rather than the assembly we add directly the layers
+          for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++) {
             TEveElement *el = *itr2;
-	    siwrapb->AddElement(el);
-	    el->SetRnrSelfChildren(true, false);
-	    el->SetMainTransparency(useTransparencies ? 60 : 0);
-	    el->SetMainColor(kRed);
-	    ((TEveGeoShape *)el)->SetNSegments(128);
-	    ((TEveGeoShape *)el)->SetDrawFrame(false);
-	  }
+            siwrapb->AddElement(el);
+            el->SetRnrSelfChildren(true, false);
+            el->SetMainTransparency(useTransparencies ? 60 : 0);
+            el->SetMainColor(kRed);
+            ((TEveGeoShape *)el)->SetNSegments(128);
+            ((TEveGeoShape *)el)->SetDrawFrame(false);
+          }
         }
         else if (re_siwrapec.MatchB(s))
         {
-	  cout << "Adding " << s << " to Si-wrapper endcap" << endl;
-	  // rather than the appendix we add directly the layers
-	  for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++) {
+          cout << "Adding " << s << " to Si-wrapper endcap" << endl;
+          // rather than the appendix we add directly the layers
+          for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++) {
             TEveElement *el = *itr2;
-	    siwrapec->AddElement(el);
-	    el->SetRnrSelfChildren(true, false);
-	    el->SetMainTransparency(useTransparencies ? 60 : 0);
-	    el->SetMainColor(kRed);
-	    ((TEveGeoShape *)el)->SetNSegments(128);
-	    ((TEveGeoShape *)el)->SetDrawFrame(false);
-	  }
+            siwrapec->AddElement(el);
+            el->SetRnrSelfChildren(true, false);
+            el->SetMainTransparency(useTransparencies ? 60 : 0);
+            el->SetMainColor(kRed);
+            ((TEveGeoShape *)el)->SetNSegments(128);
+            ((TEveGeoShape *)el)->SetDrawFrame(false);
+          }
         }
         else if (re_ecalb.MatchB(s))
         {
-	  cout << "Adding " << s << " to ECal barrel" << endl;
-	  // add the overall envelope
-	  // we draw the envelope in the 3d model,
-	  // and the volumes in the 2D views
-          ecalb->AddElement(a);	  
+          cout << "Adding " << s << " to ECal barrel" << endl;
+          // add the overall envelope
+          // we draw the envelope in the 3d model,
+          // and the volumes in the 2D views
+          ecalb->AddElement(a);
           //a->SetRnrSelfChildren(false, true);
-	  a->SetRnrSelfChildren(true, false);
-	  a->SetMainColor(kAzure+7);
-	  a->SetMainTransparency(useTransparencies ? 60 : 0);
-	  ((TEveGeoShape *)a)->SetDrawFrame(false);
+          a->SetRnrSelfChildren(true, false);
+          a->SetMainColor(kAzure+7);
+          a->SetMainTransparency(useTransparencies ? 60 : 0);
+          ((TEveGeoShape *)a)->SetDrawFrame(false);
           for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
           {
             TEveElement *el = *itr2;
-	    el->SetMainColor(kAzure+7);
+            el->SetMainColor(kAzure+7);
             TString elname(el->GetElementName());
             std::cout << elname << std::endl;
             el->SetRnrSelfChildren(false, false);
@@ -2072,32 +2083,32 @@ void EventDisplay::startDisplay(int initialEvent)
               el->SetRnrSelfChildren(false, false);
             else
               el->SetRnrSelfChildren(true, false);
-	    el->SetMainTransparency(useTransparencies ? 60 : 0);
+            el->SetMainTransparency(useTransparencies ? 60 : 0);
             ((TEveGeoShape *)el)->SetNSegments(128);
-	    ((TEveGeoShape *)el)->SetDrawFrame(false);
+            ((TEveGeoShape *)el)->SetDrawFrame(false);
           }
         }
         else if (s.Contains("ECalEndcaps"))
-	{
-	  cout << "Adding " << s << " to ECal endcap" << endl;
-	  // add the two envelopes in the two sides
+        {
+          cout << "Adding " << s << " to ECal endcap" << endl;
+          // add the two envelopes in the two sides
           ecalec->AddElement(a);
           a->SetRnrSelfChildren(true, false);
-	  a->SetMainColor(kAzure+7);
+          a->SetMainColor(kAzure+7);
           a->SetMainTransparency(useTransparencies ? 60 : 0);
-	  ((TEveGeoShape *)a)->SetDrawFrame(false);
+          ((TEveGeoShape *)a)->SetDrawFrame(false);
         }
         else if (re_hcalb.MatchB(s))
         {
-	  cout << "Adding " << s << " to HCal barrel" << endl;
+          cout << "Adding " << s << " to HCal barrel" << endl;
           hcalb->AddElement(a);
           // for the HCal barrel, we draw the envelope in the 3d model,
-	  // and the subvolumes in the 2D views
+          // and the subvolumes in the 2D views
           a->SetRnrSelfChildren(true, false);
-	  a->SetMainTransparency(useTransparencies ? 60 : 0);
-	  a->SetMainColor(kAzure-7);
+          a->SetMainTransparency(useTransparencies ? 60 : 0);
+          a->SetMainColor(kAzure-7);
           ((TEveGeoShape *)a)->SetNSegments(128);
-	  ((TEveGeoShape *)a)->SetDrawFrame(false);
+          ((TEveGeoShape *)a)->SetDrawFrame(false);
 
           //a->SetRnrSelfChildren(false, true);
           for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
@@ -2105,57 +2116,57 @@ void EventDisplay::startDisplay(int initialEvent)
             TEveElement *el = *itr2;
             TString elname(el->GetElementName());
             //el->SetRnrSelfChildren(true, false);
-	    el->SetMainColor(kAzure-7);
-	    el->SetMainTransparency(useTransparencies ? 60 : 0);
+            el->SetMainColor(kAzure-7);
+            el->SetMainTransparency(useTransparencies ? 60 : 0);
             ((TEveGeoShape *)el)->SetNSegments(128);
-	    ((TEveGeoShape *)el)->SetDrawFrame(false);
+            ((TEveGeoShape *)el)->SetDrawFrame(false);
           }
         }
         else if (re_hcalec.MatchB(s))
         {
-	  cout << "Adding " << s << " to HCal endcap" << endl;
+          cout << "Adding " << s << " to HCal endcap" << endl;
           hcalec->AddElement(a);
           // for the HCal endcap, we draw the envelope in the 3d model,
-	  // and the volumes in the 2D views
-	  a->SetRnrSelfChildren(true, false);
+          // and the volumes in the 2D views
+          a->SetRnrSelfChildren(true, false);
           //a->SetRnrSelfChildren(false, true);
-	  a->SetMainColor(kAzure-7);
+          a->SetMainColor(kAzure-7);
           a->SetMainTransparency(useTransparencies ? 60 : 0);
-	  ((TEveGeoShape *)a)->SetDrawFrame(false);
+          ((TEveGeoShape *)a)->SetDrawFrame(false);
           for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
           {
             TEveElement *el = *itr2;
             TString elname(el->GetElementName());
             // el->SetRnrSelfChildren(true, false);
-	    el->SetMainColor(kAzure-7);
-	    el->SetMainTransparency(useTransparencies ? 60 : 0);
-	    ((TEveGeoShape *)el)->SetDrawFrame(false);
+            el->SetMainColor(kAzure-7);
+            el->SetMainTransparency(useTransparencies ? 60 : 0);
+            ((TEveGeoShape *)el)->SetDrawFrame(false);
           }
         }
         else if (re_muonb.MatchB(s))
         {
-	  cout << "Adding " << s << " to Muon tagger barrel" << endl;
+          cout << "Adding " << s << " to Muon tagger barrel" << endl;
           muontaggerb->AddElement(a);
           a->SetRnrSelfChildren(true, false);
           a->SetMainTransparency(useTransparencies ? 60 : 0);
-	  a->SetMainColor(kOrange);
+          a->SetMainColor(kOrange);
           ((TEveGeoShape *)a)->SetNSegments(128);
-	  ((TEveGeoShape *)a)->SetDrawFrame(false);
+          ((TEveGeoShape *)a)->SetDrawFrame(false);
         }
         else if (re_muonec.MatchB(s))
         {
-	  cout << "Adding " << s << " to Muon tagger endcap" << endl;
+          cout << "Adding " << s << " to Muon tagger endcap" << endl;
           muontaggerec->AddElement(a);
           a->SetRnrSelfChildren(true, false);
-	  a->SetMainColor(kOrange);
-	  a->SetMainTransparency(useTransparencies ? 60 : 0);
-	  ((TEveGeoShape *)a)->SetDrawFrame(false);
+          a->SetMainColor(kOrange);
+          a->SetMainTransparency(useTransparencies ? 60 : 0);
+          ((TEveGeoShape *)a)->SetDrawFrame(false);
         }
         else
-	{
-	  std::cout << "Unexpected volume: " << s << std::endl;
+        {
+          std::cout << "Unexpected volume: " << s << std::endl;
           geom->AddElement(a);
-	}
+        }
       }
     }
     else
@@ -2539,28 +2550,28 @@ void EventDisplay::startDisplay(int initialEvent)
       {
         TEveElement *a = *itr;
         TString s(a->GetElementName());
-	// do not draw endcap volumes
+        // do not draw endcap volumes
         if (s.Contains("endcap"))
           a->SetRnrSelfChildren(false, false);
 
         // turn off the envelopes of the vertex barrel
-	else if (s.BeginsWith("Vertex barrel")) {
-	  a->SetRnrSelfChildren(false, true);
-	  for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
-	    TEveElement *b = *itr;
-	    TString s(b->GetElementName());
-	    if (s.Contains("assembly")) {
-	      b->SetRnrSelfChildren(false, true);
-	    }
-	  }
-	}
+        else if (s.BeginsWith("Vertex barrel")) {
+          a->SetRnrSelfChildren(false, true);
+          for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
+            TEveElement *b = *itr;
+            TString s(b->GetElementName());
+            if (s.Contains("assembly")) {
+              b->SetRnrSelfChildren(false, true);
+            }
+          }
+        }
 
-	// show active volumes in ecal barrel
+        // show active volumes in ecal barrel
         else if (s.BeginsWith("ECal barrel"))
         {
           TPRegexp re("ECalBarrel_vol_(\\w+)");
           TEveElement *projbarrel = a->FindChild(re);
-	  projbarrel->SetRnrSelfChildren(false, true);
+          projbarrel->SetRnrSelfChildren(false, true);
           TPRegexp rebath("LAr_bath(\\w+)");
           TEveElement *projbath = projbarrel->FindChild(rebath);
           if (projbath)
@@ -2580,27 +2591,27 @@ void EventDisplay::startDisplay(int initialEvent)
             }
           }
         }
-	// show layers in HCAL barrel
-	else if (s.BeginsWith("HCal barrel"))
+        // show layers in HCAL barrel
+        else if (s.BeginsWith("HCal barrel"))
         {
-	  TPRegexp re("HCalEnvelopeVolume*");
-	  TEveElement *envelope = a->FindChild(re);
+          TPRegexp re("HCalEnvelopeVolume*");
+          TEveElement *envelope = a->FindChild(re);
           envelope->SetRnrSelfChildren(false, true);
-	  // envelope->SetMainColor(kAzure-7);
-	  ((TEveGeoShape *)envelope)->SetDrawFrame(false);
+          // envelope->SetMainColor(kAzure-7);
+          ((TEveGeoShape *)envelope)->SetDrawFrame(false);
           for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
           {
             TEveElement *el = *itr2;
             TString elname(el->GetElementName());
             el->SetRnrSelfChildren(true, false);
-	    // el->SetMainColor(kAzure-7);
-	    // el->SetMainTransparency(useTransparencies ? 60 : 0);
-	    // TEveGeoShape* gs = (TEveGeoShape *)el;
-	    // if (gs) {
-	    //   gs->SetDrawFrame(false);
-	    // }
+            // el->SetMainColor(kAzure-7);
+            // el->SetMainTransparency(useTransparencies ? 60 : 0);
+            // TEveGeoShape* gs = (TEveGeoShape *)el;
+            // if (gs) {
+            //   gs->SetDrawFrame(false);
+            // }
           }
-	}
+        }
       }
     }
   }
@@ -2784,55 +2795,55 @@ void EventDisplay::startDisplay(int initialEvent)
     if (showFullDetector && element)
     {
       for (TEveElement::List_i itr = element->BeginChildren(); itr != element->EndChildren(); itr++) {
-	TEveElement *a = *itr;
-	TString s(a->GetElementName());
+        TEveElement *a = *itr;
+        TString s(a->GetElementName());
 
-	// MDI, beampipe, lumical can be enabled
-	if (s.BeginsWith("MDI") || s.BeginsWith("Beampipe") || s.BeginsWith("LumiCal")) {
-	  a->SetRnrSelfChildren(true, true);
-	}
-	// turn off the envelopes of the vertex barrel
-	else if (s.BeginsWith("Vertex barrel")) {
-	  a->SetRnrSelfChildren(false, true);
-	  for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
-	    TEveElement *b = *itr;
-	    TString s(b->GetElementName());
-	    if (s.Contains("assembly")) {
-	      b->SetRnrSelfChildren(false, true);
-	    }
-	  }
-	}
-	// show vessel and gas for DCH
-	else if (s.BeginsWith("Drift chamber")) {
-	  a->SetRnrSelfChildren(false, true);
-	  for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
-	    TEveElement *b = *itr;
-	    b->SetRnrSelfChildren(true, false);
-	    b->SetMainColor(kGreen-5);
-	    ((TEveGeoShape *)b)->SetDrawFrame(false);
-	  }
-	}	
-	// turn off the Si wrapper endcap envelope since it does not render well
-	// instead show its daughter volume instead
-	else if (s.BeginsWith("Si wrapper endcap")) {
-	  a->SetRnrSelfChildren(false, true);
-	  for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
-	    TEveElement *b = *itr;
-	    TString s(b->GetElementName());
-	    if (s.BeginsWith("SiWrD_envelope")) {
-	      b->SetRnrSelfChildren(false, true);
-	      for (TEveElement::List_i itr = b->BeginChildren(); itr != b->EndChildren(); itr++) {
-		TEveElement *c = *itr;
-		c->SetRnrSelfChildren(true, false);
-	      }
-	    }
-	  }
-	}
-	// ECAL barrel
-	else if (s.BeginsWith("ECal barrel")) {
-	  TPRegexp re("ECalBarrel_vol_(\\w+)");
+        // MDI, beampipe, lumical can be enabled
+        if (s.BeginsWith("MDI") || s.BeginsWith("Beampipe") || s.BeginsWith("LumiCal")) {
+          a->SetRnrSelfChildren(true, true);
+        }
+        // turn off the envelopes of the vertex barrel
+        else if (s.BeginsWith("Vertex barrel")) {
+          a->SetRnrSelfChildren(false, true);
+          for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
+            TEveElement *b = *itr;
+            TString s(b->GetElementName());
+            if (s.Contains("assembly")) {
+              b->SetRnrSelfChildren(false, true);
+            }
+          }
+        }
+        // show vessel and gas for DCH
+        else if (s.BeginsWith("Drift chamber")) {
+          a->SetRnrSelfChildren(false, true);
+          for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
+            TEveElement *b = *itr;
+            b->SetRnrSelfChildren(true, false);
+            b->SetMainColor(kGreen-5);
+            ((TEveGeoShape *)b)->SetDrawFrame(false);
+          }
+        }
+        // turn off the Si wrapper endcap envelope since it does not render well
+        // instead show its daughter volume instead
+        else if (s.BeginsWith("Si wrapper endcap")) {
+          a->SetRnrSelfChildren(false, true);
+          for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
+            TEveElement *b = *itr;
+            TString s(b->GetElementName());
+            if (s.BeginsWith("SiWrD_envelope")) {
+              b->SetRnrSelfChildren(false, true);
+              for (TEveElement::List_i itr = b->BeginChildren(); itr != b->EndChildren(); itr++) {
+                TEveElement *c = *itr;
+                c->SetRnrSelfChildren(true, false);
+              }
+            }
+          }
+        }
+        // ECAL barrel
+        else if (s.BeginsWith("ECal barrel")) {
+          TPRegexp re("ECalBarrel_vol_(\\w+)");
           TEveElement *projbarrel = a->FindChild(re);
-	  projbarrel->SetMainTransparency(useTransparencies ? 60 : 0);
+          projbarrel->SetMainTransparency(useTransparencies ? 60 : 0);
           TPRegexp rebath("LAr_bath(\\w+)");
           TEveElement *projbath = projbarrel->FindChild(rebath);
           if (projbath) {
@@ -2843,23 +2854,23 @@ void EventDisplay::startDisplay(int initialEvent)
               if (s2.BeginsWith("passive_") || s2.BeginsWith("PCB_"))
                 el->SetRnrSelfChildren(false, false);
             }
-	  }
-	}
-	// HCAL endcap - do not draw the envelope
-	else if (s.BeginsWith("HCal endcap"))
+          }
+        }
+        // HCAL endcap - do not draw the envelope
+        else if (s.BeginsWith("HCal endcap"))
         {
-	  TPRegexp re("HCalThreePartsEndcap*");
-	  TEveElement *envelope = a->FindChild(re);
+          TPRegexp re("HCalThreePartsEndcap*");
+          TEveElement *envelope = a->FindChild(re);
           envelope->SetRnrSelfChildren(false, true);
-	  // envelope->SetMainColor(kAzure-7);
-	  ((TEveGeoShape *)envelope)->SetDrawFrame(false);
+          // envelope->SetMainColor(kAzure-7);
+          ((TEveGeoShape *)envelope)->SetDrawFrame(false);
           for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
           {
             TEveElement *el = *itr2;
             TString elname(el->GetElementName());
             el->SetRnrSelfChildren(true, false);
           }
-	}
+        }
       }
     }
   }
