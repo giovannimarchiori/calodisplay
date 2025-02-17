@@ -380,13 +380,13 @@ void EventReader::SetBranches()
       const char* branch = branchName.c_str();
       if (branchName == "") {
         std::cout << "WARNING: hcalBarrelHits not set, disabling hcal barrel hits" << std::endl;
-        displayConfig.setBoolConfig("drawHcalBarrelHits", false);
+        displayConfig.setBoolConfig("drawHCalBarrelHits", false);
       }
       else {
         if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
         {
           std::cout << "WARNING: branch " << branch << ".energy not found, disabling hcal barrel hits" << std::endl;
-          displayConfig.setBoolConfig("drawHcalBarrelHits", false);
+          displayConfig.setBoolConfig("drawHCalBarrelHits", false);
           displayConfig.setStringConfig("hcalBarrelHits", "");
         }
         else
@@ -406,13 +406,13 @@ void EventReader::SetBranches()
       const char* branch = branchName.c_str();
       if (branchName == "") {
        std::cout << "WARNING: hcalBarrelCells not set, disabling hcal barrel cells" << std::endl;
-        displayConfig.setBoolConfig("drawHcalBarrelCells", false);
+        displayConfig.setBoolConfig("drawHCalBarrelCells", false);
       }
       else {
         if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
         {
           std::cout << "WARNING: branch " << branch << ".cellID not found, disabling hcal barrel cells" << std::endl;
-          displayConfig.setBoolConfig("drawHcalBarrelCells", false);
+          displayConfig.setBoolConfig("drawHCalBarrelCells", false);
           displayConfig.setStringConfig("hcalBarrelCells", "");
         }
         else
@@ -433,13 +433,13 @@ void EventReader::SetBranches()
       const char* branch = branchName.c_str();
       if (branchName == "") {
         std::cout << "WARNING: hcalEndcapHits not set, disabling hcal endcap hits" << std::endl;
-        displayConfig.setBoolConfig("drawHcalEndcapHits", false);
+        displayConfig.setBoolConfig("drawHCalEndcapHits", false);
       }
       else {
         if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
         {
           std::cout << "WARNING: branch " << branch << ".energy not found, disabling hcal endcap hits" << std::endl;
-          displayConfig.setBoolConfig("drawHcalEndcapHits", false);
+          displayConfig.setBoolConfig("drawHCalEndcapHits", false);
           displayConfig.setStringConfig("hcalEndcapHits", "");
         }
         else
@@ -459,13 +459,13 @@ void EventReader::SetBranches()
       const char* branch = branchName.c_str();
       if (branchName == "") {
        std::cout << "WARNING: hcalEndcapCells not set, disabling hcal endcap cells" << std::endl;
-        displayConfig.setBoolConfig("drawHcalEndcapCells", false);
+        displayConfig.setBoolConfig("drawHCalEndcapCells", false);
       }
       else {
         if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
         {
           std::cout << "WARNING: branch " << branch << ".cellID not found, disabling hcal endcap cells" << std::endl;
-          displayConfig.setBoolConfig("drawHcalEndcapCells", false);
+          displayConfig.setBoolConfig("drawHCalEndcapCells", false);
           displayConfig.setStringConfig("hcalEndcapCells", "");
         }
         else
