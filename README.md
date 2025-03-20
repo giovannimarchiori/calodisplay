@@ -18,7 +18,7 @@ Compile:
 make
 ```
 
-Download detector model file:
+Download detector model file and an example event file:
 ```
 source getdata.sh
 ```
@@ -32,7 +32,7 @@ source setup.sh
 
 Execute with e.g.
 ```
-calodisplay -g data/allegro_o1_v03.root  -e events.root -c config.json --fulldet
+calodisplay -g data/allegro_o1_v03.root  -e data/<events.root> -c config.json --fulldet --dohcal --doendcap
 ```
 Execute with `calodisplay -h` to see available options
 

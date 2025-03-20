@@ -44,10 +44,6 @@ public:
   const double rMax = 257.83*cm;
 
   // endcap
-  // looking at the event display
-  const double zMinEndCap = 3160.*mm;
-  const double zMaxEndCap = 3810.*mm;
-  // in DectDimension
   const double zMinEndCap = 3200.*mm;
   const double zMaxEndCap = 3850.*mm;
   

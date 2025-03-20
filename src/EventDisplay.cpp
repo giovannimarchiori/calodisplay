@@ -33,7 +33,7 @@
 #include <unordered_map>
 #include <iostream>
 
-const bool debug = true;
+const bool debug = false;
 
 // return the sign of a float
 int sgn(float val)
