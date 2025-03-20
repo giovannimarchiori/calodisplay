@@ -105,27 +105,42 @@ public:
   /******************************************************************************/
   // ELEMENTS OF THE EVENT DISPLAY
   /******************************************************************************/
+  // MC particles
   TEveTrackList *particles = nullptr;
+  // Reconstructed tracks
+  TEveTrackList *tracks = nullptr;
+  
+  // Sim hits
   TEvePointSet *vtxHits = nullptr;
   TEvePointSet *dchHits = nullptr;
   TEvePointSet *siwrHits = nullptr;
   TEvePointSet *ecalHits = nullptr;
   TEvePointSet *hcalHits = nullptr;
   TEvePointSet *muonHits = nullptr;
+  // Digitised hits
+  TEvePointSet *vtxDigis = nullptr;
+  TEvePointSet *dchDigis = nullptr;
+  TEvePointSet *siwrDigis = nullptr;
   TEvePointSet *ecalCells = nullptr;
   TEvePointSet *hcalCells = nullptr;
   TEvePointSet *muonCells = nullptr;
   TEvePointSet *cells_merged = nullptr;
+
+  // calorimeter cluster barycenters
   TEvePointSet *topoclustersCenter = nullptr;
   TEvePointSet *swclustersCenter = nullptr;
+
+  // clusters (only works for ecal barrel, needs calculation of geometry for other detectors)
   TEveElementList *topoclusters_rhoz = nullptr;
   TEveElementList *topoclusters_rhophi = nullptr;
   TEveElementList *swclusters_rhoz = nullptr;
   TEveElementList *swclusters_rhophi = nullptr;
   TEveElementList *topoclusters_3D = nullptr;
   TEveElementList *swclusters_3D = nullptr;
+
   TEveElementList *hits = nullptr;
   TEveElementList *digis = nullptr;
+  
   TEveGeoShape *ecalbarrel = nullptr;
   TEveElementList *ecalendcap = nullptr;
   TEveGeoShape *hcalbarrel = nullptr;
