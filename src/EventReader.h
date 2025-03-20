@@ -68,6 +68,20 @@ public:
   TTreeReaderArray<Double_t> *SimParticleSecondaries_momentum_y = nullptr;
   TTreeReaderArray<Double_t> *SimParticleSecondaries_momentum_z = nullptr;
 
+  // the tracks
+  TTreeReaderArray<UInt_t> *TracksFromGenParticles_trackStates_begin = nullptr;
+  TTreeReaderArray<UInt_t> *TracksFromGenParticles_trackStates_end = nullptr;
+  TTreeReaderArray<UInt_t> *TracksFromGenParticles_subdetectorHitNumbers_begin = nullptr;
+  TTreeReaderArray<UInt_t> *TracksFromGenParticles_subdetectorHitNumbers_end = nullptr;
+  TTreeReaderArray<Int_t> *_TracksFromGenParticles_trackStates_location = nullptr;
+  TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_omega = nullptr;
+  TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_phi = nullptr;
+  TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_tanLambda = nullptr;
+  TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_referencePoint_x = nullptr;
+  TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_referencePoint_y = nullptr;
+  TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_referencePoint_z = nullptr;
+  TTreeReaderArray<UInt_t> *_TracksFromGenParticles_subdetectorHitNumbers = nullptr;
+  
   // the hits in the vertex (barrel)
   TTreeReaderArray<ULong_t> *VertexBarrelHits_cellID = nullptr;
   TTreeReaderArray<Float_t> *VertexBarrelHits_energy = nullptr;
@@ -103,7 +117,44 @@ public:
   TTreeReaderArray<Double_t> *SiWrapperEndcapHits_position_y = nullptr;
   TTreeReaderArray<Double_t> *SiWrapperEndcapHits_position_z = nullptr;
 
-  // the hits in ECal barrel
+
+  // the digis in the vertex (barrel)
+  TTreeReaderArray<ULong_t> *VertexBarrelDigis_cellID = nullptr;
+  TTreeReaderArray<Float_t> *VertexBarrelDigis_energy = nullptr;
+  TTreeReaderArray<Double_t> *VertexBarrelDigis_position_x = nullptr;
+  TTreeReaderArray<Double_t> *VertexBarrelDigis_position_y = nullptr;
+  TTreeReaderArray<Double_t> *VertexBarrelDigis_position_z = nullptr;
+
+  // the digis in the vertex (endcap)
+  TTreeReaderArray<ULong_t> *VertexEndcapDigis_cellID = nullptr;
+  TTreeReaderArray<Float_t> *VertexEndcapDigis_energy = nullptr;
+  TTreeReaderArray<Double_t> *VertexEndcapDigis_position_x = nullptr;
+  TTreeReaderArray<Double_t> *VertexEndcapDigis_position_y = nullptr;
+  TTreeReaderArray<Double_t> *VertexEndcapDigis_position_z = nullptr;
+
+  // the digis in the DCH
+  TTreeReaderArray<ULong_t> *DriftChamberDigis_cellID = nullptr;
+  TTreeReaderArray<Float_t> *DriftChamberDigis_energy = nullptr;
+  TTreeReaderArray<Double_t> *DriftChamberDigis_position_x = nullptr;
+  TTreeReaderArray<Double_t> *DriftChamberDigis_position_y = nullptr;
+  TTreeReaderArray<Double_t> *DriftChamberDigis_position_z = nullptr;
+
+  // the digis in the Si wrapper (barrel)
+  TTreeReaderArray<ULong_t> *SiWrapperBarrelDigis_cellID = nullptr;
+  TTreeReaderArray<Float_t> *SiWrapperBarrelDigis_energy = nullptr;
+  TTreeReaderArray<Double_t> *SiWrapperBarrelDigis_position_x = nullptr;
+  TTreeReaderArray<Double_t> *SiWrapperBarrelDigis_position_y = nullptr;
+  TTreeReaderArray<Double_t> *SiWrapperBarrelDigis_position_z = nullptr;
+
+  // the digis in the Si wrapper (endcap)
+  TTreeReaderArray<ULong_t> *SiWrapperEndcapDigis_cellID = nullptr;
+  TTreeReaderArray<Float_t> *SiWrapperEndcapDigis_energy = nullptr;
+  TTreeReaderArray<Double_t> *SiWrapperEndcapDigis_position_x = nullptr;
+  TTreeReaderArray<Double_t> *SiWrapperEndcapDigis_position_y = nullptr;
+  TTreeReaderArray<Double_t> *SiWrapperEndcapDigis_position_z = nullptr;
+
+
+  // the digis in ECal barrel
   TTreeReaderArray<Float_t> *ECalBarrelHits_energy = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelHits_position_x = nullptr;
   TTreeReaderArray<Float_t> *ECalBarrelHits_position_y = nullptr;

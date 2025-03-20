@@ -43,16 +43,24 @@ public:
   const double rMin = 217.28*cm;
   const double rMax = 257.83*cm;
 
-  // nominal radial thickness of layers
+  // endcap
+  // looking at the event display
+  const double zMinEndCap = 3160.*mm;
+  const double zMaxEndCap = 3810.*mm;
+  // in DectDimension
+  const double zMinEndCap = 3200.*mm;
+  const double zMaxEndCap = 3850.*mm;
+  
+  // nominal radial thickness of layers in barrel
   std::vector<double> drNom;
   
-  // number of layers
+  // number of layers in barrel
   int nLayers;
   
-  // number of electrodes ECAL
+  // number of electrodes ECAL barrel
   const int nModules = 1536;
   
-  // inclination angle of electrodes
+  // inclination angle of electrodes in ECAL barrel
   double alpha = 50*TMath::Pi()/180.;
   
   // grid in theta

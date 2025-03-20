@@ -91,6 +91,40 @@ void EventReader::SetBranches()
     }
   }
 
+  // reconstructed tracks
+  if (displayConfig.getBoolConfig("drawTracks"))
+  {
+    std::string branchName = displayConfig.getStringConfig("tracks");
+    const char* branch = branchName.c_str();
+    if (branchName == "") {
+      std::cout << "WARNING: tracks not set, disabling tracks" << std::endl;
+      displayConfig.setBoolConfig("drawTracks", false);
+    }
+    else {
+      if (! fReader->GetTree()->FindBranch(Form("%s.trackStates_begin", branch)))
+      {
+        std::cout << "WARNING: branch " << branch << ".trackStates_begin not found, disabling tracks" << std::endl;
+        displayConfig.setBoolConfig("drawTracks", false);
+        displayConfig.setStringConfig("tracks", "");
+      }
+      else
+      {
+	TracksFromGenParticles_trackStates_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.trackStates_begin", branch));
+	TracksFromGenParticles_trackStates_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.trackStates_end", branch));
+	TracksFromGenParticles_subdetectorHitNumbers_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.subdetectorHitNumbers_begin", branch));
+	TracksFromGenParticles_subdetectorHitNumbers_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.subdetectorHitNumbers_end", branch));
+	_TracksFromGenParticles_trackStates_location = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_trackStates.location", branch));
+	_TracksFromGenParticles_trackStates_omega = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.omega", branch));
+	_TracksFromGenParticles_trackStates_phi = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.phi", branch));
+	_TracksFromGenParticles_trackStates_tanLambda = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.tanLambda", branch));
+	_TracksFromGenParticles_trackStates_referencePoint_x = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.x", branch));
+	_TracksFromGenParticles_trackStates_referencePoint_y = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.y", branch));
+	_TracksFromGenParticles_trackStates_referencePoint_z = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.z", branch));
+	_TracksFromGenParticles_subdetectorHitNumbers = new TTreeReaderArray<UInt_t>(*fReader, Form("_%s_subdetectorHitNumbers", branch));
+      }
+    }
+  }
+
   // hits in vertex detector
   if (displayConfig.getBoolConfig("drawVertexHits"))
   {
@@ -233,6 +267,151 @@ void EventReader::SetBranches()
       SiWrapperEndcapHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
       SiWrapperEndcapHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
       SiWrapperEndcapHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+    }
+  }
+
+  // digis in vertex detector
+  if (displayConfig.getBoolConfig("drawVertexDigis"))
+  {
+    // check that branch name for inner barrel is set and branch exists
+    std::string branchName = displayConfig.getStringConfig("vertexBarrelDigis");
+    if (branchName == "") {
+      std::cout << "WARNING: vertexBarrelDigis not set, disabling vertex digis" << std::endl;
+      displayConfig.setBoolConfig("drawVertexDigis", false);
+      displayConfig.setStringConfig("vertexEndcapDigis", "");
+    }
+    else {
+      const char* branch = branchName.c_str();
+      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      {
+        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex digis" << std::endl;
+        displayConfig.setBoolConfig("drawVertexDigis", false);
+        displayConfig.setStringConfig("vertexBarrelDigis", "");
+        displayConfig.setStringConfig("vertexEndcapDigis", "");
+      }
+    }
+
+    // check that branch name for endcap is set and branch exists
+    branchName = displayConfig.getStringConfig("vertexEndcapDigis");
+    if (branchName == "") {
+      std::cout << "WARNING: vertexEndcapDigis not set, disabling vertex digis" << std::endl;
+      displayConfig.setBoolConfig("drawVertexDigis", false);
+      displayConfig.setStringConfig("vertexBarrelDigis", "");
+    }
+    else {
+      const char* branch = branchName.c_str();
+      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      {
+        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex digis" << std::endl;
+        displayConfig.setBoolConfig("drawVertexDigis", false);
+        displayConfig.setStringConfig("vertexBarrelDigis", "");
+        displayConfig.setStringConfig("vertexEndcapDigis", "");
+      }
+    }
+
+    // read the branches
+    if (displayConfig.getBoolConfig("drawVertexDigis")) {
+      branchName = displayConfig.getStringConfig("vertexBarrelDigis");
+      const char* branch = branchName.c_str();
+      VertexBarrelDigis_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+      VertexBarrelDigis_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+      VertexBarrelDigis_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+      VertexBarrelDigis_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+      VertexBarrelDigis_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+
+      branchName = displayConfig.getStringConfig("vertexEndcapDigis");
+      branch = branchName.c_str();
+      VertexEndcapDigis_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+      VertexEndcapDigis_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+      VertexEndcapDigis_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+      VertexEndcapDigis_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+      VertexEndcapDigis_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+    }
+  }
+
+  // digis in drift chamber
+  if (displayConfig.getBoolConfig("drawDriftChamberDigis"))
+  {
+    std::string branchName = displayConfig.getStringConfig("driftChamberDigis");
+    const char* branch = branchName.c_str();
+    if (branchName == "") {
+      std::cout << "WARNING: driftChamberDigis not set, disabling drift chamber digis" << std::endl;
+      displayConfig.setBoolConfig("drawDriftChamberDigis", false);
+    }
+    else {
+      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      {
+        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling drift chamber digis" << std::endl;
+        displayConfig.setBoolConfig("drawDriftChamberDigis", false);
+        displayConfig.setStringConfig("driftChamberDigis", "");
+      }
+      else
+      {
+        DriftChamberDigis_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+        DriftChamberDigis_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+        DriftChamberDigis_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+        DriftChamberDigis_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+        DriftChamberDigis_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+      }
+    }
+  }
+
+  // digis in si wrapper
+  if (displayConfig.getBoolConfig("drawSiWrapperDigis"))
+  {
+    // check that branch name for inner barrel is set and branch exists
+    std::string branchName = displayConfig.getStringConfig("siWrapperBarrelDigis");
+    if (branchName == "") {
+      std::cout << "WARNING: siWrapperBarrelDigis not set, disabling silicon wrapper digis" << std::endl;
+      displayConfig.setBoolConfig("drawSiWrapperDigis", false);
+      displayConfig.setStringConfig("siWrapperEndcapDigis", "");
+    }
+    else {
+      const char* branch = branchName.c_str();
+      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      {
+        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling silicon wrapper digis" << std::endl;
+        displayConfig.setBoolConfig("drawSiWrapperDigis", false);
+        displayConfig.setStringConfig("siWrapperBarrelDigis", "");
+        displayConfig.setStringConfig("siWrapperEndcapDigis", "");
+      }
+    }
+
+    // check that branch name for endcap is set and branch exists
+    branchName = displayConfig.getStringConfig("siWrapperEndcapDigis");
+    if (branchName == "") {
+      std::cout << "WARNING: siWrapperEndcapDigis not set, disabling silicon wrapper digis" << std::endl;
+      displayConfig.setBoolConfig("drawSiWrapperDigis", false);
+      displayConfig.setStringConfig("siWrapperBarrelDigis", "");
+    }
+    else {
+      const char* branch = branchName.c_str();
+      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
+      {
+        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling silicon wrapper digis" << std::endl;
+        displayConfig.setBoolConfig("drawSiWrapperDigis", false);
+        displayConfig.setStringConfig("siWrapperBarrelDigis", "");
+        displayConfig.setStringConfig("siWrapperEndcapDigis", "");
+      }
+    }
+
+    // read the branches
+    if (displayConfig.getBoolConfig("drawSiWrapperDigis")) {
+      branchName = displayConfig.getStringConfig("siWrapperBarrelDigis");
+      const char* branch = branchName.c_str();
+      SiWrapperBarrelDigis_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+      SiWrapperBarrelDigis_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+      SiWrapperBarrelDigis_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+      SiWrapperBarrelDigis_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+      SiWrapperBarrelDigis_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+
+      branchName = displayConfig.getStringConfig("siWrapperEndcapDigis");
+      branch = branchName.c_str();
+      SiWrapperEndcapDigis_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+      SiWrapperEndcapDigis_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+      SiWrapperEndcapDigis_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+      SiWrapperEndcapDigis_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+      SiWrapperEndcapDigis_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
     }
   }
 
@@ -777,6 +956,20 @@ EventReader::~EventReader() {
     delete SimParticleSecondaries_momentum_y;
     delete SimParticleSecondaries_momentum_z;
   }
+  if (TracksFromGenParticles_trackStates_begin) {
+    delete TracksFromGenParticles_trackStates_begin;
+    delete TracksFromGenParticles_trackStates_end;
+    delete TracksFromGenParticles_subdetectorHitNumbers_begin;
+    delete TracksFromGenParticles_subdetectorHitNumbers_end;
+    delete _TracksFromGenParticles_trackStates_location;
+    delete _TracksFromGenParticles_trackStates_omega;
+    delete _TracksFromGenParticles_trackStates_phi;
+    delete _TracksFromGenParticles_trackStates_tanLambda;
+    delete _TracksFromGenParticles_trackStates_referencePoint_x;
+    delete _TracksFromGenParticles_trackStates_referencePoint_y;
+    delete _TracksFromGenParticles_trackStates_referencePoint_z;
+    delete _TracksFromGenParticles_subdetectorHitNumbers;
+  }
   if (VertexBarrelHits_cellID) {
     delete VertexBarrelHits_cellID;
     delete VertexBarrelHits_energy;
@@ -811,6 +1004,41 @@ EventReader::~EventReader() {
     delete SiWrapperEndcapHits_position_x;
     delete SiWrapperEndcapHits_position_y;
     delete SiWrapperEndcapHits_position_z;
+  }
+  if (VertexBarrelDigis_cellID) {
+    delete VertexBarrelDigis_cellID;
+    delete VertexBarrelDigis_energy;
+    delete VertexBarrelDigis_position_x;
+    delete VertexBarrelDigis_position_y;
+    delete VertexBarrelDigis_position_z;
+  }
+  if (VertexEndcapDigis_cellID) {
+    delete VertexEndcapDigis_cellID;
+    delete VertexEndcapDigis_energy;
+    delete VertexEndcapDigis_position_x;
+    delete VertexEndcapDigis_position_y;
+    delete VertexEndcapDigis_position_z;
+  }
+  if (DriftChamberDigis_cellID) {
+    delete DriftChamberDigis_cellID;
+    delete DriftChamberDigis_energy;
+    delete DriftChamberDigis_position_x;
+    delete DriftChamberDigis_position_y;
+    delete DriftChamberDigis_position_z;
+  }
+  if (SiWrapperBarrelDigis_cellID) {
+    delete SiWrapperBarrelDigis_cellID;
+    delete SiWrapperBarrelDigis_energy;
+    delete SiWrapperBarrelDigis_position_x;
+    delete SiWrapperBarrelDigis_position_y;
+    delete SiWrapperBarrelDigis_position_z;
+  }
+  if (SiWrapperEndcapDigis_cellID) {
+    delete SiWrapperEndcapDigis_cellID;
+    delete SiWrapperEndcapDigis_energy;
+    delete SiWrapperEndcapDigis_position_x;
+    delete SiWrapperEndcapDigis_position_y;
+    delete SiWrapperEndcapDigis_position_z;
   }
   if (ECalBarrelHits_energy) {
     delete ECalBarrelHits_energy;
