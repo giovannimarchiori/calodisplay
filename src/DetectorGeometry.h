@@ -34,6 +34,13 @@ public:
   const double cm = 1.0;
   const double mm = 0.1;
   const std::string units = "cm";
+
+  // magnetic field (only in barrel: outside it is assumed to be zero)
+  // zmin, zmax = ECAL barrel zmin, zmax (EMBarrel_dz = BarECal_dz-CryoBarrelSide)
+  // Rsol = BarCryoECal_rmax-CryoBarrelBackWarm-CryoBarrelBackCold
+  const double Bin = -2.;  // in Tesla, magnetic field for zmin<z<zmax, R<Rsol
+  const double Bout = 1.;  // in Tesla, magnetic field for zmin<z<zmax, R>Rsol
+
   
   // z extension of barrel
   const double zMin = -3100.*mm;
@@ -92,7 +99,7 @@ public:
   const double thetaOffsetHCal = 0.783406;
   const int nThetaBinsHCal = 72;
   const int nPhiBinsHCal = 256;
-  
+
   // derived
   const int nLayersHCal = rHCal.size()-1;
   const double rMinHCal = rHCal[0];
@@ -105,6 +112,8 @@ public:
   const double gridPhiHCal = TMath::TwoPi()/nPhiBinsHCal;
   const double phiMinHCal = -TMath::Pi();
 
+  // muon
+  const int nLayersMuon = 2;
   
   /******************************************************************************/
   // GEOMETRY HELPER FUNCTIONS AND DERIVED GEOMETRY PARAMETERS
