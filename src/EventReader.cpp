@@ -120,7 +120,7 @@ void EventReader::SetBranches()
 	_TracksFromGenParticles_trackStates_referencePoint_x = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.x", branch));
 	_TracksFromGenParticles_trackStates_referencePoint_y = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.y", branch));
 	_TracksFromGenParticles_trackStates_referencePoint_z = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.z", branch));
-	_TracksFromGenParticles_subdetectorHitNumbers = new TTreeReaderArray<UInt_t>(*fReader, Form("_%s_subdetectorHitNumbers", branch));
+	_TracksFromGenParticles_subdetectorHitNumbers = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_subdetectorHitNumbers", branch));
       }
     }
   }

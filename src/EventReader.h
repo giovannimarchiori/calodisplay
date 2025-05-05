@@ -80,7 +80,7 @@ public:
   TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_referencePoint_x = nullptr;
   TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_referencePoint_y = nullptr;
   TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_referencePoint_z = nullptr;
-  TTreeReaderArray<UInt_t> *_TracksFromGenParticles_subdetectorHitNumbers = nullptr;
+  TTreeReaderArray<Int_t> *_TracksFromGenParticles_subdetectorHitNumbers = nullptr;
   
   // the hits in the vertex (barrel)
   TTreeReaderArray<ULong_t> *VertexBarrelHits_cellID = nullptr;
