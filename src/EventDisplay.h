@@ -17,6 +17,7 @@
 #include <TEveScene.h>
 #include <TEveProjectionManager.h>
 #include <TEveElement.h>
+#include <TEveTrackPropagator.h>
 #include <TEveTrack.h>
 #include <TEvePointSet.h>
 #include <TEveQuadSet.h>
@@ -109,6 +110,8 @@ public:
   TEveTrackList *particles = nullptr;
   // Reconstructed tracks
   TEveTrackList *tracks = nullptr;
+  // Magnetic field
+  TEveMagField* magField = nullptr;
   
   // Sim hits
   TEvePointSet *vtxHits = nullptr;
