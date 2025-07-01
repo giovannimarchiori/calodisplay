@@ -25,7 +25,6 @@
 
 #include <TEveBrowser.h>
 #include <TEveManager.h>
-#include <TEveStraightLineSet.h>
 #include <TEveTrackPropagator.h>
 #include <TEveProjectionAxes.h>
 #include <TTimeStamp.h>
@@ -34,12 +33,24 @@
 #include <unordered_map>
 #include <iostream>
 
-const bool debug = false;
+const bool debug = true;
 
 // return the sign of a float
 int sgn(float val)
 {
   return (val > 0.) - (val < 0.);
+}
+
+// return solution of 2nd order poly (ax^2+bx+c = 0)
+double solve_poly2(double a, double b, double c, int sol) {
+  if (a==0.) return -c/b;
+  double d = b*b-4*a*c;
+  if (d<0) return -9999999999.;
+  d = std::sqrt(d);
+  if (sol>0)
+    return (-b + d)/(2*a);
+  else
+    return (-b - d)/(2*a);
 }
 
 const char* partType(int pdgID) {
@@ -365,6 +376,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
   }
 
   TEvePointSet *clustersCenter = nullptr;
+  TEveStraightLineSet *clustersDirection = nullptr;
   TEveElementList *clusters_3D = nullptr;
   TEveElementList *clusters_rhoz = nullptr;
   TEveElementList *clusters_rhophi = nullptr;
@@ -393,7 +405,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
   {
     if (topoclusters_3D == nullptr)
     {
-      topoclusters_3D = new TEveElementList(Form("%sclusters (E>%.1f GeV)",
+      topoclusters_3D = new TEveElementList(Form("%sclusters (E>%.2f GeV)",
                                                  clusterType.c_str(),
                                                  ClusterEnergyThreshold));
       gEve->AddElement(topoclusters_3D);
@@ -402,6 +414,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
     {
       topoclusters_3D->DestroyElements();
       topoclustersCenter = nullptr;
+      topoclustersDirection = nullptr;
     }
     clusters_3D = topoclusters_3D;
   }
@@ -418,6 +431,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
     {
       swclusters_3D->DestroyElements();
       swclustersCenter = nullptr;
+      swclustersDirection = nullptr;
     }
     clusters_3D = swclusters_3D;
   }
@@ -431,7 +445,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
   {
     if (topoclusters_rhoz == nullptr)
     {
-      topoclusters_rhoz = new TEveElementList(Form("%s clusters in rho-z (E>%.1f GeV)",
+      topoclusters_rhoz = new TEveElementList(Form("%s clusters in rho-z (E>%.2f GeV)",
                                                    clusterType.c_str(),
                                                    ClusterEnergyThreshold));
       // add to scene (that is not auto-projected!)
@@ -443,7 +457,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
 
     if (topoclusters_rhophi == nullptr)
     {
-      topoclusters_rhophi = new TEveElementList(Form("%s clusters in rho-phi (E>%.1f GeV)",
+      topoclusters_rhophi = new TEveElementList(Form("%s clusters in rho-phi (E>%.2f GeV)",
                                                      clusterType.c_str(),
                                                      ClusterEnergyThreshold));
       // add to scene (that is not auto-projected!)
@@ -460,7 +474,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
   {
     if (swclusters_rhoz == nullptr)
     {
-      swclusters_rhoz = new TEveElementList(Form("%s clusters in rho-z (E>%.1f GeV)",
+      swclusters_rhoz = new TEveElementList(Form("%s clusters in rho-z (E>%.2f GeV)",
                                                  clusterType.c_str(),
                                                  ClusterEnergyThreshold));
       // add to scene (that is not auto-projected!)
@@ -472,7 +486,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
 
     if (swclusters_rhophi == nullptr)
     {
-      swclusters_rhophi = new TEveElementList(Form("%s clusters in rho-phi (E>%.1f GeV)",
+      swclusters_rhophi = new TEveElementList(Form("%s clusters in rho-phi (E>%.2f GeV)",
                                                    clusterType.c_str(),
                                                    ClusterEnergyThreshold));
       // add to scene (that is not auto-projected!)
@@ -509,6 +523,16 @@ void EventDisplay::DrawClusters(std::string clusterType)
     else
       topoclustersCenter->Reset();
     clustersCenter = topoclustersCenter;
+
+    if (displayConfig.getBoolConfig("drawClusterDirection")) {
+      if (topoclustersDirection == nullptr) {
+	topoclustersDirection = new TEveStraightLineSet("cluster directions");
+	topoclusters_3D->AddElement(topoclustersDirection);
+      }
+      else
+	topoclustersDirection->DestroyElements();
+    }
+    clustersDirection = topoclustersDirection;
   }
   else
   {
@@ -522,10 +546,25 @@ void EventDisplay::DrawClusters(std::string clusterType)
     else
       swclustersCenter->Reset();
     clustersCenter = swclustersCenter;
-  }
-  clustersCenter->SetMarkerStyle(4);
-  clustersCenter->SetMarkerSize(5);
 
+    if (displayConfig.getBoolConfig("drawClusterDirection")) {
+      if (swclustersDirection == nullptr) {
+	swclustersDirection = new TEveStraightLineSet("cluster directions");
+	swclusters_3D->AddElement(swclustersDirection);
+      }
+      else
+	swclustersDirection->DestroyElements();
+    }
+    clustersDirection = swclustersDirection;
+
+  }
+  if (displayConfig.getBoolConfig("drawClusterDirection")) {
+    clustersCenter->SetMarkerStyle(4);
+    clustersCenter->SetMarkerSize(5);
+    clustersDirection->SetLineColor(kWhite);
+    clustersDirection->SetLineWidth(5);
+  }
+  
   for (unsigned int i = 0; i < nClusters; i++)
   {
     float E = (clusterType == "topo") ? (*eventReader->CaloTopoClusters_energy)[i] : (*eventReader->CaloClusters_energy)[i];
@@ -534,15 +573,53 @@ void EventDisplay::DrawClusters(std::string clusterType)
     // topo cluster positions are in cm while calo clusters and hits/cells in mm ... ?
     if (clusterType == "topo")
     {
-      clustersCenter->SetNextPoint((*eventReader->CaloTopoClusters_position_x)[i] * mm,
-                                   (*eventReader->CaloTopoClusters_position_y)[i] * mm,
-                                   (*eventReader->CaloTopoClusters_position_z)[i] * mm);
+      float x0 = (*eventReader->CaloTopoClusters_position_x)[i] * mm;
+      float y0 = (*eventReader->CaloTopoClusters_position_y)[i] * mm;
+      float z0 = (*eventReader->CaloTopoClusters_position_z)[i] * mm;
+      clustersCenter->SetNextPoint(x0, y0, z0);
+
+      if (displayConfig.getBoolConfig("drawClusterDirection")) {
+	float theta = (*eventReader->CaloTopoClusters_theta)[i];
+	float phi = (*eventReader->CaloTopoClusters_phi)[i];
+	float a = std::sin(theta)*std::sin(theta);
+	float b = 2*std::sin(theta)*(x0*std::cos(phi) + y0*std::sin(phi));
+	float c = x0*x0 + y0*y0 - rMin*rMin;
+	float t1 = solve_poly2(a,b,c,1);
+	double rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
+	c = x0*x0 + y0*y0 - rMax*rMax;
+	float t2 = solve_poly2(a,b,c,1);
+	clustersDirection->AddLine(x0 + t1*std::sin(theta)*std::cos(phi),
+				   y0 + t1*std::sin(theta)*std::sin(phi),
+				   z0 + t1*std::cos(theta),
+				   x0 + t2*std::sin(theta)*std::cos(phi),
+				   y0 + t2*std::sin(theta)*std::sin(phi),
+				   z0 + t2*std::cos(theta));
+      }
     }
     else
     {
-      clustersCenter->SetNextPoint((*eventReader->CaloClusters_position_x)[i] * mm,
-                                   (*eventReader->CaloClusters_position_y)[i] * mm,
-                                   (*eventReader->CaloClusters_position_z)[i] * mm);
+      float x0 = (*eventReader->CaloClusters_position_x)[i] * mm;
+      float y0 = (*eventReader->CaloClusters_position_y)[i] * mm;
+      float z0 = (*eventReader->CaloClusters_position_z)[i] * mm;
+      clustersCenter->SetNextPoint(x0, y0, z0);
+
+      if (displayConfig.getBoolConfig("drawClusterDirection")) {
+	float theta = (*eventReader->CaloClusters_theta)[i];
+	float phi = (*eventReader->CaloClusters_phi)[i];
+	float a = std::sin(theta)*std::sin(theta);
+	float b = 2*std::sin(theta)*(x0*std::cos(phi) + y0*std::sin(phi));
+	float c = x0*x0 + y0*y0 - rMin*rMin;
+	float t1 = solve_poly2(a,b,c,1);
+	double rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
+	c = x0*x0 + y0*y0 - rMax*rMax;
+	float t2 = solve_poly2(a,b,c,1);
+	clustersDirection->AddLine(x0 + t1*std::sin(theta)*std::cos(phi),
+				   y0 + t1*std::sin(theta)*std::sin(phi),
+				   z0 + t1*std::cos(theta),
+				   x0 + t2*std::sin(theta)*std::cos(phi),
+				   y0 + t2*std::sin(theta)*std::sin(phi),
+				   z0 + t2*std::cos(theta));
+      }
     }
   }
 
@@ -1352,7 +1429,7 @@ void EventDisplay::loadEvent(int event)
     if (vtxHits == nullptr)
     {
       vtxHits = new TEvePointSet();
-      // vtxHits->SetName(Form("VTX hits (E>%.1f GeV)", HitEnergyThreshold));
+      // vtxHits->SetName(Form("VTX hits (E>%.2f GeV)", HitEnergyThreshold));
       vtxHits->SetName("VTX hits");
       vtxHits->SetMarkerStyle(4);
       vtxHits->SetMarkerSize(1.6);
@@ -1396,7 +1473,7 @@ void EventDisplay::loadEvent(int event)
     if (dchHits == nullptr)
     {
       dchHits = new TEvePointSet();
-      // dchHits->SetName(Form("DCH hits (E>%.1f GeV)", HitEnergyThreshold));
+      // dchHits->SetName(Form("DCH hits (E>%.2f GeV)", HitEnergyThreshold));
       dchHits->SetName("DCH hits");
       dchHits->SetMarkerStyle(4);
       dchHits->SetMarkerSize(1.6);
@@ -1429,7 +1506,7 @@ void EventDisplay::loadEvent(int event)
     if (siwrHits == nullptr)
     {
       siwrHits = new TEvePointSet();
-      // siwrHits->SetName(Form("VTX hits (E>%.1f GeV)", HitEnergyThreshold));
+      // siwrHits->SetName(Form("VTX hits (E>%.2f GeV)", HitEnergyThreshold));
       siwrHits->SetName("SiWr hits");
       siwrHits->SetMarkerStyle(4);
       siwrHits->SetMarkerSize(1.6);
@@ -1475,7 +1552,7 @@ void EventDisplay::loadEvent(int event)
     if (ecalHits == nullptr)
     {
       ecalHits = new TEvePointSet();
-      ecalHits->SetName(Form("ECAL hits (E>%.1f GeV)", HitEnergyThreshold));
+      ecalHits->SetName(Form("ECAL hits (E>%.2f GeV)", HitEnergyThreshold));
       ecalHits->SetMarkerStyle(4);
       ecalHits->SetMarkerSize(1);
       ecalHits->SetMarkerColor(kRed);
@@ -1510,7 +1587,7 @@ void EventDisplay::loadEvent(int event)
     if (ecalHits == nullptr)
     {
       ecalHits = new TEvePointSet();
-      ecalHits->SetName(Form("ECAL hits (E>%.1f GeV)", HitEnergyThreshold));
+      ecalHits->SetName(Form("ECAL hits (E>%.2f GeV)", HitEnergyThreshold));
       ecalHits->SetMarkerStyle(4);
       ecalHits->SetMarkerSize(1);
       ecalHits->SetMarkerColor(kRed);
@@ -1544,7 +1621,7 @@ void EventDisplay::loadEvent(int event)
     if (hcalHits == nullptr)
     {
       hcalHits = new TEvePointSet();
-      hcalHits->SetName(Form("HCAL hits (E>%.1f GeV)", HitEnergyThreshold));
+      hcalHits->SetName(Form("HCAL hits (E>%.2f GeV)", HitEnergyThreshold));
       hcalHits->SetMarkerStyle(4);
       hcalHits->SetMarkerSize(1);
       hcalHits->SetMarkerColor(kRed);
@@ -1575,7 +1652,7 @@ void EventDisplay::loadEvent(int event)
     if (hcalHits == nullptr)
     {
       hcalHits = new TEvePointSet();
-      hcalHits->SetName(Form("HCAL hits (E>%.1f GeV)", HitEnergyThreshold));
+      hcalHits->SetName(Form("HCAL hits (E>%.2f GeV)", HitEnergyThreshold));
       hcalHits->SetMarkerStyle(4);
       hcalHits->SetMarkerSize(1);
       hcalHits->SetMarkerColor(kRed);
@@ -1613,7 +1690,7 @@ void EventDisplay::loadEvent(int event)
     if (muonHits == nullptr)
     {
       muonHits = new TEvePointSet();
-      // muonHits->SetName(Form("MUON hits (E>%.1f GeV)", HitEnergyThreshold));
+      // muonHits->SetName(Form("MUON hits (E>%.2f GeV)", HitEnergyThreshold));
       muonHits->SetName("MUON hits");
       muonHits->SetMarkerStyle(4);
       muonHits->SetMarkerSize(1.6);
@@ -1661,7 +1738,7 @@ void EventDisplay::loadEvent(int event)
     if (vtxDigis == nullptr)
     {
       vtxDigis = new TEvePointSet();
-      // vtxDigis->SetName(Form("VTX digis (E>%.1f GeV)", HitEnergyThreshold));
+      // vtxDigis->SetName(Form("VTX digis (E>%.2f GeV)", HitEnergyThreshold));
       vtxDigis->SetName("VTX digis");
       vtxDigis->SetMarkerStyle(4);
       vtxDigis->SetMarkerSize(2);
@@ -1704,7 +1781,7 @@ void EventDisplay::loadEvent(int event)
     if (dchDigis == nullptr)
     {
       dchDigis = new TEvePointSet();
-      // dchDigis->SetName(Form("DCH digis (E>%.1f GeV)", HitEnergyThreshold));
+      // dchDigis->SetName(Form("DCH digis (E>%.2f GeV)", HitEnergyThreshold));
       dchDigis->SetName("DCH digis");
       dchDigis->SetMarkerStyle(4);
       dchDigis->SetMarkerSize(2);
@@ -1736,7 +1813,7 @@ void EventDisplay::loadEvent(int event)
     if (siwrDigis == nullptr)
     {
       siwrDigis = new TEvePointSet();
-      // siwrDigis->SetName(Form("VTX digis (E>%.1f GeV)", HitEnergyThreshold));
+      // siwrDigis->SetName(Form("VTX digis (E>%.2f GeV)", HitEnergyThreshold));
       siwrDigis->SetName("SiWr digis");
       siwrDigis->SetMarkerStyle(4);
       siwrDigis->SetMarkerSize(2);
@@ -1781,7 +1858,7 @@ void EventDisplay::loadEvent(int event)
     if (ecalCells == nullptr)
     {
       ecalCells = new TEvePointSet();
-      ecalCells->SetName(Form("ECAL cells (E>%.1f GeV)", CellEnergyThreshold));
+      ecalCells->SetName(Form("ECAL cells (E>%.2f GeV)", CellEnergyThreshold));
       ecalCells->SetMarkerStyle(4);
       ecalCells->SetMarkerSize(2);
       ecalCells->SetMarkerColor(kYellow);
@@ -1811,7 +1888,7 @@ void EventDisplay::loadEvent(int event)
     if (ecalCells == nullptr)
     {
       ecalCells = new TEvePointSet();
-      ecalCells->SetName(Form("ECAL cells (E>%.1f GeV)", CellEnergyThreshold));
+      ecalCells->SetName(Form("ECAL cells (E>%.2f GeV)", CellEnergyThreshold));
       ecalCells->SetMarkerStyle(4);
       ecalCells->SetMarkerSize(2);
       ecalCells->SetMarkerColor(kYellow);
@@ -1844,7 +1921,7 @@ void EventDisplay::loadEvent(int event)
     if (hcalCells == nullptr)
     {
       hcalCells = new TEvePointSet();
-      hcalCells->SetName(Form("HCAL cells (E>%.1f GeV)", CellEnergyThreshold));
+      hcalCells->SetName(Form("HCAL cells (E>%.2f GeV)", CellEnergyThreshold));
       hcalCells->SetMarkerStyle(4);
       hcalCells->SetMarkerSize(2);
       hcalCells->SetMarkerColor(kYellow);
@@ -1874,7 +1951,7 @@ void EventDisplay::loadEvent(int event)
     if (hcalCells == nullptr)
     {
       hcalCells = new TEvePointSet();
-      hcalCells->SetName(Form("HCAL cells (E>%.1f GeV)", CellEnergyThreshold));
+      hcalCells->SetName(Form("HCAL cells (E>%.2f GeV)", CellEnergyThreshold));
       hcalCells->SetMarkerStyle(4);
       hcalCells->SetMarkerSize(2);
       hcalCells->SetMarkerColor(kYellow);
@@ -1907,7 +1984,7 @@ void EventDisplay::loadEvent(int event)
     if (muonCells == nullptr)
     {
       muonCells = new TEvePointSet();
-      muonCells->SetName(Form("MUON cells (E>%.1f GeV)", CellEnergyThreshold));
+      muonCells->SetName(Form("MUON cells (E>%.2f GeV)", CellEnergyThreshold));
       muonCells->SetMarkerStyle(4);
       muonCells->SetMarkerSize(2);
       muonCells->SetMarkerColor(kYellow);

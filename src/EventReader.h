@@ -259,6 +259,8 @@ public:
   TTreeReaderArray<Float_t> *CaloTopoClusters_position_x = nullptr;
   TTreeReaderArray<Float_t> *CaloTopoClusters_position_y = nullptr;
   TTreeReaderArray<Float_t> *CaloTopoClusters_position_z = nullptr;
+  TTreeReaderArray<Float_t> *CaloTopoClusters_theta = nullptr;
+  TTreeReaderArray<Float_t> *CaloTopoClusters_phi = nullptr;
   TTreeReaderArray<UInt_t> *CaloTopoClusters_hits_begin = nullptr;
   TTreeReaderArray<UInt_t> *CaloTopoClusters_hits_end = nullptr;  
   
@@ -274,6 +276,8 @@ public:
   TTreeReaderArray<Float_t> *CaloClusters_position_x = nullptr;
   TTreeReaderArray<Float_t> *CaloClusters_position_y = nullptr;
   TTreeReaderArray<Float_t> *CaloClusters_position_z = nullptr;
+  TTreeReaderArray<Float_t> *CaloClusters_theta = nullptr;
+  TTreeReaderArray<Float_t> *CaloClusters_phi = nullptr;
   TTreeReaderArray<UInt_t> *CaloClusters_hits_begin = nullptr;
   TTreeReaderArray<UInt_t> *CaloClusters_hits_end = nullptr;
 

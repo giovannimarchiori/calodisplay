@@ -10,6 +10,7 @@
     "drawDriftChamberDigis": "true",
     "drawSiWrapperDigis": "true",
     "drawCaloClusters": "false",
+    "drawClusterDirection": "true",
     "drawECalBarrelCells": "true",
     "drawECalBarrelHits": "true",
     "drawECalBarrelMergedCells": "false",

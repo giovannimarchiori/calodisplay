@@ -825,6 +825,8 @@ void EventReader::SetBranches()
         CaloClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
         CaloClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
         CaloClusters_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
+	CaloClusters_theta = new TTreeReaderArray<Float_t>(*fReader, Form("%s.iTheta", branch));
+	CaloClusters_phi = new TTreeReaderArray<Float_t>(*fReader, Form("%s.phi", branch));
         CaloClusters_hits_begin = new TTreeReaderArray<UInt_t> (*fReader, Form("%s.hits_begin", branch));
         CaloClusters_hits_end   = new TTreeReaderArray<UInt_t> (*fReader, Form("%s.hits_end", branch));
       }
@@ -882,6 +884,8 @@ void EventReader::SetBranches()
         CaloTopoClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
         CaloTopoClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
         CaloTopoClusters_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
+        CaloTopoClusters_theta = new TTreeReaderArray<Float_t>(*fReader, Form("%s.iTheta", branch));
+        CaloTopoClusters_phi = new TTreeReaderArray<Float_t>(*fReader, Form("%s.phi", branch));
         CaloTopoClusters_hits_begin = new TTreeReaderArray<UInt_t> (*fReader, Form("%s.hits_begin", branch));
         CaloTopoClusters_hits_end   = new TTreeReaderArray<UInt_t> (*fReader, Form("%s.hits_end", branch));
       }
@@ -1132,6 +1136,8 @@ EventReader::~EventReader() {
     delete CaloClusters_position_x;
     delete CaloClusters_position_y;
     delete CaloClusters_position_z;
+    delete CaloClusters_theta;
+    delete CaloClusters_phi;
     delete CaloClusters_hits_begin;
     delete CaloClusters_hits_end;
   }
@@ -1147,6 +1153,8 @@ EventReader::~EventReader() {
     delete CaloTopoClusters_position_x;
     delete CaloTopoClusters_position_y;
     delete CaloTopoClusters_position_z;
+    delete CaloTopoClusters_theta;
+    delete CaloTopoClusters_phi;
     delete CaloTopoClusters_hits_begin;
     delete CaloTopoClusters_hits_end;
   }

@@ -22,6 +22,7 @@
 #include <TEvePointSet.h>
 #include <TEveQuadSet.h>
 #include <TEveBoxSet.h>
+#include <TEveStraightLineSet.h>
 #include <TGLViewer.h>
 #include <TGLAnnotation.h>
 #include <TGTextEntry.h>
@@ -132,6 +133,10 @@ public:
   // calorimeter cluster barycenters
   TEvePointSet *topoclustersCenter = nullptr;
   TEvePointSet *swclustersCenter = nullptr;
+
+  // cluster directions
+  TEveStraightLineSet *swclustersDirection = nullptr;
+  TEveStraightLineSet *topoclustersDirection = nullptr;
 
   // clusters (only works for ecal barrel, needs calculation of geometry for other detectors)
   TEveElementList *topoclusters_rhoz = nullptr;
