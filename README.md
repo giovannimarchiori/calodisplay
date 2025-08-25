@@ -37,7 +37,7 @@ calodisplay -g data/allegro_o1_v03.root  -e events.root -c config.json --fulldet
 Execute with `calodisplay -h` to see available options
 
 To create the root file with the detector geometry (if that on the website is outdated):
-- create the GDML file from Geant4 with ddsim (see `run_all_chain.sh`)
+- create the GDML file from Geant4 with ddsim (see `run_all_chain.sh` or do `ddsim --numberOfEvents 0 --enableGun --compactFile $K4GEO/FCCee/ALLEGRO/compact/ALLEGRO_o1_v03/ALLEGRO_o1_v03.xml  --geometry.dumpGDML ALLEGRO_o1_v03.gdml --runType run`)
 - convert the GDML to ROOT with `util/gdmltoroot.C`:
 ```
 cd util
