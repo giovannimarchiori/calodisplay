@@ -32,6 +32,7 @@ public:
 
   float getEnergyECal() const;
   float getEnergyHCal() const;
+  float getEnergyMuon() const;
 
   TVector3 getBarycenter() const { return m_barycenter; };
   void setBarycenterXYZ(float x, float y, float z) { m_barycenter = TVector3(x, y, z); };
@@ -48,6 +49,12 @@ public:
   TVector3 getBarycenterInHCalLayer(unsigned int layer) const;
   void setBarycenterVsHCalLayers(const std::vector<TVector3> &barycenterVsHCalLayer);
 
+  unsigned int getNLayersMuon() const { return m_energyVsMuonLayer.size(); };
+  float getEnergyInMuonLayer(unsigned int layer) const;
+  void setEnergyVsMuonLayers(const std::vector<float> &energyVsMuonLayer);
+  TVector3 getBarycenterInMuonLayer(unsigned int layer) const;
+  void setBarycenterVsMuonLayers(const std::vector<TVector3> &barycenterVsMuonLayer);
+
   void print() const;
 
 private:
@@ -58,6 +65,8 @@ private:
   std::vector<TVector3> m_barycenterVsECalLayer;
   std::vector<float> m_energyVsHCalLayer;
   std::vector<TVector3> m_barycenterVsHCalLayer;
+  std::vector<float> m_energyVsMuonLayer;
+  std::vector<TVector3> m_barycenterVsMuonLayer;
   // direction ...
   // shower shapes...
 };
