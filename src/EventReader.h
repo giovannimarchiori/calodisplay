@@ -233,12 +233,12 @@ public:
   // the hits in muon endcap
   TTreeReaderArray<ULong_t> *MuonEndcapHits_cellID = nullptr;
   TTreeReaderArray<Float_t> *MuonEndcapHits_energy = nullptr;
-  TTreeReaderArray<Double_t> *MuonEndcapHits_position_x = nullptr;
-  TTreeReaderArray<Double_t> *MuonEndcapHits_position_y = nullptr;
-  TTreeReaderArray<Double_t> *MuonEndcapHits_position_z = nullptr;
-  // TTreeReaderArray<Float_t> *MuonEndcapHits_position_x = nullptr;
-  // TTreeReaderArray<Float_t> *MuonEndcapHits_position_y = nullptr;
-  // TTreeReaderArray<Float_t> *MuonEndcapHits_position_z = nullptr;
+  // TTreeReaderArray<Double_t> *MuonEndcapHits_position_x = nullptr;
+  // TTreeReaderArray<Double_t> *MuonEndcapHits_position_y = nullptr;
+  // TTreeReaderArray<Double_t> *MuonEndcapHits_position_z = nullptr;
+  TTreeReaderArray<Float_t> *MuonEndcapHits_position_x = nullptr;
+  TTreeReaderArray<Float_t> *MuonEndcapHits_position_y = nullptr;
+  TTreeReaderArray<Float_t> *MuonEndcapHits_position_z = nullptr;
 
   // the cells in muon endcap
   TTreeReaderArray<ULong_t> *MuonEndcapCells_cellID = nullptr;
