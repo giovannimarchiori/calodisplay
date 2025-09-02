@@ -1156,7 +1156,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
     std::cout << "  Draw rho-phi view of clustered cells" << std::endl;
   for (auto &[key, energy] : cellEnergies_rhophi)
   {
-    // continue;  // GM FIXME!!!! WHY SYSTEM IS 8????/
+    // continue;  // GM FIXME!!!! WHY SYSTEM IS 8????
     ULong64_t ikey = (ULong64_t)key;
     int system = ikey % 16;
     ikey = ikey / 16;
