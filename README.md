@@ -58,5 +58,22 @@ Compiling the code creates:
 - `dist`: for the shared library, the ROOT dictionary file and the executable.
 
 
+## Troubleshooting
+In case of errors, check that eve is installed
+```
+root-config --has-opengl
+root-config --evelibs
+```
+
+Check that you can run the eve tutorials:
+```
+root $ROOTSYS/tutorials/eve/calorimeters.C
+```
+
+In case of certificate validation problems with david, you can add `Davix.GSI.CACheck: n` to your .rootrc.
+
+If failure persists, contact the author ;)
+
+
 ## Author
 Giovanni Marchiori (APC Paris), giovanni.marchiori@cern.ch
