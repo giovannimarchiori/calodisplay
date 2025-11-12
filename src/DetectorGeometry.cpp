@@ -194,45 +194,82 @@ ULong_t DetectorGeometry::ReadNbitsAtPositionMFromCellID(int n, int m, ULong_t c
 
 // ECalBarrel: system:4,cryo:1,type:3,subtype:3,layer:8,module:11,theta:10
 // HCalBarrel: system:4,layer:5,theta:9,phi:10
+// ECal endcap: system:4,cryo:1,type:3,subtype:3,side:-2,wheel:3,layer:12,module:11,rho:8,z:8
 
 // extract system ID from cellID
 ULong_t DetectorGeometry::SystemID(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(4, 0, cellID);
 }
 
-// extract ECal layer number from cellID
+// extract ECal barrel layer number from cellID
 ULong_t DetectorGeometry::ECalBarrelLayer(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(8, 11, cellID);
 }
 
-// extract ECal module number from cellID
+// extract ECal barrel module number from cellID
 ULong_t DetectorGeometry::ECalBarrelModule(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(11, 19, cellID);
 }
 
-// extract ECal theta bin from cellID
+// extract ECal barrel theta bin from cellID
 ULong_t DetectorGeometry::ECalBarrelThetaBin(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(10, 30, cellID);
 }
 
-// extract HCal layer number from cellID
+// extract HCal barrel layer number from cellID
 ULong_t DetectorGeometry::HCalBarrelLayer(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(5, 4, cellID);
 }
 
-// extract row number from cellID
+// extract HCal barrel row number from cellID
 //ULong_t DetectorGeometry::HCalBarrelRow(ULong_t cellID) {
 //  return ReadNbitsAtPositionMFromCellID(9, 9, cellID);
 //}
 
-// extract theta bin from cellID
+// extract HCal barrel theta bin from cellID
 ULong_t DetectorGeometry::HCalBarrelThetaBin(ULong_t cellID) {
   //return ReadNbitsAtPositionMFromCellID(9, 18, cellID);
   return ReadNbitsAtPositionMFromCellID(9, 9, cellID);
 }
 
-// extract phi number from cellID
+// extract HCal barrel phi bin from cellID
 ULong_t DetectorGeometry::HCalBarrelPhiBin(ULong_t cellID) {
   //return ReadNbitsAtPositionMFromCellID(10, 27, cellID);
   return ReadNbitsAtPositionMFromCellID(10, 18, cellID);
 }
+
+// extract ECal endcap side from cellID
+Long_t DetectorGeometry::ECalEndCapSide(ULong_t cellID) {
+  ULong_t side = ReadNbitsAtPositionMFromCellID(2, 11, cellID);
+  if (side == 1)
+    return 1;
+  else
+    return -1;
+}
+
+// extract ECal endcap wheel from cellID
+ULong_t DetectorGeometry::ECalEndCapWheel(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(3, 13, cellID);
+}
+
+// extract ECal endcap layer from cellID
+ULong_t DetectorGeometry::ECalEndCapLayer(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(12, 16, cellID);
+}
+
+// extract ECal endcap module from cellID
+ULong_t DetectorGeometry::ECalEndCapModule(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(11, 28, cellID);
+}
+
+// extract ECal endcap rho bin from cellID
+ULong_t DetectorGeometry::ECalEndCapRhoBin(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(8, 39, cellID);
+}
+
+// extract ECal endcap z bin from cellID
+ULong_t DetectorGeometry::ECalEndCapZBin(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(8, 47, cellID);
+}
+
+

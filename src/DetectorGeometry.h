@@ -197,6 +197,14 @@ public:
   // extract phi bin from cellID
   static ULong_t HCalBarrelPhiBin(ULong_t cellID);
  
+  // ECAL endcap: extract side, wheel, layer, module, rho, z
+  static Long_t ECalEndCapSide(ULong_t cellID);
+  static ULong_t ECalEndCapWheel(ULong_t cellID);
+  static ULong_t ECalEndCapLayer(ULong_t cellID);
+  static ULong_t ECalEndCapModule(ULong_t cellID);
+  static ULong_t ECalEndCapRhoBin(ULong_t cellID);
+  static ULong_t ECalEndCapZBin(ULong_t cellID);
+
   //ClassDef(DetectorGeometry, 0)
 };
 

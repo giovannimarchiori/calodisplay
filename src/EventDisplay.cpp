@@ -526,11 +526,11 @@ void EventDisplay::DrawClusters(std::string clusterType)
 
     if (displayConfig.getBoolConfig("drawClusterDirection")) {
       if (topoclustersDirection == nullptr) {
-	topoclustersDirection = new TEveStraightLineSet("cluster directions");
-	topoclusters_3D->AddElement(topoclustersDirection);
+        topoclustersDirection = new TEveStraightLineSet("cluster directions");
+        topoclusters_3D->AddElement(topoclustersDirection);
       }
       else
-	topoclustersDirection->DestroyElements();
+        topoclustersDirection->DestroyElements();
     }
     clustersDirection = topoclustersDirection;
   }
@@ -549,11 +549,11 @@ void EventDisplay::DrawClusters(std::string clusterType)
 
     if (displayConfig.getBoolConfig("drawClusterDirection")) {
       if (swclustersDirection == nullptr) {
-	swclustersDirection = new TEveStraightLineSet("cluster directions");
-	swclusters_3D->AddElement(swclustersDirection);
+        swclustersDirection = new TEveStraightLineSet("cluster directions");
+        swclusters_3D->AddElement(swclustersDirection);
       }
       else
-	swclustersDirection->DestroyElements();
+        swclustersDirection->DestroyElements();
     }
     clustersDirection = swclustersDirection;
 
@@ -579,21 +579,21 @@ void EventDisplay::DrawClusters(std::string clusterType)
       clustersCenter->SetNextPoint(x0, y0, z0);
 
       if (displayConfig.getBoolConfig("drawClusterDirection")) {
-	float theta = (*eventReader->CaloTopoClusters_theta)[i];
-	float phi = (*eventReader->CaloTopoClusters_phi)[i];
-	float a = std::sin(theta)*std::sin(theta);
-	float b = 2*std::sin(theta)*(x0*std::cos(phi) + y0*std::sin(phi));
-	float c = x0*x0 + y0*y0 - rMin*rMin;
-	float t1 = solve_poly2(a,b,c,1);
-	double rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
-	c = x0*x0 + y0*y0 - rMax*rMax;
-	float t2 = solve_poly2(a,b,c,1);
-	clustersDirection->AddLine(x0 + t1*std::sin(theta)*std::cos(phi),
-				   y0 + t1*std::sin(theta)*std::sin(phi),
-				   z0 + t1*std::cos(theta),
-				   x0 + t2*std::sin(theta)*std::cos(phi),
-				   y0 + t2*std::sin(theta)*std::sin(phi),
-				   z0 + t2*std::cos(theta));
+        float theta = (*eventReader->CaloTopoClusters_theta)[i];
+        float phi = (*eventReader->CaloTopoClusters_phi)[i];
+        float a = std::sin(theta)*std::sin(theta);
+        float b = 2*std::sin(theta)*(x0*std::cos(phi) + y0*std::sin(phi));
+        float c = x0*x0 + y0*y0 - rMin*rMin;
+        float t1 = solve_poly2(a,b,c,1);
+        double rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
+        c = x0*x0 + y0*y0 - rMax*rMax;
+        float t2 = solve_poly2(a,b,c,1);
+        clustersDirection->AddLine(x0 + t1*std::sin(theta)*std::cos(phi),
+                                   y0 + t1*std::sin(theta)*std::sin(phi),
+                                   z0 + t1*std::cos(theta),
+                                   x0 + t2*std::sin(theta)*std::cos(phi),
+                                   y0 + t2*std::sin(theta)*std::sin(phi),
+                                   z0 + t2*std::cos(theta));
       }
     }
     else
@@ -604,21 +604,21 @@ void EventDisplay::DrawClusters(std::string clusterType)
       clustersCenter->SetNextPoint(x0, y0, z0);
 
       if (displayConfig.getBoolConfig("drawClusterDirection")) {
-	float theta = (*eventReader->CaloClusters_theta)[i];
-	float phi = (*eventReader->CaloClusters_phi)[i];
-	float a = std::sin(theta)*std::sin(theta);
-	float b = 2*std::sin(theta)*(x0*std::cos(phi) + y0*std::sin(phi));
-	float c = x0*x0 + y0*y0 - rMin*rMin;
-	float t1 = solve_poly2(a,b,c,1);
-	double rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
-	c = x0*x0 + y0*y0 - rMax*rMax;
-	float t2 = solve_poly2(a,b,c,1);
-	clustersDirection->AddLine(x0 + t1*std::sin(theta)*std::cos(phi),
-				   y0 + t1*std::sin(theta)*std::sin(phi),
-				   z0 + t1*std::cos(theta),
-				   x0 + t2*std::sin(theta)*std::cos(phi),
-				   y0 + t2*std::sin(theta)*std::sin(phi),
-				   z0 + t2*std::cos(theta));
+        float theta = (*eventReader->CaloClusters_theta)[i];
+        float phi = (*eventReader->CaloClusters_phi)[i];
+        float a = std::sin(theta)*std::sin(theta);
+        float b = 2*std::sin(theta)*(x0*std::cos(phi) + y0*std::sin(phi));
+        float c = x0*x0 + y0*y0 - rMin*rMin;
+        float t1 = solve_poly2(a,b,c,1);
+        double rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
+        c = x0*x0 + y0*y0 - rMax*rMax;
+        float t2 = solve_poly2(a,b,c,1);
+        clustersDirection->AddLine(x0 + t1*std::sin(theta)*std::cos(phi),
+                                   y0 + t1*std::sin(theta)*std::sin(phi),
+                                   z0 + t1*std::cos(theta),
+                                   x0 + t2*std::sin(theta)*std::cos(phi),
+                                   y0 + t2*std::sin(theta)*std::sin(phi),
+                                   z0 + t2*std::cos(theta));
       }
     }
   }
