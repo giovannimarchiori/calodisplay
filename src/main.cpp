@@ -23,13 +23,14 @@ std::string usage(bool verbose = false)
 {
   EventDisplay aDisplay;
   std::string use = "Usage:\n";
-  use += "calodisplay [--nog4] [--fulldet] [--dohcal] [--doendcap] [--sw] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-c|--config <configFile.json>] [-s|--skipEvents <nevents>]\n\n";
+  use += "calodisplay [--nog4] [--fulldet] [--dohcal] [--doendcap] [--sw] [--notopo] [--debug] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-c|--config <configFile.json>] [-s|--skipEvents <nevents>]\n\n";
   use += "--nog4      : use simplified geometry rather than G4 geometry in file <geomFile.root>\n";
   use += "--fulldet   : show the full detector (including tracker, muon detector, interaction region)\n";
   use += "--dohcal    : show HCAL volume, hits and cells\n";
   use += "--doendcap  : show ECAL and (optionally) HCAL endcaps\n";
   use += "--sw        : show sliding-window clusters\n";
   use += "--notopo    : do not show topoclusters\n\n";
+  use += "--debug     : display extended information on the console during execution\n\n";
 
   if (verbose)
   {
@@ -134,7 +135,13 @@ int main(int argc, char *argv[])
 
       else if (arg == "--notopo")
       {
-	displayConfig.setBoolConfig("drawTopoClusters", false);
+        displayConfig.setBoolConfig("drawTopoClusters", false);
+        continue;
+      }
+
+      else if (arg == "--debug")
+      {
+        display.debug = true;
         continue;
       }
 

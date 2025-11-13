@@ -33,8 +33,6 @@
 #include <unordered_map>
 #include <iostream>
 
-const bool debug = true;
-
 // return the sign of a float
 int sgn(float val)
 {
@@ -349,10 +347,11 @@ void EventDisplay::FillClusters(std::string clusterType)
       }
     }
     cluster->setBarycenterVsHCalLayers(barycenterVsHCalLayer);
-
     cluster->setBarycenterVsMuonLayers(barycenterVsMuonLayer);
 
-    cluster->print();
+    if (debug) {
+      cluster->print();
+    }
   }
 }
 
@@ -1857,11 +1856,14 @@ void EventDisplay::loadEvent(int event)
     }
     if (ecalCells == nullptr)
     {
-      ecalCells = new TEvePointSet();
+      // ecalCells = new TEvePointSet();
+      ecalCells = new MyPointSet("MyPointSet", debug);
       ecalCells->SetName(Form("ECAL cells (E>%.2f GeV)", CellEnergyThreshold));
       ecalCells->SetMarkerStyle(4);
       ecalCells->SetMarkerSize(2);
       ecalCells->SetMarkerColor(kYellow);
+      //ecalCells->SetPickable(kTRUE);
+      //ecalCells->SetOwnIds(kTRUE);
       digis->AddElement(ecalCells);
     }
     else
@@ -1874,6 +1876,14 @@ void EventDisplay::loadEvent(int event)
       ecalCells->SetNextPoint((*eventReader->ECalBarrelCells_position_x)[i] * mm,
                               (*eventReader->ECalBarrelCells_position_y)[i] * mm,
                               (*eventReader->ECalBarrelCells_position_z)[i] * mm);
+      if (debug) {
+        ULong_t cellID = (*eventReader->ECalBarrelCells_cellID)[i];
+        ULong_t system = geomReader->SystemID(cellID);
+        ULong_t layer = geomReader->ECalBarrelLayer(cellID);
+        ULong_t module = geomReader->ECalBarrelModule(cellID);
+        ULong_t theta = geomReader->ECalBarrelThetaBin(cellID);
+        ecalCells->fTooltips.push_back(Form("Energy = %.3f GeV, System = %lu, Layer = %lu, Module = %lu, Theta = %lu", E, system, layer, module, theta));
+      }
     }
   }
 
@@ -1887,7 +1897,8 @@ void EventDisplay::loadEvent(int event)
     }
     if (ecalCells == nullptr)
     {
-      ecalCells = new TEvePointSet();
+      // ecalCells = new TEvePointSet();
+      ecalCells = new MyPointSet("MyPointSet", debug);
       ecalCells->SetName(Form("ECAL cells (E>%.2f GeV)", CellEnergyThreshold));
       ecalCells->SetMarkerStyle(4);
       ecalCells->SetMarkerSize(2);
@@ -1907,6 +1918,17 @@ void EventDisplay::loadEvent(int event)
       ecalCells->SetNextPoint((*eventReader->ECalEndcapCells_position_x)[i] * mm,
                               (*eventReader->ECalEndcapCells_position_y)[i] * mm,
                               (*eventReader->ECalEndcapCells_position_z)[i] * mm);
+      if (debug) {
+        ULong_t cellID = (*eventReader->ECalBarrelCells_cellID)[i];
+        ULong_t system = geomReader->SystemID(cellID);
+        Long_t side = geomReader->ECalEndCapSide(cellID);
+        ULong_t wheel = geomReader->ECalEndCapWheel(cellID);
+        ULong_t module = geomReader->ECalEndCapModule(cellID);
+        ULong_t rho = geomReader->ECalEndCapRhoBin(cellID);
+        ULong_t z = geomReader->ECalEndCapZBin(cellID);
+        ULong_t layer = geomReader->ECalBarrelLayer(cellID);
+        ecalCells->fTooltips.push_back(Form("Energy = %.3f GeV, System = %lu, Side = %ld, Wheel = %lu, Layer = %lu, Module = %lu, rho = %lu, z = %lu", E, system, side, wheel, layer, module, rho, z));
+      }
     }
   }
 
@@ -2359,23 +2381,31 @@ void EventDisplay::startDisplay(int initialEvent)
         TString s(a->GetElementName());
 
         if (s.Contains("ScreenSol") || s.Contains("CompSol")) {
-          cout << "Adding " << s << " to MDI" << endl;
+          if (debug) {
+            cout << "Adding " << s << " to MDI" << endl;
+          }
           mdi->AddElement(a);
           ((TEveGeoShape *)a)->SetDrawFrame(false);
         }
         else if (s.Contains("BeamPipe") || s.Contains("Beampipe")) {
-          cout << "Adding " << s << " to beampipe" << endl;
+          if (debug) {
+            cout << "Adding " << s << " to beampipe" << endl;
+          }
           beampipe->AddElement(a);
           ((TEveGeoShape *)a)->SetDrawFrame(false);
         }
         else if (re_lc.MatchB(s)) {
-          cout << "Adding " << s << " to lumical" << endl;
+          if (debug) {
+            cout << "Adding " << s << " to lumical" << endl;
+          }
           lumical->AddElement(a);
           ((TEveGeoShape *)a)->SetDrawFrame(false);
         }
         else if (s.Contains("Vertex"))
         {
-          cout << "Found " << s << ", looping over its children" << endl;
+          if (debug) {
+            cout << "Found " << s << ", looping over its children" << endl;
+          }
           // for vertex, loop over children to add them either to barrel or endcap
           for (TEveElement::List_i itrVtx = a->BeginChildren(); itrVtx != a->EndChildren(); itrVtx++)
           {
@@ -2414,7 +2444,9 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (re_dch.MatchB(s))
         {
-          cout << "Adding " << s << " to drift chamber" << endl;
+          if (debug) {
+            cout << "Adding " << s << " to drift chamber" << endl;
+          }
           dch->AddElement(a);
           a->SetRnrSelfChildren(true, false);
           a->SetMainTransparency(useTransparencies ? 60 : 0);
@@ -2425,7 +2457,9 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (re_siwrapb.MatchB(s))
         {
-          cout << "Adding " << s << " to Si-wrapper barrel" << endl;
+          if (debug) {
+            cout << "Adding " << s << " to Si-wrapper barrel" << endl;
+          }
           // rather than the assembly we add directly the layers
           for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++) {
             TEveElement *el = *itr2;
@@ -2439,7 +2473,9 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (re_siwrapec.MatchB(s))
         {
-          cout << "Adding " << s << " to Si-wrapper endcap" << endl;
+          if (debug) {
+            cout << "Adding " << s << " to Si-wrapper endcap" << endl;
+          }
           // rather than the appendix we add directly the layers
           for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++) {
             TEveElement *el = *itr2;
@@ -2453,7 +2489,9 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (re_ecalb.MatchB(s))
         {
-          cout << "Adding " << s << " to ECal barrel" << endl;
+          if (debug) {
+            cout << "Adding " << s << " to ECal barrel" << endl;
+          }
           // add the overall envelope
           // we draw the envelope in the 3d model,
           // and the volumes in the 2D views
@@ -2481,7 +2519,9 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (s.Contains("ECalEndcaps"))
         {
-          cout << "Adding " << s << " to ECal endcap" << endl;
+          if (debug) {
+            cout << "Adding " << s << " to ECal endcap" << endl;
+          }
           // add the two envelopes in the two sides
           ecalec->AddElement(a);
           a->SetRnrSelfChildren(true, false);
@@ -2491,7 +2531,9 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (re_hcalb.MatchB(s))
         {
-          cout << "Adding " << s << " to HCal barrel" << endl;
+          if (debug) {
+            cout << "Adding " << s << " to HCal barrel" << endl;
+          }
           hcalb->AddElement(a);
           // for the HCal barrel, we draw the envelope in the 3d model,
           // and the subvolumes in the 2D views
@@ -2515,7 +2557,9 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (re_hcalec.MatchB(s))
         {
-          cout << "Adding " << s << " to HCal endcap" << endl;
+          if (debug) {
+            cout << "Adding " << s << " to HCal endcap" << endl;
+          }
           hcalec->AddElement(a);
           // for the HCal endcap, we draw the envelope in the 3d model,
           // and the volumes in the 2D views
@@ -2536,7 +2580,9 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (re_muonb.MatchB(s))
         {
-          cout << "Adding " << s << " to Muon tagger barrel" << endl;
+          if (debug) {
+            cout << "Adding " << s << " to Muon tagger barrel" << endl;
+          }
           muontaggerb->AddElement(a);
           a->SetRnrSelfChildren(true, false);
           a->SetMainTransparency(useTransparencies ? 60 : 0);
@@ -2546,7 +2592,9 @@ void EventDisplay::startDisplay(int initialEvent)
         }
         else if (re_muonec.MatchB(s))
         {
-          cout << "Adding " << s << " to Muon tagger endcap" << endl;
+          if (debug) {
+            cout << "Adding " << s << " to Muon tagger endcap" << endl;
+          }
           muontaggerec->AddElement(a);
           a->SetRnrSelfChildren(true, false);
           a->SetMainColor(kOrange);

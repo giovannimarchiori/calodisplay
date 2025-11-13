@@ -49,6 +49,58 @@ public:
   Bool_t MouseEnter(TGLOvlSelectRecord & /*rec*/);
 };
 
+/*
+#include "TEveManager.h"
+#include "TEvePointSet.h"
+#include "TGFrame.h"
+#include "TGClient.h"
+#include <vector>
+#include <string>
+*/
+#include "TGLabel.h"
+
+// derived TEvePointSet class that shows point info in a label when selected
+class MyPointSet : public TEvePointSet {
+public:
+  std::vector<std::string> fTooltips;  // per-point info
+  TGLabel* fLabel;                     // GUI label to show info
+  bool fShowTooltips;                  // flag to enable/disable tooltips
+
+  MyPointSet(const char* name = "MyPoints", bool showTooltips = true) 
+    : TEvePointSet(name), fLabel(nullptr), fShowTooltips(showTooltips) {
+        SetPickable(kTRUE);
+        SetOwnIds(kTRUE);
+      }
+
+  void Reset(Int_t n_points = 0, Int_t n_int_ids = 0) {
+    // 1. call base class Reset
+    TEvePointSet::Reset(n_points, n_int_ids);
+
+    // 2. restore your desired behaviour
+    if (fShowTooltips) {
+      SetOwnIds(kTRUE);
+      SetPickable(kTRUE);
+    }
+
+    // 3. resets the tooltips vector
+    fTooltips.clear();
+  }
+
+  void SetLabel(TGLabel* label) { fLabel = label; }
+
+  void PointSelected(Int_t idx) override {
+    if (!fShowTooltips) return;
+    std::cout << "tooltips size: " << fTooltips.size() << std::endl;
+    if (idx < 0 || idx >= (Int_t)fTooltips.size()) return;
+    std::cout << "Point selected: idx = " << idx << ", " << fTooltips[idx] << std::endl;
+    if (fLabel) {
+      // fLabel->SetText(Form("Point %d: %s", idx, fTooltips[idx].c_str()));
+      fLabel->SetText(fTooltips[idx].c_str());
+      gClient->NeedRedraw(fLabel); // refresh display
+    }
+  }
+};
+
 /******************************************************************************/
 // main class
 /******************************************************************************/
@@ -65,6 +117,7 @@ public:
   // - minimum energy of particles, hits, cells, clusters
   /******************************************************************************/
 
+  bool debug = false;
   bool doHCal = false;
   bool doEndcaps = false;
   bool showFullDetector = false;
@@ -121,11 +174,13 @@ public:
   TEvePointSet *ecalHits = nullptr;
   TEvePointSet *hcalHits = nullptr;
   TEvePointSet *muonHits = nullptr;
+
   // Digitised hits
   TEvePointSet *vtxDigis = nullptr;
   TEvePointSet *dchDigis = nullptr;
   TEvePointSet *siwrDigis = nullptr;
-  TEvePointSet *ecalCells = nullptr;
+  //TEvePointSet *ecalCells = nullptr;
+  MyPointSet *ecalCells = nullptr;
   TEvePointSet *hcalCells = nullptr;
   TEvePointSet *muonCells = nullptr;
   TEvePointSet *cells_merged = nullptr;
