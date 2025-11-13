@@ -37,12 +37,18 @@ public:
   TVector3 getBarycenter() const { return m_barycenter; };
   void setBarycenterXYZ(float x, float y, float z) { m_barycenter = TVector3(x, y, z); };
 
-  unsigned int getNLayersECal() const { return m_energyVsECalLayer.size(); };
-  float getEnergyInECalLayer(unsigned int layer) const;
-  void setEnergyVsECalLayers(const std::vector<float> &energyVsECalLayer);
-  TVector3 getBarycenterInECalLayer(unsigned int layer) const;
-  void setBarycenterVsECalLayers(const std::vector<TVector3> &barycenterVsECalLayer);
+  unsigned int getNLayersECalBarrel() const { return m_energyVsECalBarrelLayer.size(); };
+  float getEnergyInECalBarrelLayer(unsigned int layer) const;
+  void setEnergyVsECalBarrelLayers(const std::vector<float> &energyVsECalBarrelLayer);
+  TVector3 getBarycenterInECalBarrelLayer(unsigned int layer) const;
+  void setBarycenterVsECalBarrelLayers(const std::vector<TVector3> &barycenterVsECalBarrelLayer);
 
+  unsigned int getNLayersECalEndCap() const { return m_energyVsECalEndCapLayer.size(); };
+  float getEnergyInECalEndCapLayer(unsigned int layer) const;
+  void setEnergyVsECalEndCapLayers(const std::vector<float> &energyVsECalEndCapLayer);
+  TVector3 getBarycenterInECalEndCapLayer(unsigned int layer) const;
+  void setBarycenterVsECalEndCapLayers(const std::vector<TVector3> &barycenterVsECalEndCapLayer);
+  
   unsigned int getNLayersHCal() const { return m_energyVsHCalLayer.size(); };
   float getEnergyInHCalLayer(unsigned int layer) const;
   void setEnergyVsHCalLayers(const std::vector<float> &energyVsHCalLayer);
@@ -61,8 +67,10 @@ private:
   unsigned int m_index;
   float m_energy;
   TVector3 m_barycenter;
-  std::vector<float> m_energyVsECalLayer;
-  std::vector<TVector3> m_barycenterVsECalLayer;
+  std::vector<float> m_energyVsECalBarrelLayer;
+  std::vector<TVector3> m_barycenterVsECalBarrelLayer;
+  std::vector<float> m_energyVsECalEndCapLayer;
+  std::vector<TVector3> m_barycenterVsECalEndCapLayer;
   std::vector<float> m_energyVsHCalLayer;
   std::vector<TVector3> m_barycenterVsHCalLayer;
   std::vector<float> m_energyVsMuonLayer;

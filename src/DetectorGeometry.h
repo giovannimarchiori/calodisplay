@@ -76,6 +76,8 @@ public:
   // - n(bins)
   const int nThetaBins = 800;
   
+  // ECAL endcap
+  const int nLayersECalEndCap = 10;
 
   // HCAL
   const std::vector<double> rHCal = {

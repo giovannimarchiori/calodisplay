@@ -135,7 +135,8 @@ void EventDisplay::FillClusters(std::string clusterType)
   // loop over clusters and fill the relevant info
   const double cm = geomReader->cm;
   const double mm = geomReader->mm;
-  const int nECalLayers = geomReader->nLayers;
+  const int nECalBarrelLayers = geomReader->nLayers;
+  const int nECalEndCapLayers = geomReader->nLayersECalEndCap;
   const int nHCalLayers = geomReader->nLayersHCal;
   const int nMuonLayers = geomReader->nLayersMuon;
   for (unsigned int i = 0; i < nClusters; i++)
@@ -197,7 +198,8 @@ void EventDisplay::FillClusters(std::string clusterType)
     }
 
     // loop over cells to calculate energy per layer
-    std::vector<float> energyVsECalLayer(nECalLayers, 0.);
+    std::vector<float> energyVsECalBarrelLayer(nECalBarrelLayers, 0.);
+    std::vector<float> energyVsECalEndCapLayer(nECalEndCapLayers, 0.);
     std::vector<float> energyVsHCalLayer(nHCalLayers, 0.);
     std::vector<float> energyVsMuonLayer(nMuonLayers, 0.);
     for (unsigned int iCell = 0; iCell < nCells; iCell++)
@@ -221,7 +223,7 @@ void EventDisplay::FillClusters(std::string clusterType)
       if (systemID == 4)
       {
         layer = geomReader->ECalBarrelLayer(cellID);
-        energyVsECalLayer[layer] += energy;
+        energyVsECalBarrelLayer[layer] += energy;
       }
       else if (systemID == 8)
       {
@@ -230,27 +232,25 @@ void EventDisplay::FillClusters(std::string clusterType)
       }
       else if (systemID == 5)
       {
-	// TODO: calculate properly ecal endcap layer
-	// layer = geomReader->ECalEndcapLayer(cellID);
-        // energyVsECalLayer[layer] += energy;
-	energyVsECalLayer[0] += energy;
+	      layer = geomReader->ECalEndCapZBin(cellID);
+        energyVsECalEndCapLayer[layer] += energy;
       }
       else if (systemID == 9)
       {
         // TODO: calculate properly hcal endcap layer
         // layer = geomReader->HCalBarrelLayer(cellID);
         //energyVsHCalLayer[layer] += energy;
-	energyVsHCalLayer[0] += energy;
+	      energyVsHCalLayer[0] += energy;
       }
       else if (systemID == 12)
       {
         // TODO: calculate properly muon barrel layer
-	energyVsMuonLayer[0] += energy;
+	      energyVsMuonLayer[0] += energy;
       }
       else if (systemID == 13)
       {
         // TODO: calculate properly muon endcap layer
-	energyVsMuonLayer[0] += energy;
+	      energyVsMuonLayer[0] += energy;
       }
       else
       {
@@ -258,7 +258,9 @@ void EventDisplay::FillClusters(std::string clusterType)
         exit(1);
       }
     }
-    cluster->setEnergyVsECalLayers(energyVsECalLayer);
+
+    cluster->setEnergyVsECalBarrelLayers(energyVsECalBarrelLayer);
+    cluster->setEnergyVsECalEndCapLayers(energyVsECalEndCapLayer);
     cluster->setEnergyVsHCalLayers(energyVsHCalLayer);
     cluster->setEnergyVsMuonLayers(energyVsMuonLayer);
 
@@ -267,8 +269,10 @@ void EventDisplay::FillClusters(std::string clusterType)
     {
       std::cout << "  Calculating cell barycenter per layer .." << std::endl;
     }
-    std::vector<TVector3> barycenterVsECalLayer(nECalLayers);
-    std::vector<float> sumWeightsVsECalLayer(nECalLayers, 0.0);
+    std::vector<TVector3> barycenterVsECalBarrelLayer(nECalBarrelLayers);
+    std::vector<float> sumWeightsVsECalBarrelLayer(nECalBarrelLayers, 0.0);
+    std::vector<TVector3> barycenterVsECalEndCapLayer(nECalEndCapLayers);
+    std::vector<float> sumWeightsVsECalEndCapLayer(nECalEndCapLayers, 0.0);
     std::vector<TVector3> barycenterVsHCalLayer(nHCalLayers);
     std::vector<float> sumWeightsVsHCalLayer(nHCalLayers, 0.0);
     std::vector<TVector3> barycenterVsMuonLayer(nMuonLayers);
@@ -300,14 +304,27 @@ void EventDisplay::FillClusters(std::string clusterType)
       if (systemID == 4)
       {
         layer = geomReader->ECalBarrelLayer(cellID);
-        if (energyVsECalLayer[layer] > 0)
+        if (energyVsECalBarrelLayer[layer] > 0)
         {
-          float weight = energy / energyVsECalLayer[layer];
-          barycenterVsECalLayer[layer].SetXYZ(
-              barycenterVsECalLayer[layer].X() + x * weight,
-              barycenterVsECalLayer[layer].Y() + y * weight,
-              barycenterVsECalLayer[layer].Z() + z * weight);
-          sumWeightsVsECalLayer[layer] += weight;
+          float weight = energy / energyVsECalBarrelLayer[layer];
+          barycenterVsECalBarrelLayer[layer].SetXYZ(
+              barycenterVsECalBarrelLayer[layer].X() + x * weight,
+              barycenterVsECalBarrelLayer[layer].Y() + y * weight,
+              barycenterVsECalBarrelLayer[layer].Z() + z * weight);
+          sumWeightsVsECalBarrelLayer[layer] += weight;
+        }
+      }
+      else if (systemID == 5)
+      {
+        layer = geomReader->ECalEndCapZBin(cellID);
+        if (energyVsECalEndCapLayer[layer] > 0)
+        {
+          float weight = energy / energyVsECalEndCapLayer[layer];
+          barycenterVsECalEndCapLayer[layer].SetXYZ(
+              barycenterVsECalEndCapLayer[layer].X() + x * weight,
+              barycenterVsECalEndCapLayer[layer].Y() + y * weight,
+              barycenterVsECalEndCapLayer[layer].Z() + z * weight);
+          sumWeightsVsECalEndCapLayer[layer] += weight;
         }
       }
       else if (systemID == 8)
@@ -324,17 +341,30 @@ void EventDisplay::FillClusters(std::string clusterType)
         }
       }
     }
-    for (unsigned int iLayer = 0; iLayer < nECalLayers; iLayer++)
+
+    for (unsigned int iLayer = 0; iLayer < nECalBarrelLayers; iLayer++)
     {
-      if (energyVsECalLayer[iLayer] > 0)
+      if (energyVsECalBarrelLayer[iLayer] > 0)
       {
-        barycenterVsECalLayer[iLayer].SetXYZ(
-            barycenterVsECalLayer[iLayer].X() / sumWeightsVsECalLayer[iLayer],
-            barycenterVsECalLayer[iLayer].Y() / sumWeightsVsECalLayer[iLayer],
-            barycenterVsECalLayer[iLayer].Z() / sumWeightsVsECalLayer[iLayer]);
+        barycenterVsECalBarrelLayer[iLayer].SetXYZ(
+            barycenterVsECalBarrelLayer[iLayer].X() / sumWeightsVsECalBarrelLayer[iLayer],
+            barycenterVsECalBarrelLayer[iLayer].Y() / sumWeightsVsECalBarrelLayer[iLayer],
+            barycenterVsECalBarrelLayer[iLayer].Z() / sumWeightsVsECalBarrelLayer[iLayer]);
       }
     }
-    cluster->setBarycenterVsECalLayers(barycenterVsECalLayer);
+    cluster->setBarycenterVsECalBarrelLayers(barycenterVsECalBarrelLayer);
+
+    for (unsigned int iLayer = 0; iLayer < nECalEndCapLayers; iLayer++)
+    {
+      if (energyVsECalEndCapLayer[iLayer] > 0)
+      {
+        barycenterVsECalEndCapLayer[iLayer].SetXYZ(
+            barycenterVsECalEndCapLayer[iLayer].X() / sumWeightsVsECalEndCapLayer[iLayer],
+            barycenterVsECalEndCapLayer[iLayer].Y() / sumWeightsVsECalEndCapLayer[iLayer],
+            barycenterVsECalEndCapLayer[iLayer].Z() / sumWeightsVsECalEndCapLayer[iLayer]);
+      }
+    }
+    cluster->setBarycenterVsECalEndCapLayers(barycenterVsECalEndCapLayer);
 
     for (unsigned int iLayer = 0; iLayer < nHCalLayers; iLayer++)
     {
@@ -347,6 +377,7 @@ void EventDisplay::FillClusters(std::string clusterType)
       }
     }
     cluster->setBarycenterVsHCalLayers(barycenterVsHCalLayer);
+    
     cluster->setBarycenterVsMuonLayers(barycenterVsMuonLayer);
 
     if (debug) {
@@ -724,14 +755,24 @@ void EventDisplay::DrawClusters(std::string clusterType)
         layerBarycenters->SetMarkerSize(3);
         clusters_3D->AddElement(layerBarycenters);
         CaloCluster *clus = (*clusterData)[icl];
-        for (unsigned int iLayer = 0; iLayer < clus->getNLayersECal(); iLayer++)
+        for (unsigned int iLayer = 0; iLayer < clus->getNLayersECalBarrel(); iLayer++)
         {
-          if (clus->getEnergyInECalLayer(iLayer) > 0)
+          if (clus->getEnergyInECalBarrelLayer(iLayer) > 0)
           {
             layerBarycenters->SetNextPoint(
-                                           clus->getBarycenterInECalLayer(iLayer).X() / cm,
-                                           clus->getBarycenterInECalLayer(iLayer).Y() / cm,
-                                           clus->getBarycenterInECalLayer(iLayer).Z() / cm);
+                                           clus->getBarycenterInECalBarrelLayer(iLayer).X() / cm,
+                                           clus->getBarycenterInECalBarrelLayer(iLayer).Y() / cm,
+                                           clus->getBarycenterInECalBarrelLayer(iLayer).Z() / cm);
+          }
+        }
+        for (unsigned int iLayer = 0; iLayer < clus->getNLayersECalEndCap(); iLayer++)
+        {
+          if (clus->getEnergyInECalEndCapLayer(iLayer) > 0)
+          {
+            layerBarycenters->SetNextPoint(
+                                           clus->getBarycenterInECalEndCapLayer(iLayer).X() / cm,
+                                           clus->getBarycenterInECalEndCapLayer(iLayer).Y() / cm,
+                                           clus->getBarycenterInECalEndCapLayer(iLayer).Z() / cm);
           }
         }
         for (unsigned int iLayer = 0; iLayer < (*clusterData)[icl]->getNLayersHCal(); iLayer++)
@@ -1919,7 +1960,7 @@ void EventDisplay::loadEvent(int event)
                               (*eventReader->ECalEndcapCells_position_y)[i] * mm,
                               (*eventReader->ECalEndcapCells_position_z)[i] * mm);
       if (debug) {
-        ULong_t cellID = (*eventReader->ECalBarrelCells_cellID)[i];
+        ULong_t cellID = (*eventReader->ECalEndcapCells_cellID)[i];
         ULong_t system = geomReader->SystemID(cellID);
         Long_t side = geomReader->ECalEndCapSide(cellID);
         ULong_t wheel = geomReader->ECalEndCapWheel(cellID);
@@ -2506,7 +2547,7 @@ void EventDisplay::startDisplay(int initialEvent)
             TEveElement *el = *itr2;
             el->SetMainColor(kAzure+7);
             TString elname(el->GetElementName());
-            std::cout << elname << std::endl;
+            if (debug) std::cout << elname << std::endl;
             el->SetRnrSelfChildren(false, false);
             if (elname.BeginsWith("ECAL_Cryo_side"))
               el->SetRnrSelfChildren(false, false);
