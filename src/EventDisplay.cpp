@@ -137,7 +137,8 @@ void EventDisplay::FillClusters(std::string clusterType)
   const double mm = geomReader->mm;
   const int nECalBarrelLayers = geomReader->nLayers;
   const int nECalEndCapLayers = geomReader->nLayersECalEndCap;
-  const int nHCalLayers = geomReader->nLayersHCal;
+  const int nHCalBarrelLayers = geomReader->nLayersHCal;
+  const int nHCalEndCapLayers = geomReader->nLayersHCalEndCap;
   const int nMuonLayers = geomReader->nLayersMuon;
   for (unsigned int i = 0; i < nClusters; i++)
   {
@@ -200,7 +201,8 @@ void EventDisplay::FillClusters(std::string clusterType)
     // loop over cells to calculate energy per layer
     std::vector<float> energyVsECalBarrelLayer(nECalBarrelLayers, 0.);
     std::vector<float> energyVsECalEndCapLayer(nECalEndCapLayers, 0.);
-    std::vector<float> energyVsHCalLayer(nHCalLayers, 0.);
+    std::vector<float> energyVsHCalBarrelLayer(nHCalBarrelLayers, 0.);
+    std::vector<float> energyVsHCalEndCapLayer(nHCalEndCapLayers, 0.);
     std::vector<float> energyVsMuonLayer(nMuonLayers, 0.);
     for (unsigned int iCell = 0; iCell < nCells; iCell++)
     {
@@ -228,7 +230,7 @@ void EventDisplay::FillClusters(std::string clusterType)
       else if (systemID == 8)
       {
         layer = geomReader->HCalBarrelLayer(cellID);
-        energyVsHCalLayer[layer] += energy;
+        energyVsHCalBarrelLayer[layer] += energy;
       }
       else if (systemID == 5)
       {
@@ -237,10 +239,8 @@ void EventDisplay::FillClusters(std::string clusterType)
       }
       else if (systemID == 9)
       {
-        // TODO: calculate properly hcal endcap layer
-        // layer = geomReader->HCalBarrelLayer(cellID);
-        //energyVsHCalLayer[layer] += energy;
-	      energyVsHCalLayer[0] += energy;
+        layer = geomReader->HCalEndCapLayer(cellID);
+        energyVsHCalEndCapLayer[layer] += energy;
       }
       else if (systemID == 12)
       {
@@ -261,7 +261,8 @@ void EventDisplay::FillClusters(std::string clusterType)
 
     cluster->setEnergyVsECalBarrelLayers(energyVsECalBarrelLayer);
     cluster->setEnergyVsECalEndCapLayers(energyVsECalEndCapLayer);
-    cluster->setEnergyVsHCalLayers(energyVsHCalLayer);
+    cluster->setEnergyVsHCalBarrelLayers(energyVsHCalBarrelLayer);
+    cluster->setEnergyVsHCalEndCapLayers(energyVsHCalEndCapLayer);
     cluster->setEnergyVsMuonLayers(energyVsMuonLayer);
 
     // loop again over cells to calculate barycenter per layer
@@ -271,12 +272,19 @@ void EventDisplay::FillClusters(std::string clusterType)
     }
     std::vector<TVector3> barycenterVsECalBarrelLayer(nECalBarrelLayers);
     std::vector<float> sumWeightsVsECalBarrelLayer(nECalBarrelLayers, 0.0);
+
     std::vector<TVector3> barycenterVsECalEndCapLayer(nECalEndCapLayers);
     std::vector<float> sumWeightsVsECalEndCapLayer(nECalEndCapLayers, 0.0);
-    std::vector<TVector3> barycenterVsHCalLayer(nHCalLayers);
-    std::vector<float> sumWeightsVsHCalLayer(nHCalLayers, 0.0);
+
+    std::vector<TVector3> barycenterVsHCalBarrelLayer(nHCalBarrelLayers);
+    std::vector<float> sumWeightsVsHCalBarrelLayer(nHCalBarrelLayers, 0.0);
+
+    std::vector<TVector3> barycenterVsHCalEndCapLayer(nHCalEndCapLayers);
+    std::vector<float> sumWeightsVsHCalEndCapLayer(nHCalEndCapLayers, 0.0);
+
     std::vector<TVector3> barycenterVsMuonLayer(nMuonLayers);
     std::vector<float> sumWeightsVsMuonLayer(nMuonLayers, 0.0);
+  
     for (unsigned int iCell = 0; iCell < nCells; iCell++)
     {
       if (iCell < first_hit || iCell >= last_hit)
@@ -330,14 +338,27 @@ void EventDisplay::FillClusters(std::string clusterType)
       else if (systemID == 8)
       {
         layer = geomReader->HCalBarrelLayer(cellID);
-        if (energyVsHCalLayer[layer] > 0)
+        if (energyVsHCalBarrelLayer[layer] > 0)
         {
-          float weight = energy / energyVsHCalLayer[layer];
-          barycenterVsHCalLayer[layer].SetXYZ(
-              barycenterVsHCalLayer[layer].X() + x * weight,
-              barycenterVsHCalLayer[layer].Y() + y * weight,
-              barycenterVsHCalLayer[layer].Z() + z * weight);
-          sumWeightsVsHCalLayer[layer] += weight;
+          float weight = energy / energyVsHCalBarrelLayer[layer];
+          barycenterVsHCalBarrelLayer[layer].SetXYZ(
+              barycenterVsHCalBarrelLayer[layer].X() + x * weight,
+              barycenterVsHCalBarrelLayer[layer].Y() + y * weight,
+              barycenterVsHCalBarrelLayer[layer].Z() + z * weight);
+          sumWeightsVsHCalBarrelLayer[layer] += weight;
+        }
+      }
+      else if (systemID == 9)
+      {
+        layer = geomReader->HCalEndCapLayer(cellID);
+        if (energyVsHCalEndCapLayer[layer] > 0)
+        {
+          float weight = energy / energyVsHCalEndCapLayer[layer];
+          barycenterVsHCalEndCapLayer[layer].SetXYZ(
+              barycenterVsHCalEndCapLayer[layer].X() + x * weight,
+              barycenterVsHCalEndCapLayer[layer].Y() + y * weight,
+              barycenterVsHCalEndCapLayer[layer].Z() + z * weight);
+          sumWeightsVsHCalEndCapLayer[layer] += weight;
         }
       }
     }
@@ -366,18 +387,30 @@ void EventDisplay::FillClusters(std::string clusterType)
     }
     cluster->setBarycenterVsECalEndCapLayers(barycenterVsECalEndCapLayer);
 
-    for (unsigned int iLayer = 0; iLayer < nHCalLayers; iLayer++)
+    for (unsigned int iLayer = 0; iLayer < nHCalBarrelLayers; iLayer++)
     {
-      if (energyVsHCalLayer[iLayer] > 0.)
+      if (energyVsHCalBarrelLayer[iLayer] > 0.)
       {
-        barycenterVsHCalLayer[iLayer].SetXYZ(
-            barycenterVsHCalLayer[iLayer].X() / sumWeightsVsHCalLayer[iLayer],
-            barycenterVsHCalLayer[iLayer].Y() / sumWeightsVsHCalLayer[iLayer],
-            barycenterVsHCalLayer[iLayer].Z() / sumWeightsVsHCalLayer[iLayer]);
+        barycenterVsHCalBarrelLayer[iLayer].SetXYZ(
+            barycenterVsHCalBarrelLayer[iLayer].X() / sumWeightsVsHCalBarrelLayer[iLayer],
+            barycenterVsHCalBarrelLayer[iLayer].Y() / sumWeightsVsHCalBarrelLayer[iLayer],
+            barycenterVsHCalBarrelLayer[iLayer].Z() / sumWeightsVsHCalBarrelLayer[iLayer]);
       }
     }
-    cluster->setBarycenterVsHCalLayers(barycenterVsHCalLayer);
+    cluster->setBarycenterVsHCalBarrelLayers(barycenterVsHCalBarrelLayer);
     
+        for (unsigned int iLayer = 0; iLayer < nHCalEndCapLayers; iLayer++)
+    {
+      if (energyVsHCalEndCapLayer[iLayer] > 0.)
+      {
+        barycenterVsHCalEndCapLayer[iLayer].SetXYZ(
+            barycenterVsHCalEndCapLayer[iLayer].X() / sumWeightsVsHCalEndCapLayer[iLayer],
+            barycenterVsHCalEndCapLayer[iLayer].Y() / sumWeightsVsHCalEndCapLayer[iLayer],
+            barycenterVsHCalEndCapLayer[iLayer].Z() / sumWeightsVsHCalEndCapLayer[iLayer]);
+      }
+    }
+    cluster->setBarycenterVsHCalEndCapLayers(barycenterVsHCalEndCapLayer);
+
     cluster->setBarycenterVsMuonLayers(barycenterVsMuonLayer);
 
     if (debug) {
@@ -775,14 +808,24 @@ void EventDisplay::DrawClusters(std::string clusterType)
                                            clus->getBarycenterInECalEndCapLayer(iLayer).Z() / cm);
           }
         }
-        for (unsigned int iLayer = 0; iLayer < (*clusterData)[icl]->getNLayersHCal(); iLayer++)
+        for (unsigned int iLayer = 0; iLayer < (*clusterData)[icl]->getNLayersHCalBarrel(); iLayer++)
         {
-          if (clus->getEnergyInHCalLayer(iLayer) > 0)
+          if (clus->getEnergyInHCalBarrelLayer(iLayer) > 0)
           {
             layerBarycenters->SetNextPoint(
-                                           clus->getBarycenterInHCalLayer(iLayer).X() / cm,
-                                           clus->getBarycenterInHCalLayer(iLayer).Y() / cm,
-                                           clus->getBarycenterInHCalLayer(iLayer).Z() / cm);
+                                           clus->getBarycenterInHCalBarrelLayer(iLayer).X() / cm,
+                                           clus->getBarycenterInHCalBarrelLayer(iLayer).Y() / cm,
+                                           clus->getBarycenterInHCalBarrelLayer(iLayer).Z() / cm);
+          }
+        }
+        for (unsigned int iLayer = 0; iLayer < (*clusterData)[icl]->getNLayersHCalEndCap(); iLayer++)
+        {
+          if (clus->getEnergyInHCalEndCapLayer(iLayer) > 0)
+          {
+            layerBarycenters->SetNextPoint(
+                                           clus->getBarycenterInHCalEndCapLayer(iLayer).X() / cm,
+                                           clus->getBarycenterInHCalEndCapLayer(iLayer).Y() / cm,
+                                           clus->getBarycenterInHCalEndCapLayer(iLayer).Z() / cm);
           }
         }
       }
@@ -1898,7 +1941,7 @@ void EventDisplay::loadEvent(int event)
     if (ecalCells == nullptr)
     {
       // ecalCells = new TEvePointSet();
-      ecalCells = new MyPointSet("MyPointSet", debug);
+      ecalCells = new MyPointSet("ECalCells", debug);
       ecalCells->SetName(Form("ECAL cells (E>%.2f GeV)", CellEnergyThreshold));
       ecalCells->SetMarkerStyle(4);
       ecalCells->SetMarkerSize(2);
@@ -1939,7 +1982,7 @@ void EventDisplay::loadEvent(int event)
     if (ecalCells == nullptr)
     {
       // ecalCells = new TEvePointSet();
-      ecalCells = new MyPointSet("MyPointSet", debug);
+      ecalCells = new MyPointSet("ECalCells", debug);
       ecalCells->SetName(Form("ECAL cells (E>%.2f GeV)", CellEnergyThreshold));
       ecalCells->SetMarkerStyle(4);
       ecalCells->SetMarkerSize(2);
@@ -1983,7 +2026,8 @@ void EventDisplay::loadEvent(int event)
     }
     if (hcalCells == nullptr)
     {
-      hcalCells = new TEvePointSet();
+      // hcalCells = new TEvePointSet();
+      hcalCells = new MyPointSet("HCalCells", debug);
       hcalCells->SetName(Form("HCAL cells (E>%.2f GeV)", CellEnergyThreshold));
       hcalCells->SetMarkerStyle(4);
       hcalCells->SetMarkerSize(2);
@@ -2000,6 +2044,15 @@ void EventDisplay::loadEvent(int event)
       hcalCells->SetNextPoint((*eventReader->HCalBarrelCells_position_x)[i] * mm,
                               (*eventReader->HCalBarrelCells_position_y)[i] * mm,
                               (*eventReader->HCalBarrelCells_position_z)[i] * mm);
+
+      if (debug) {
+        ULong_t cellID = (*eventReader->HCalBarrelCells_cellID)[i];
+        ULong_t system = geomReader->SystemID(cellID);
+        ULong_t layer = geomReader->HCalBarrelLayer(cellID);
+        ULong_t phi = geomReader->HCalBarrelPhiBin(cellID);
+        ULong_t theta = geomReader->HCalBarrelThetaBin(cellID);
+        hcalCells->fTooltips.push_back(Form("Energy = %.3f GeV, System = %lu, Layer = %lu, Phi = %lu, Theta = %lu", E, system, layer, phi, theta));
+      }
     }
   }
 
@@ -2013,7 +2066,8 @@ void EventDisplay::loadEvent(int event)
     }
     if (hcalCells == nullptr)
     {
-      hcalCells = new TEvePointSet();
+      // hcalCells = new TEvePointSet();
+      hcalCells = new MyPointSet("HCalCells", debug);
       hcalCells->SetName(Form("HCAL cells (E>%.2f GeV)", CellEnergyThreshold));
       hcalCells->SetMarkerStyle(4);
       hcalCells->SetMarkerSize(2);
@@ -2033,6 +2087,14 @@ void EventDisplay::loadEvent(int event)
       hcalCells->SetNextPoint((*eventReader->HCalEndcapCells_position_x)[i] * mm,
                               (*eventReader->HCalEndcapCells_position_y)[i] * mm,
                               (*eventReader->HCalEndcapCells_position_z)[i] * mm);
+      if (debug) {
+        ULong_t cellID = (*eventReader->HCalEndcapCells_cellID)[i];
+        ULong_t system = geomReader->SystemID(cellID);
+        ULong_t layer = geomReader->HCalEndCapLayer(cellID);
+        ULong_t phi = geomReader->HCalEndCapPhiBin(cellID);
+        ULong_t theta = geomReader->HCalEndCapThetaBin(cellID);
+        hcalCells->fTooltips.push_back(Form("Energy = %.3f GeV, System = %lu, Layer = %lu, Phi = %lu, Theta = %lu", E, system, layer, phi, theta));
+      }
     }
   }
 
@@ -2143,27 +2205,27 @@ void EventDisplay::loadEvent(int event)
       float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5];
       for (unsigned int i=0; i<5; i++) x[i]=-1e6; // set to some large value to check later if track state has been filled
       for (unsigned int its = trackStates_begin; its < trackStates_end; its++) {
-	int location = (*eventReader->_TracksFromGenParticles_trackStates_location)[its];
-	if (debug) {
-	  std::cout << "Trackstate " << its << std::endl;
-	  std::cout << "  location = " << location << std::endl;
-	}
-	// if (location<1 or location>4) continue;
-	if (location>4) continue;
-	x[location] = (*eventReader->_TracksFromGenParticles_trackStates_referencePoint_x)[its];
-	y[location] = (*eventReader->_TracksFromGenParticles_trackStates_referencePoint_y)[its];
-	z[location] = (*eventReader->_TracksFromGenParticles_trackStates_referencePoint_z)[its];
-	omega[location] = (*eventReader->_TracksFromGenParticles_trackStates_omega)[its];
-	tanLambda[location] = (*eventReader->_TracksFromGenParticles_trackStates_tanLambda)[its];
-	phi[location] = (*eventReader->_TracksFromGenParticles_trackStates_phi)[its];
-	if (debug) {
-	  std::cout << "  x = " << x[location-1] << std::endl;
-	  std::cout << "  y = " << y[location-1] << std::endl;
-	  std::cout << "  z = " << z[location-1] << std::endl;
-	  std::cout << "  omega = " << omega[location-1] << std::endl;
-	  std::cout << "  phi = " << phi[location-1] << std::endl;
-	  std::cout << "  tanLambda = " << tanLambda[location-1] << std::endl;
-	}
+        int location = (*eventReader->_TracksFromGenParticles_trackStates_location)[its];
+        if (debug) {
+          std::cout << "Trackstate " << its << std::endl;
+          std::cout << "  location = " << location << std::endl;
+        }
+        // if (location<1 or location>4) continue;
+        if (location>4) continue;
+        x[location] = (*eventReader->_TracksFromGenParticles_trackStates_referencePoint_x)[its];
+        y[location] = (*eventReader->_TracksFromGenParticles_trackStates_referencePoint_y)[its];
+        z[location] = (*eventReader->_TracksFromGenParticles_trackStates_referencePoint_z)[its];
+        omega[location] = (*eventReader->_TracksFromGenParticles_trackStates_omega)[its];
+        tanLambda[location] = (*eventReader->_TracksFromGenParticles_trackStates_tanLambda)[its];
+        phi[location] = (*eventReader->_TracksFromGenParticles_trackStates_phi)[its];
+        if (debug) {
+          std::cout << "  x = " << x[location-1] << std::endl;
+          std::cout << "  y = " << y[location-1] << std::endl;
+          std::cout << "  z = " << z[location-1] << std::endl;
+          std::cout << "  omega = " << omega[location-1] << std::endl;
+          std::cout << "  phi = " << phi[location-1] << std::endl;
+          std::cout << "  tanLambda = " << tanLambda[location-1] << std::endl;
+        }
       }
       const int nSubDetectors(5);
       int nhits[nSubDetectors];
@@ -2171,34 +2233,34 @@ void EventDisplay::loadEvent(int event)
       unsigned int hits_end = (*eventReader->TracksFromGenParticles_subdetectorHitNumbers_end)[ip];
       if (debug) std::cout << "  subdetectorHitNumbers_begin , end = " << hits_begin << " , " << hits_end << std::endl;
       for (unsigned int ih = hits_begin; ih < hits_end; ih++) {
-	nhits[ih-hits_begin] = (*eventReader->_TracksFromGenParticles_subdetectorHitNumbers)[ih];
+	      nhits[ih-hits_begin] = (*eventReader->_TracksFromGenParticles_subdetectorHitNumbers)[ih];
       }
       
       const int tsOrig=2; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
       if (std::fabs(x[tsOrig]>-5e5)) {
-	TEveRecTrack t;
-	float x1 = x[tsOrig]*mm;
-	float y1 = y[tsOrig]*mm;
-	float z1 = z[tsOrig]*mm;
-	const float FCT = 2.99792458E-4f;
-	const float bField = 2.0;
-	int charge = sgn(omega[tsOrig]);
-	float radius = 1.f / std::fabs(omega[tsOrig]);
-	float pxy = FCT * bField * radius;
-	float px = pxy * std::cos(phi[tsOrig]);
-	float py = pxy * std::sin(phi[tsOrig]);
-	float pz = tanLambda[tsOrig] * pxy;
-	float p = std::sqrt(px*px+py*py+pz*pz);
-	t.fV.Set(x1, y1, z1);
-	t.fP.Set(px, py, pz);
-	t.fSign = charge;
-	TEveTrack* track = new TEveTrack(&t, tracks->GetPropagator());
-	track->SetElementName(Form("Track %d", ip));
-	track->SetAttLineAttMarker(tracks);
-	track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm\nhits = %d/%d/%d/%d/%d",
-				    p, std::acos(pz / p), std::atan2(py, px),
-				    x1 / cm, y1 / cm, z1 / cm,
-				    nhits[0], nhits[1], nhits[2], nhits[3], nhits[4]));
+        TEveRecTrack t;
+        float x1 = x[tsOrig]*mm;
+        float y1 = y[tsOrig]*mm;
+        float z1 = z[tsOrig]*mm;
+        const float FCT = 2.99792458E-4f;
+        const float bField = 2.0;
+        int charge = sgn(omega[tsOrig]);
+        float radius = 1.f / std::fabs(omega[tsOrig]);
+        float pxy = FCT * bField * radius;
+        float px = pxy * std::cos(phi[tsOrig]);
+        float py = pxy * std::sin(phi[tsOrig]);
+        float pz = tanLambda[tsOrig] * pxy;
+        float p = std::sqrt(px*px+py*py+pz*pz);
+        t.fV.Set(x1, y1, z1);
+        t.fP.Set(px, py, pz);
+        t.fSign = charge;
+        TEveTrack* track = new TEveTrack(&t, tracks->GetPropagator());
+        track->SetElementName(Form("Track %d", ip));
+        track->SetAttLineAttMarker(tracks);
+        track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm\nhits = %d/%d/%d/%d/%d",
+				  p, std::acos(pz / p), std::atan2(py, px),
+				  x1 / cm, y1 / cm, z1 / cm,
+				  nhits[0], nhits[1], nhits[2], nhits[3], nhits[4]));
 
 	// add other track states (at last hit, at ECAL, and at other=2nd ECAL projection) references
 	for (int i=0; i<5; i++) {
@@ -2209,8 +2271,8 @@ void EventDisplay::loadEvent(int event)
 	  float py = pxy * std::sin(phi[i]);
 	  float pz = tanLambda[i] * pxy;
 	  track->AddPathMark(TEvePathMarkD(TEvePathMarkD::kReference,
-					   TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
-					   TEveVectorD(px, py, py)));
+					             TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
+					             TEveVectorD(px, py, py)));
 	  track->SetRnrPoints(true);
 	  track->SetMarkerStyle(4);
 	}

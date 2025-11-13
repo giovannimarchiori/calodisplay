@@ -192,9 +192,10 @@ ULong_t DetectorGeometry::ReadNbitsAtPositionMFromCellID(int n, int m, ULong_t c
   return (cellID >> m) & mask;
 }
 
-// ECalBarrel: system:4,cryo:1,type:3,subtype:3,layer:8,module:11,theta:10
-// HCalBarrel: system:4,layer:5,theta:9,phi:10
+// ECal barrel: system:4,cryo:1,type:3,subtype:3,layer:8,module:11,theta:10
+// HCal barrel: system:4,layer:5,theta:9,phi:10
 // ECal endcap: system:4,cryo:1,type:3,subtype:3,side:-2,wheel:3,layer:12,module:11,rho:8,z:8
+// HCal endcap: system:4,type:3,layer:6,row:11,theta:11,phi:10
 
 // extract system ID from cellID
 ULong_t DetectorGeometry::SystemID(ULong_t cellID) {
@@ -272,4 +273,24 @@ ULong_t DetectorGeometry::ECalEndCapZBin(ULong_t cellID) {
   return ReadNbitsAtPositionMFromCellID(8, 47, cellID);
 }
 
+// HCal endcap: system:4,type:3,layer:6,row:11,theta:11,phi:10
 
+// extract HCal endcap layer number from cellID
+ULong_t DetectorGeometry::HCalEndCapLayer(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(6, 7, cellID);
+}
+
+// extract HCal endcap row number from cellID
+//ULong_t DetectorGeometry::HCalEndCapRow(ULong_t cellID) {
+//  return ReadNbitsAtPositionMFromCellID(11, 13, cellID);
+//}
+
+// extract HCal endcap theta bin from cellID
+ULong_t DetectorGeometry::HCalEndCapThetaBin(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(11, 24, cellID);
+}
+
+// extract HCal endcap phi bin from cellID
+ULong_t DetectorGeometry::HCalEndCapPhiBin(ULong_t cellID) {
+  return ReadNbitsAtPositionMFromCellID(10, 35, cellID);
+}

@@ -49,25 +49,14 @@ public:
   Bool_t MouseEnter(TGLOvlSelectRecord & /*rec*/);
 };
 
-/*
-#include "TEveManager.h"
-#include "TEvePointSet.h"
-#include "TGFrame.h"
-#include "TGClient.h"
-#include <vector>
-#include <string>
-*/
-#include "TGLabel.h"
-
-// derived TEvePointSet class that shows point info in a label when selected
+// derived TEvePointSet class that shows point info in console when selected
 class MyPointSet : public TEvePointSet {
 public:
   std::vector<std::string> fTooltips;  // per-point info
-  TGLabel* fLabel;                     // GUI label to show info
   bool fShowTooltips;                  // flag to enable/disable tooltips
 
   MyPointSet(const char* name = "MyPoints", bool showTooltips = true) 
-    : TEvePointSet(name), fLabel(nullptr), fShowTooltips(showTooltips) {
+    : TEvePointSet(name), fShowTooltips(showTooltips) {
         SetPickable(kTRUE);
         SetOwnIds(kTRUE);
       }
@@ -86,18 +75,11 @@ public:
     fTooltips.clear();
   }
 
-  void SetLabel(TGLabel* label) { fLabel = label; }
-
   void PointSelected(Int_t idx) override {
     if (!fShowTooltips) return;
     std::cout << "tooltips size: " << fTooltips.size() << std::endl;
     if (idx < 0 || idx >= (Int_t)fTooltips.size()) return;
     std::cout << "Point selected: idx = " << idx << ", " << fTooltips[idx] << std::endl;
-    if (fLabel) {
-      // fLabel->SetText(Form("Point %d: %s", idx, fTooltips[idx].c_str()));
-      fLabel->SetText(fTooltips[idx].c_str());
-      gClient->NeedRedraw(fLabel); // refresh display
-    }
   }
 };
 
@@ -181,7 +163,8 @@ public:
   TEvePointSet *siwrDigis = nullptr;
   //TEvePointSet *ecalCells = nullptr;
   MyPointSet *ecalCells = nullptr;
-  TEvePointSet *hcalCells = nullptr;
+  // TEvePointSet *hcalCells = nullptr;
+  MyPointSet *hcalCells = nullptr;
   TEvePointSet *muonCells = nullptr;
   TEvePointSet *cells_merged = nullptr;
 

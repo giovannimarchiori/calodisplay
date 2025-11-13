@@ -26,9 +26,6 @@ public:
   // used to produce the event file
   /******************************************************************************/
   
-  std::vector<int> mergedCells_Theta = {4, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
-  std::vector<int> mergedModules = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
-  
   // units
   // G4 uses mm but Root uses cm..
   const double cm = 1.0;
@@ -41,19 +38,16 @@ public:
   const double Bin = -2.;  // in Tesla, magnetic field for zmin<z<zmax, R<Rsol
   const double Bout = 1.;  // in Tesla, magnetic field for zmin<z<zmax, R>Rsol
 
-  
-  // z extension of barrel
+  // ECAL barrel
+
+  // z extension
   const double zMin = -3100.*mm;
   const double zMax =  3100.*mm;
   
-  // radial extension of barrel
+  // radial extension
   const double rMin = 217.28*cm;
   const double rMax = 257.83*cm;
 
-  // endcap
-  const double zMinEndCap = 3200.*mm;
-  const double zMaxEndCap = 3850.*mm;
-  
   // nominal radial thickness of layers in barrel
   std::vector<double> drNom;
   
@@ -75,11 +69,25 @@ public:
 
   // - n(bins)
   const int nThetaBins = 800;
+
+  // merged cells in theta and modules direction
+  std::vector<int> mergedCells_Theta = {4, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
+  std::vector<int> mergedModules = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
   
+
   // ECAL endcap
+
+  // z extent
+  const double zMinEndCap = 3200.*mm;
+  const double zMaxEndCap = 3850.*mm;
+
+  // number of layers
   const int nLayersECalEndCap = 10;
 
-  // HCAL
+
+  // HCAL barrel
+
+  // radial positions of layer boundaries
   const std::vector<double> rHCal = {
     281.05*cm, 286.05*cm, 291.05*cm, 296.05*cm, 301.05*cm,
     311.05*cm, 321.05*cm, 331.05*cm, 341.05*cm, 351.05*cm,
@@ -113,6 +121,11 @@ public:
   const double thetaMaxHCal = thetaOffsetHCal + nThetaBinsHCal*thetaGridHCal;
   const double gridPhiHCal = TMath::TwoPi()/nPhiBinsHCal;
   const double phiMinHCal = -TMath::Pi();
+
+  // HCAL endcap
+
+  // TODO fix
+  const int nLayersHCalEndCap = 50;
 
   // muon
   const int nLayersMuon = 2;
@@ -178,34 +191,30 @@ public:
   // extract system number from cellID
   static ULong_t SystemID(ULong_t cellID);
 
-  // extract layer number from cellID
+  // ECal barrel: extract layer, module, theta bin from cellID
   static ULong_t ECalBarrelLayer(ULong_t cellID);
-  
-  // extract module number from cellID
   static ULong_t ECalBarrelModule(ULong_t cellID);
-  
-  // extract theta bin from cellID
   static ULong_t ECalBarrelThetaBin(ULong_t cellID);
 
-  // extract layer number from cellID
+  // HCal barrel: extract layer, row, theta, phi bin from cellID
   static ULong_t HCalBarrelLayer(ULong_t cellID);
-
-  // extract row number from cellID
   // static ULong_t HCalBarrelRow(ULong_t cellID);
-
-  // extract theta bin from cellID
   static ULong_t HCalBarrelThetaBin(ULong_t cellID);
-
-  // extract phi bin from cellID
   static ULong_t HCalBarrelPhiBin(ULong_t cellID);
  
-  // ECAL endcap: extract side, wheel, layer, module, rho, z
+  // ECal endcap: extract side, wheel, layer, module, rho, z
   static Long_t ECalEndCapSide(ULong_t cellID);
   static ULong_t ECalEndCapWheel(ULong_t cellID);
   static ULong_t ECalEndCapLayer(ULong_t cellID);
   static ULong_t ECalEndCapModule(ULong_t cellID);
   static ULong_t ECalEndCapRhoBin(ULong_t cellID);
   static ULong_t ECalEndCapZBin(ULong_t cellID);
+
+  // HCal endcap: extract layer, row, theta, phi bin from cellID
+  static ULong_t HCalEndCapLayer(ULong_t cellID);
+  // static ULong_t HCalEndCapRow(ULong_t cellID);
+  static ULong_t HCalEndCapThetaBin(ULong_t cellID);
+  static ULong_t HCalEndCapPhiBin(ULong_t cellID);
 
   //ClassDef(DetectorGeometry, 0)
 };

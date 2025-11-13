@@ -48,12 +48,18 @@ public:
   void setEnergyVsECalEndCapLayers(const std::vector<float> &energyVsECalEndCapLayer);
   TVector3 getBarycenterInECalEndCapLayer(unsigned int layer) const;
   void setBarycenterVsECalEndCapLayers(const std::vector<TVector3> &barycenterVsECalEndCapLayer);
-  
-  unsigned int getNLayersHCal() const { return m_energyVsHCalLayer.size(); };
-  float getEnergyInHCalLayer(unsigned int layer) const;
-  void setEnergyVsHCalLayers(const std::vector<float> &energyVsHCalLayer);
-  TVector3 getBarycenterInHCalLayer(unsigned int layer) const;
-  void setBarycenterVsHCalLayers(const std::vector<TVector3> &barycenterVsHCalLayer);
+
+  unsigned int getNLayersHCalBarrel() const { return m_energyVsHCalBarrelLayer.size(); };
+  float getEnergyInHCalBarrelLayer(unsigned int layer) const;
+  void setEnergyVsHCalBarrelLayers(const std::vector<float> &energyVsHCalBarrelLayer);
+  TVector3 getBarycenterInHCalBarrelLayer(unsigned int layer) const;
+  void setBarycenterVsHCalBarrelLayers(const std::vector<TVector3> &barycenterVsHCalBarrelLayer);
+
+  unsigned int getNLayersHCalEndCap() const { return m_energyVsHCalEndCapLayer.size(); };
+  float getEnergyInHCalEndCapLayer(unsigned int layer) const;
+  void setEnergyVsHCalEndCapLayers(const std::vector<float> &energyVsHCalEndCapLayer);
+  TVector3 getBarycenterInHCalEndCapLayer(unsigned int layer) const;
+  void setBarycenterVsHCalEndCapLayers(const std::vector<TVector3> &barycenterVsHCalEndCapLayer);
 
   unsigned int getNLayersMuon() const { return m_energyVsMuonLayer.size(); };
   float getEnergyInMuonLayer(unsigned int layer) const;
@@ -67,14 +73,20 @@ private:
   unsigned int m_index;
   float m_energy;
   TVector3 m_barycenter;
+
   std::vector<float> m_energyVsECalBarrelLayer;
   std::vector<TVector3> m_barycenterVsECalBarrelLayer;
   std::vector<float> m_energyVsECalEndCapLayer;
   std::vector<TVector3> m_barycenterVsECalEndCapLayer;
-  std::vector<float> m_energyVsHCalLayer;
-  std::vector<TVector3> m_barycenterVsHCalLayer;
+
+  std::vector<float> m_energyVsHCalBarrelLayer;
+  std::vector<TVector3> m_barycenterVsHCalBarrelLayer;
+  std::vector<float> m_energyVsHCalEndCapLayer;
+  std::vector<TVector3> m_barycenterVsHCalEndCapLayer;
+
   std::vector<float> m_energyVsMuonLayer;
   std::vector<TVector3> m_barycenterVsMuonLayer;
+
   // direction ...
   // shower shapes...
 };
