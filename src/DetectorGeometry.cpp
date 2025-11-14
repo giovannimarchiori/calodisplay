@@ -182,6 +182,23 @@ void DetectorGeometry::calcGeom(int version) {
   
 }
 
+bool DetectorGeometry::isInECalBarrel(double r, double z) {
+  if ( (r>=rMin) && (r<=rMax) &&
+       (z>=zMin) && (z<=rMax) )
+    return true;
+  else
+    return false;
+}
+
+bool DetectorGeometry::isInECalEndCap(double r, double z) {
+  if ( (r>=rMinEndCap) && (r<=rMaxEndCap) &&
+       ( (z>=zMinEndCap && z<=zMaxEndCap) ||
+         (z<=-zMinEndCap && z>=-zMaxEndCap) ) )
+    return true;
+  else
+    return false;
+}
+
 
 /******************************************************************************/
 // HELPER FUNCTIONS related to the readout

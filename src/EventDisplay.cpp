@@ -447,6 +447,8 @@ void EventDisplay::DrawClusters(std::string clusterType)
   const double cm = geomReader->cm;
   const double mm = geomReader->mm;
   const double rMin = geomReader->rMin;
+  const double zMinEC = geomReader->zMinEndCap;
+  const double zMaxEC = geomReader->zMaxEndCap;
   const double alpha = geomReader->alpha;
   const double thetaGrid = geomReader->thetaGrid;
   const double gridPhi = geomReader->gridPhi;
@@ -628,61 +630,69 @@ void EventDisplay::DrawClusters(std::string clusterType)
     clustersDirection->SetLineWidth(5);
   }
   
-  for (unsigned int i = 0; i < nClusters; i++)
-  {
+  for (unsigned int i = 0; i < nClusters; i++) {
     float E = (clusterType == "topo") ? (*eventReader->CaloTopoClusters_energy)[i] : (*eventReader->CaloClusters_energy)[i];
     if (E < ClusterEnergyThreshold)
       continue;
-    // topo cluster positions are in cm while calo clusters and hits/cells in mm ... ?
-    if (clusterType == "topo")
-    {
-      float x0 = (*eventReader->CaloTopoClusters_position_x)[i] * mm;
-      float y0 = (*eventReader->CaloTopoClusters_position_y)[i] * mm;
-      float z0 = (*eventReader->CaloTopoClusters_position_z)[i] * mm;
-      clustersCenter->SetNextPoint(x0, y0, z0);
 
+    float x0(0.), y0(0.), z0(0.);
+    float theta(0.), phi(0.);  
+    // topo cluster positions are in cm while calo clusters and hits/cells in mm ... ?
+    if (clusterType == "topo") {
+      x0 = (*eventReader->CaloTopoClusters_position_x)[i] * mm;
+      y0 = (*eventReader->CaloTopoClusters_position_y)[i] * mm;
+      z0 = (*eventReader->CaloTopoClusters_position_z)[i] * mm;
       if (displayConfig.getBoolConfig("drawClusterDirection")) {
-        float theta = (*eventReader->CaloTopoClusters_theta)[i];
-        float phi = (*eventReader->CaloTopoClusters_phi)[i];
-        float a = std::sin(theta)*std::sin(theta);
-        float b = 2*std::sin(theta)*(x0*std::cos(phi) + y0*std::sin(phi));
-        float c = x0*x0 + y0*y0 - rMin*rMin;
-        float t1 = solve_poly2(a,b,c,1);
-        double rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
-        c = x0*x0 + y0*y0 - rMax*rMax;
-        float t2 = solve_poly2(a,b,c,1);
-        clustersDirection->AddLine(x0 + t1*std::sin(theta)*std::cos(phi),
-                                   y0 + t1*std::sin(theta)*std::sin(phi),
-                                   z0 + t1*std::cos(theta),
-                                   x0 + t2*std::sin(theta)*std::cos(phi),
-                                   y0 + t2*std::sin(theta)*std::sin(phi),
-                                   z0 + t2*std::cos(theta));
+        theta = (*eventReader->CaloTopoClusters_theta)[i];
+        phi = (*eventReader->CaloTopoClusters_phi)[i];
       }
     }
-    else
-    {
-      float x0 = (*eventReader->CaloClusters_position_x)[i] * mm;
-      float y0 = (*eventReader->CaloClusters_position_y)[i] * mm;
-      float z0 = (*eventReader->CaloClusters_position_z)[i] * mm;
-      clustersCenter->SetNextPoint(x0, y0, z0);
-
+    else {
+      x0 = (*eventReader->CaloClusters_position_x)[i] * mm;
+      y0 = (*eventReader->CaloClusters_position_y)[i] * mm;
+      z0 = (*eventReader->CaloClusters_position_z)[i] * mm;
       if (displayConfig.getBoolConfig("drawClusterDirection")) {
-        float theta = (*eventReader->CaloClusters_theta)[i];
-        float phi = (*eventReader->CaloClusters_phi)[i];
+        theta = (*eventReader->CaloClusters_theta)[i];
+        phi = (*eventReader->CaloClusters_phi)[i];
+      }
+    }
+  
+    clustersCenter->SetNextPoint(x0, y0, z0);
+    if (theta!=0.) {
+      float t1(0), t2(0);
+      if (geomReader->isInECalBarrel(std::sqrt(x0*x0 + y0*y0), z0)) {
+        // for cluster in barrel
         float a = std::sin(theta)*std::sin(theta);
         float b = 2*std::sin(theta)*(x0*std::cos(phi) + y0*std::sin(phi));
         float c = x0*x0 + y0*y0 - rMin*rMin;
-        float t1 = solve_poly2(a,b,c,1);
+        t1 = solve_poly2(a,b,c,1);
         double rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
         c = x0*x0 + y0*y0 - rMax*rMax;
-        float t2 = solve_poly2(a,b,c,1);
+        t2 = solve_poly2(a,b,c,1);
+      }
+      else if (geomReader->isInECalEndCap(std::sqrt(x0*x0 + y0*y0), z0)) {
+        // for cluster in endcap
+        double zMin = zMinEC;
+        double zMax = zMaxEC;
+        if (z0<0) {
+          zMin = -zMin;
+          zMax = -zMax;
+        }
+        t1 = (zMin-z0)/std::cos(theta);
+        t2 = (zMax-z0)/std::cos(theta);
+      }
+      else {
+        // 
+        std::cout << "Cluster barycentre is not in ECal barrel nor endcap!" << std::endl;
+        std::cout << "  x0 = " << x0 << ", y0 = " << y0 << ", z0 = " << z0 << std::endl;
+      }
+      if (t1!=0.)
         clustersDirection->AddLine(x0 + t1*std::sin(theta)*std::cos(phi),
                                    y0 + t1*std::sin(theta)*std::sin(phi),
                                    z0 + t1*std::cos(theta),
                                    x0 + t2*std::sin(theta)*std::cos(phi),
                                    y0 + t2*std::sin(theta)*std::sin(phi),
                                    z0 + t2*std::cos(theta));
-      }
     }
   }
 

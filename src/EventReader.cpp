@@ -825,8 +825,8 @@ void EventReader::SetBranches()
         CaloClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
         CaloClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
         CaloClusters_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
-	CaloClusters_theta = new TTreeReaderArray<Float_t>(*fReader, Form("%s.iTheta", branch));
-	CaloClusters_phi = new TTreeReaderArray<Float_t>(*fReader, Form("%s.phi", branch));
+        CaloClusters_theta      = new TTreeReaderArray<Float_t>(*fReader, Form("%s.iTheta", branch));
+        CaloClusters_phi        = new TTreeReaderArray<Float_t>(*fReader, Form("%s.phi", branch));
         CaloClusters_hits_begin = new TTreeReaderArray<UInt_t> (*fReader, Form("%s.hits_begin", branch));
         CaloClusters_hits_end   = new TTreeReaderArray<UInt_t> (*fReader, Form("%s.hits_end", branch));
       }
@@ -884,8 +884,8 @@ void EventReader::SetBranches()
         CaloTopoClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
         CaloTopoClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
         CaloTopoClusters_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
-        CaloTopoClusters_theta = new TTreeReaderArray<Float_t>(*fReader, Form("%s.iTheta", branch));
-        CaloTopoClusters_phi = new TTreeReaderArray<Float_t>(*fReader, Form("%s.phi", branch));
+        CaloTopoClusters_theta      = new TTreeReaderArray<Float_t>(*fReader, Form("%s.iTheta", branch));
+        CaloTopoClusters_phi        = new TTreeReaderArray<Float_t>(*fReader, Form("%s.phi", branch));
         CaloTopoClusters_hits_begin = new TTreeReaderArray<UInt_t> (*fReader, Form("%s.hits_begin", branch));
         CaloTopoClusters_hits_end   = new TTreeReaderArray<UInt_t> (*fReader, Form("%s.hits_end", branch));
       }

@@ -78,6 +78,8 @@ public:
   // ECAL endcap
 
   // z extent
+  const double rMinEndCap = 350.0*mm;
+  const double rMaxEndCap = 2900.0*cm;
   const double zMinEndCap = 3200.*mm;
   const double zMaxEndCap = 3850.*mm;
 
@@ -180,6 +182,8 @@ public:
   // and print them to screen
   void calcGeom(int version);
 
+  bool isInECalBarrel(double r, double z);
+  bool isInECalEndCap(double r, double z);
 
   /******************************************************************************/
   // HELPER FUNCTIONS related to the readout
