@@ -234,7 +234,7 @@ void EventDisplay::FillClusters(std::string clusterType)
       }
       else if (systemID == 5)
       {
-	      layer = geomReader->ECalEndCapZBin(cellID);
+        layer = geomReader->ECalEndCapZBin(cellID);
         energyVsECalEndCapLayer[layer] += energy;
       }
       else if (systemID == 9)
@@ -245,12 +245,12 @@ void EventDisplay::FillClusters(std::string clusterType)
       else if (systemID == 12)
       {
         // TODO: calculate properly muon barrel layer
-	      energyVsMuonLayer[0] += energy;
+        energyVsMuonLayer[0] += energy;
       }
       else if (systemID == 13)
       {
         // TODO: calculate properly muon endcap layer
-	      energyVsMuonLayer[0] += energy;
+        energyVsMuonLayer[0] += energy;
       }
       else
       {
@@ -329,9 +329,9 @@ void EventDisplay::FillClusters(std::string clusterType)
         {
           float weight = energy / energyVsECalEndCapLayer[layer];
           barycenterVsECalEndCapLayer[layer].SetXYZ(
-              barycenterVsECalEndCapLayer[layer].X() + x * weight,
-              barycenterVsECalEndCapLayer[layer].Y() + y * weight,
-              barycenterVsECalEndCapLayer[layer].Z() + z * weight);
+            barycenterVsECalEndCapLayer[layer].X() + x * weight,
+            barycenterVsECalEndCapLayer[layer].Y() + y * weight,
+            barycenterVsECalEndCapLayer[layer].Z() + z * weight);
           sumWeightsVsECalEndCapLayer[layer] += weight;
         }
       }
@@ -342,9 +342,9 @@ void EventDisplay::FillClusters(std::string clusterType)
         {
           float weight = energy / energyVsHCalBarrelLayer[layer];
           barycenterVsHCalBarrelLayer[layer].SetXYZ(
-              barycenterVsHCalBarrelLayer[layer].X() + x * weight,
-              barycenterVsHCalBarrelLayer[layer].Y() + y * weight,
-              barycenterVsHCalBarrelLayer[layer].Z() + z * weight);
+            barycenterVsHCalBarrelLayer[layer].X() + x * weight,
+            barycenterVsHCalBarrelLayer[layer].Y() + y * weight,
+            barycenterVsHCalBarrelLayer[layer].Z() + z * weight);
           sumWeightsVsHCalBarrelLayer[layer] += weight;
         }
       }
@@ -355,9 +355,9 @@ void EventDisplay::FillClusters(std::string clusterType)
         {
           float weight = energy / energyVsHCalEndCapLayer[layer];
           barycenterVsHCalEndCapLayer[layer].SetXYZ(
-              barycenterVsHCalEndCapLayer[layer].X() + x * weight,
-              barycenterVsHCalEndCapLayer[layer].Y() + y * weight,
-              barycenterVsHCalEndCapLayer[layer].Z() + z * weight);
+            barycenterVsHCalEndCapLayer[layer].X() + x * weight,
+            barycenterVsHCalEndCapLayer[layer].Y() + y * weight,
+            barycenterVsHCalEndCapLayer[layer].Z() + z * weight);
           sumWeightsVsHCalEndCapLayer[layer] += weight;
         }
       }
@@ -368,9 +368,9 @@ void EventDisplay::FillClusters(std::string clusterType)
       if (energyVsECalBarrelLayer[iLayer] > 0)
       {
         barycenterVsECalBarrelLayer[iLayer].SetXYZ(
-            barycenterVsECalBarrelLayer[iLayer].X() / sumWeightsVsECalBarrelLayer[iLayer],
-            barycenterVsECalBarrelLayer[iLayer].Y() / sumWeightsVsECalBarrelLayer[iLayer],
-            barycenterVsECalBarrelLayer[iLayer].Z() / sumWeightsVsECalBarrelLayer[iLayer]);
+          barycenterVsECalBarrelLayer[iLayer].X() / sumWeightsVsECalBarrelLayer[iLayer],
+          barycenterVsECalBarrelLayer[iLayer].Y() / sumWeightsVsECalBarrelLayer[iLayer],
+          barycenterVsECalBarrelLayer[iLayer].Z() / sumWeightsVsECalBarrelLayer[iLayer]);
       }
     }
     cluster->setBarycenterVsECalBarrelLayers(barycenterVsECalBarrelLayer);
@@ -380,9 +380,9 @@ void EventDisplay::FillClusters(std::string clusterType)
       if (energyVsECalEndCapLayer[iLayer] > 0)
       {
         barycenterVsECalEndCapLayer[iLayer].SetXYZ(
-            barycenterVsECalEndCapLayer[iLayer].X() / sumWeightsVsECalEndCapLayer[iLayer],
-            barycenterVsECalEndCapLayer[iLayer].Y() / sumWeightsVsECalEndCapLayer[iLayer],
-            barycenterVsECalEndCapLayer[iLayer].Z() / sumWeightsVsECalEndCapLayer[iLayer]);
+          barycenterVsECalEndCapLayer[iLayer].X() / sumWeightsVsECalEndCapLayer[iLayer],
+          barycenterVsECalEndCapLayer[iLayer].Y() / sumWeightsVsECalEndCapLayer[iLayer],
+          barycenterVsECalEndCapLayer[iLayer].Z() / sumWeightsVsECalEndCapLayer[iLayer]);
       }
     }
     cluster->setBarycenterVsECalEndCapLayers(barycenterVsECalEndCapLayer);
@@ -392,9 +392,9 @@ void EventDisplay::FillClusters(std::string clusterType)
       if (energyVsHCalBarrelLayer[iLayer] > 0.)
       {
         barycenterVsHCalBarrelLayer[iLayer].SetXYZ(
-            barycenterVsHCalBarrelLayer[iLayer].X() / sumWeightsVsHCalBarrelLayer[iLayer],
-            barycenterVsHCalBarrelLayer[iLayer].Y() / sumWeightsVsHCalBarrelLayer[iLayer],
-            barycenterVsHCalBarrelLayer[iLayer].Z() / sumWeightsVsHCalBarrelLayer[iLayer]);
+          barycenterVsHCalBarrelLayer[iLayer].X() / sumWeightsVsHCalBarrelLayer[iLayer],
+          barycenterVsHCalBarrelLayer[iLayer].Y() / sumWeightsVsHCalBarrelLayer[iLayer],
+          barycenterVsHCalBarrelLayer[iLayer].Z() / sumWeightsVsHCalBarrelLayer[iLayer]);
       }
     }
     cluster->setBarycenterVsHCalBarrelLayers(barycenterVsHCalBarrelLayer);
@@ -404,9 +404,9 @@ void EventDisplay::FillClusters(std::string clusterType)
       if (energyVsHCalEndCapLayer[iLayer] > 0.)
       {
         barycenterVsHCalEndCapLayer[iLayer].SetXYZ(
-            barycenterVsHCalEndCapLayer[iLayer].X() / sumWeightsVsHCalEndCapLayer[iLayer],
-            barycenterVsHCalEndCapLayer[iLayer].Y() / sumWeightsVsHCalEndCapLayer[iLayer],
-            barycenterVsHCalEndCapLayer[iLayer].Z() / sumWeightsVsHCalEndCapLayer[iLayer]);
+          barycenterVsHCalEndCapLayer[iLayer].X() / sumWeightsVsHCalEndCapLayer[iLayer],
+          barycenterVsHCalEndCapLayer[iLayer].Y() / sumWeightsVsHCalEndCapLayer[iLayer],
+          barycenterVsHCalEndCapLayer[iLayer].Z() / sumWeightsVsHCalEndCapLayer[iLayer]);
       }
     }
     cluster->setBarycenterVsHCalEndCapLayers(barycenterVsHCalEndCapLayer);
@@ -1366,9 +1366,9 @@ void EventDisplay::loadEvent(int event)
     if (particles == nullptr)
     {
       if (ParticleEnergyThreshold>0.)
-	particles = new TEveTrackList(Form("particles (p>%.2f GeV)", ParticleEnergyThreshold));
+        particles = new TEveTrackList(Form("particles (p>%.2f GeV)", ParticleEnergyThreshold));
       else
-	particles = new TEveTrackList("particles");
+        particles = new TEveTrackList("particles");
       TEveTrackPropagator *trkProp = particles->GetPropagator();
       //trkProp->SetMagField(-2.0); // tesla
       trkProp->SetMagFieldObj(magField);
@@ -1386,11 +1386,6 @@ void EventDisplay::loadEvent(int event)
       particles->DestroyElements();
 
     // handle differently the e/gamma vs pi0 particle guns
-    // (for pi0, need to look for the two photons in secondary particle list
-    // unfortunately cannot just use the latter to show particles since
-    // info about endpoint is broken (identical to vertex)
-    // TODO: UPDATE NOW ENDPOINT IS FILLED!
-
     for (unsigned int ip = 0; ip < eventReader->genParticles_generatorStatus->GetSize(); ip++)
     {
       float m = (*eventReader->genParticles_mass)[ip];
@@ -1399,7 +1394,7 @@ void EventDisplay::loadEvent(int event)
       float pz = (*eventReader->genParticles_momentum_z)[ip];
       float p = sqrt(px * px + py * py + pz * pz);
       if (p < ParticleEnergyThreshold)
-	continue;
+        continue;
       float pT = sqrt(px * px + py * py);
 
       double t = (*eventReader->genParticles_time)[ip];
@@ -1411,27 +1406,48 @@ void EventDisplay::loadEvent(int event)
       mct.SetPdgCode((*eventReader->genParticles_PDG)[ip]);
       mct.SetMomentum(px, py, pz, sqrt(p * p + m * m));
       mct.SetProductionVertex(x1, y1, z1, t);
-      TEveTrack *track = new TEveTrack(&mct, particles->GetPropagator());
-      track->SetAttLineAttMarker(particles);
-      track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
-                                  p, acos(pz / p), atan2(py, px),
-                                x1 / cm, y1 / cm, z1 / cm));
+
       TEveVectorF v;
       v[0] = (*eventReader->genParticles_endpoint_x)[ip] * mm;
       v[1] = (*eventReader->genParticles_endpoint_y)[ip] * mm;
       v[2] = (*eventReader->genParticles_endpoint_z)[ip] * mm;
+
+      // use per-track propagator to set maxR
+      TEveTrackPropagator* prop = new TEveTrackPropagator(Form("propagator_%d", ip), "per-track propagator", magField, false);
+      // prop->SetMagFieldObj(magField);
+      prop->SetRnrReferences(false);
+      prop->SetFitReferences(false);
+      double propMaxR = rMax;
+      if ((std::sqrt(v[0]*v[0]+v[1]*v[1]) < rMax) && std::sqrt(x1*x1+y1*y1) < rMax) {
+        if (x1*x1+y1*y1 > v[0]*v[0]+v[1]*v[1]) {
+          propMaxR = std::sqrt(x1*x1+y1*y1);
+        }
+        else {
+          propMaxR = std::sqrt(v[0]*v[0]+v[1]*v[1]);
+        }
+      }
+      prop->SetMaxR(propMaxR);
+      //  TEveTrack *track = new TEveTrack(&mct, particles->GetPropagator());
+      TEveTrack *track = new TEveTrack(&mct, prop);
+      track->SetAttLineAttMarker(particles);
+      track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
+                                  p, acos(pz / p), atan2(py, px),
+                                x1 / cm, y1 / cm, z1 / cm));
       // cout << v[0] << " " << v[1] << " " << v[2] << endl;
+      // code below not needed anymore since we have the endpoint info and set the propagator maxR accordingly
+      /*
       if ((*eventReader->genParticles_PDG)[ip]==22 ||
           (*eventReader->genParticles_PDG)[ip]==111
           ) {
-	// don't do it for charged particles otherwise will
-	// force the particle to pass through it and if there
-	// are not enough other reference points along the
-	// trajectory it will screw up the helix
+        // don't do it for charged particles otherwise will
+        // force the particle to pass through it and if there
+        // are not enough other reference points along the
+        // trajectory it will screw up the helix
         TEvePathMark mark(TEvePathMark::kDecay, v);
         track->AddPathMark(mark);
-	track->SetRnrPoints(true);
+        track->SetRnrPoints(true);
       }
+      */
       particles->AddElement(track);
     }
 
@@ -1846,9 +1862,9 @@ void EventDisplay::loadEvent(int event)
       // if (E < HitEnergyThreshold) continue;
       // ULong_t cellID = (*eventReader->VertexBarrelDigis_cellID)[i];
       vtxDigis->SetNextPoint(
-			     (*eventReader->VertexBarrelDigis_position_x)[i] * mm,
-			     (*eventReader->VertexBarrelDigis_position_y)[i] * mm,
-			     (*eventReader->VertexBarrelDigis_position_z)[i] * mm);
+           (*eventReader->VertexBarrelDigis_position_x)[i] * mm,
+           (*eventReader->VertexBarrelDigis_position_y)[i] * mm,
+           (*eventReader->VertexBarrelDigis_position_z)[i] * mm);
     }
     for (unsigned int i = 0; i < eventReader->VertexEndcapDigis_position_x->GetSize(); i++)
     {
@@ -1856,9 +1872,9 @@ void EventDisplay::loadEvent(int event)
       // if (E < HitEnergyThreshold) continue;
       // ULong_t cellID = (*eventReader->VertexEndcapDigis_cellID)[i];
       vtxDigis->SetNextPoint(
-			     (*eventReader->VertexEndcapDigis_position_x)[i] * mm,
-			     (*eventReader->VertexEndcapDigis_position_y)[i] * mm,
-			     (*eventReader->VertexEndcapDigis_position_z)[i] * mm);
+           (*eventReader->VertexEndcapDigis_position_x)[i] * mm,
+           (*eventReader->VertexEndcapDigis_position_y)[i] * mm,
+           (*eventReader->VertexEndcapDigis_position_z)[i] * mm);
     }
   }
 
@@ -2243,7 +2259,7 @@ void EventDisplay::loadEvent(int event)
       unsigned int hits_end = (*eventReader->TracksFromGenParticles_subdetectorHitNumbers_end)[ip];
       if (debug) std::cout << "  subdetectorHitNumbers_begin , end = " << hits_begin << " , " << hits_end << std::endl;
       for (unsigned int ih = hits_begin; ih < hits_end; ih++) {
-	      nhits[ih-hits_begin] = (*eventReader->_TracksFromGenParticles_subdetectorHitNumbers)[ih];
+        nhits[ih-hits_begin] = (*eventReader->_TracksFromGenParticles_subdetectorHitNumbers)[ih];
       }
       
       const int tsOrig=2; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
@@ -2268,26 +2284,26 @@ void EventDisplay::loadEvent(int event)
         track->SetElementName(Form("Track %d", ip));
         track->SetAttLineAttMarker(tracks);
         track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm\nhits = %d/%d/%d/%d/%d",
-				  p, std::acos(pz / p), std::atan2(py, px),
-				  x1 / cm, y1 / cm, z1 / cm,
-				  nhits[0], nhits[1], nhits[2], nhits[3], nhits[4]));
+          p, std::acos(pz / p), std::atan2(py, px),
+          x1 / cm, y1 / cm, z1 / cm,
+          nhits[0], nhits[1], nhits[2], nhits[3], nhits[4]));
 
-	// add other track states (at last hit, at ECAL, and at other=2nd ECAL projection) references
-	for (int i=0; i<5; i++) {
-	  if (std::fabs(x[i]<-5e5)) continue;
-	  float radius = 1.f / std::fabs(omega[i]);
-	  float pxy = FCT * bField * radius;
-	  float px = pxy * std::cos(phi[i]);
-	  float py = pxy * std::sin(phi[i]);
-	  float pz = tanLambda[i] * pxy;
-	  track->AddPathMark(TEvePathMarkD(TEvePathMarkD::kReference,
-					             TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
-					             TEveVectorD(px, py, py)));
-	  track->SetRnrPoints(true);
-	  track->SetMarkerStyle(4);
-	}
-	// could also save decay ...	
-	tracks->AddElement(track);
+  // add other track states (at last hit, at ECAL, and at other=2nd ECAL projection) references
+  for (int i=0; i<5; i++) {
+    if (std::fabs(x[i]<-5e5)) continue;
+    float radius = 1.f / std::fabs(omega[i]);
+    float pxy = FCT * bField * radius;
+    float px = pxy * std::cos(phi[i]);
+    float py = pxy * std::sin(phi[i]);
+    float pz = tanLambda[i] * pxy;
+    track->AddPathMark(TEvePathMarkD(TEvePathMarkD::kReference,
+                       TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
+                       TEveVectorD(px, py, py)));
+    track->SetRnrPoints(true);
+    track->SetMarkerStyle(4);
+  }
+  // could also save decay ...	
+  tracks->AddElement(track);
       }
     }
     tracks->MakeTracks();

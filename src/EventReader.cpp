@@ -109,18 +109,18 @@ void EventReader::SetBranches()
       }
       else
       {
-	TracksFromGenParticles_trackStates_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.trackStates_begin", branch));
-	TracksFromGenParticles_trackStates_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.trackStates_end", branch));
-	TracksFromGenParticles_subdetectorHitNumbers_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.subdetectorHitNumbers_begin", branch));
-	TracksFromGenParticles_subdetectorHitNumbers_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.subdetectorHitNumbers_end", branch));
-	_TracksFromGenParticles_trackStates_location = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_trackStates.location", branch));
-	_TracksFromGenParticles_trackStates_omega = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.omega", branch));
-	_TracksFromGenParticles_trackStates_phi = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.phi", branch));
-	_TracksFromGenParticles_trackStates_tanLambda = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.tanLambda", branch));
-	_TracksFromGenParticles_trackStates_referencePoint_x = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.x", branch));
-	_TracksFromGenParticles_trackStates_referencePoint_y = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.y", branch));
-	_TracksFromGenParticles_trackStates_referencePoint_z = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.z", branch));
-	_TracksFromGenParticles_subdetectorHitNumbers = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_subdetectorHitNumbers", branch));
+        TracksFromGenParticles_trackStates_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.trackStates_begin", branch));
+        TracksFromGenParticles_trackStates_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.trackStates_end", branch));
+        TracksFromGenParticles_subdetectorHitNumbers_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.subdetectorHitNumbers_begin", branch));
+        TracksFromGenParticles_subdetectorHitNumbers_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.subdetectorHitNumbers_end", branch));
+        _TracksFromGenParticles_trackStates_location = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_trackStates.location", branch));
+        _TracksFromGenParticles_trackStates_omega = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.omega", branch));
+        _TracksFromGenParticles_trackStates_phi = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.phi", branch));
+        _TracksFromGenParticles_trackStates_tanLambda = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.tanLambda", branch));
+        _TracksFromGenParticles_trackStates_referencePoint_x = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.x", branch));
+        _TracksFromGenParticles_trackStates_referencePoint_y = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.y", branch));
+        _TracksFromGenParticles_trackStates_referencePoint_z = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.z", branch));
+        _TracksFromGenParticles_subdetectorHitNumbers = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_subdetectorHitNumbers", branch));
       }
     }
   }
