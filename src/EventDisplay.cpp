@@ -2209,7 +2209,7 @@ void EventDisplay::loadEvent(int event)
       // trkProp->SetMaxZ(geomReader->zMax);
       trkProp->SetMaxZ(geomReader->zMaxEndCap);
       trkProp->SetRnrReferences(true);
-      trkProp->SetFitReferences(false);
+      trkProp->SetFitReferences(true);
       tracks->SetMainColor(kCyan);
       tracks->SetLineWidth(2.);
       tracks->SetLineStyle(5);
@@ -2288,22 +2288,22 @@ void EventDisplay::loadEvent(int event)
           x1 / cm, y1 / cm, z1 / cm,
           nhits[0], nhits[1], nhits[2], nhits[3], nhits[4]));
 
-  // add other track states (at last hit, at ECAL, and at other=2nd ECAL projection) references
-  for (int i=0; i<5; i++) {
-    if (std::fabs(x[i]<-5e5)) continue;
-    float radius = 1.f / std::fabs(omega[i]);
-    float pxy = FCT * bField * radius;
-    float px = pxy * std::cos(phi[i]);
-    float py = pxy * std::sin(phi[i]);
-    float pz = tanLambda[i] * pxy;
-    track->AddPathMark(TEvePathMarkD(TEvePathMarkD::kReference,
-                       TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
-                       TEveVectorD(px, py, py)));
-    track->SetRnrPoints(true);
-    track->SetMarkerStyle(4);
-  }
-  // could also save decay ...	
-  tracks->AddElement(track);
+        // add other track states (at last hit, at ECAL, and at other=2nd ECAL projection) references
+        for (int i=0; i<5; i++) {
+          if (std::fabs(x[i]<-5e5)) continue;
+          float radius = 1.f / std::fabs(omega[i]);
+          float pxy = FCT * bField * radius;
+          float px = pxy * std::cos(phi[i]);
+          float py = pxy * std::sin(phi[i]);
+          float pz = tanLambda[i] * pxy;
+          track->AddPathMark(TEvePathMarkD(TEvePathMarkD::kReference,
+                               TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
+                               TEveVectorD(px, py, pz)));
+          track->SetRnrPoints(true);
+          track->SetMarkerStyle(4);
+        }
+        // could also save decay ...	
+        tracks->AddElement(track);
       }
     }
     tracks->MakeTracks();
