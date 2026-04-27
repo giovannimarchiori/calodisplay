@@ -9,7 +9,9 @@
 #include "EventDisplay.h"
 #include "DetectorGeometry.h"
 #include "MagField.h"
+#include "CylField.h"
 #include "Globals.h"
+#include "Units.h"
 
 #include <TMath.h>
 #include <TString.h>
@@ -32,6 +34,10 @@
 #include <filesystem>
 #include <unordered_map>
 #include <iostream>
+
+using Units::units;
+using Units::cm;
+using Units::mm;
 
 // return the sign of a float
 int sgn(float val)
@@ -133,8 +139,6 @@ void EventDisplay::FillClusters(std::string clusterType)
   }
 
   // loop over clusters and fill the relevant info
-  const double cm = geomReader->cm;
-  const double mm = geomReader->mm;
   const int nECalBarrelLayers = geomReader->nLayers;
   const int nECalEndCapLayers = geomReader->nLayersECalEndCap;
   const int nHCalBarrelLayers = geomReader->nLayersHCal;
@@ -444,8 +448,6 @@ void EventDisplay::DrawClusters(std::string clusterType)
   TEveElementList *clusters_rhoz = nullptr;
   TEveElementList *clusters_rhophi = nullptr;
 
-  const double cm = geomReader->cm;
-  const double mm = geomReader->mm;
   const double rMin = geomReader->rMin;
   const double zMinEC = geomReader->zMinEndCap;
   const double zMaxEC = geomReader->zMaxEndCap;
@@ -1342,8 +1344,6 @@ void EventDisplay::loadEvent(int event)
   }
   int pdgID = (*eventReader->genParticles_PDG)[ipmax];
 
-  const double cm = geomReader->cm;
-  const double mm = geomReader->mm;
   double rMax = 5000.*mm;
   if (not showFullDetector) {
     rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
@@ -1370,7 +1370,6 @@ void EventDisplay::loadEvent(int event)
       else
         particles = new TEveTrackList("particles");
       TEveTrackPropagator *trkProp = particles->GetPropagator();
-      //trkProp->SetMagField(-2.0); // tesla
       trkProp->SetMagFieldObj(magField);
       trkProp->SetMaxR(rMax);
       // trkProp->SetMaxZ(geomReader->zMax);
@@ -1414,7 +1413,6 @@ void EventDisplay::loadEvent(int event)
 
       // use per-track propagator to set maxR
       TEveTrackPropagator* prop = new TEveTrackPropagator(Form("propagator_%d", ip), "per-track propagator", magField, false);
-      // prop->SetMagFieldObj(magField);
       prop->SetRnrReferences(false);
       prop->SetFitReferences(false);
       double propMaxR = rMax;
@@ -2203,7 +2201,6 @@ void EventDisplay::loadEvent(int event)
     {
       tracks = new TEveTrackList("tracks");
       TEveTrackPropagator *trkProp = tracks->GetPropagator();
-      // trkProp->SetMagField(-2.0); // tesla
       trkProp->SetMagFieldObj(magField);
       trkProp->SetMaxR(rMax);
       // trkProp->SetMaxZ(geomReader->zMax);
@@ -2388,6 +2385,7 @@ void EventDisplay::startDisplay(int initialEvent)
 
   // create magnetic field
   magField = new MagField(geomReader->Bin, geomReader->Bout, geomReader->zMax, geomReader->rMax);
+  // magField = new CylField("data/ALLEGRO_fieldmap_2T_20260424.root", "fieldmap");
 
   std::cout << "******************************************************************************" << std::endl;
   std::cout << "Displaying the geometry" << std::endl;

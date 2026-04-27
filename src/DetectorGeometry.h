@@ -16,6 +16,10 @@
 #include <TMath.h>
 #include <string>
 #include <vector>
+#include "Units.h"
+using Units::units;
+using Units::cm;
+using Units::mm;
 
 class DetectorGeometry {
 public:
@@ -26,12 +30,6 @@ public:
   // used to produce the event file
   /******************************************************************************/
   
-  // units
-  // G4 uses mm but Root uses cm..
-  const double cm = 1.0;
-  const double mm = 0.1;
-  const std::string units = "cm";
-
   // magnetic field (only in barrel: outside it is assumed to be zero)
   // zmin, zmax = ECAL barrel zmin, zmax (EMBarrel_dz = BarECal_dz-CryoBarrelSide)
   // Rsol = BarCryoECal_rmax-CryoBarrelBackWarm-CryoBarrelBackCold
