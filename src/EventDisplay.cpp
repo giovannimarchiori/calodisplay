@@ -2386,7 +2386,7 @@ void EventDisplay::startDisplay(int initialEvent)
   // create magnetic field
   magField = new MagField(geomReader->Bin, geomReader->Bout, geomReader->zMax, geomReader->rMax);
   // magField = new CylField("data/ALLEGRO_fieldmap_2T_20260424.root", "fieldmap");
-
+    
   std::cout << "******************************************************************************" << std::endl;
   std::cout << "Displaying the geometry" << std::endl;
   std::cout << "******************************************************************************" << std::endl

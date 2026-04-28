@@ -25,6 +25,11 @@ public:
   virtual Double_t GetMaxFieldMagD() const override;
   virtual TEveVectorD GetFieldD(Double_t x, Double_t y, Double_t z) const override;
 
+  void PrintFieldMap() const;
+  void DrawFieldMap(const std::string& canvasName = "cField",
+                    int nArrowsR = 20,
+                    int nArrowsZ = 20,
+                    double scale = 1.0) const;
 };
 
 #endif

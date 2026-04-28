@@ -4,6 +4,7 @@ util/gdmltoroot_C*
 src/DetectorGeometry_cpp*
 old_stuff
 *.root
+*.pdf
 .vscode
 screenshots/*
 
