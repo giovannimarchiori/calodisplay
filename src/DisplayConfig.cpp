@@ -26,6 +26,7 @@ DisplayConfig::DisplayConfig() {
   setBoolConfig("drawTopoClusters", true);
   setBoolConfig("drawCaloClusters", false);
 
+  setStringConfig("bField", "GlobalSolenoid");
   setStringConfig("genParticles", "genParticles");
   setStringConfig("simParticles", "SimParticlesSecondaries");
   setStringConfig("vertexInnerBarrelHits", "VertexInnerBarrelCollection");

@@ -2215,11 +2215,11 @@ void EventDisplay::loadEvent(int event)
     else
       tracks->DestroyElements();
 
-    for (unsigned int ip = 0; ip < eventReader->TracksFromGenParticles_subdetectorHitNumbers_begin->GetSize(); ip++)
+    for (unsigned int ip = 0; ip < eventReader->Tracks_subdetectorHitNumbers_begin->GetSize(); ip++)
     {
       if (debug) std::cout << "Track " << ip << std::endl;
-      unsigned int trackStates_begin = (*eventReader->TracksFromGenParticles_trackStates_begin)[ip];
-      unsigned int trackStates_end = (*eventReader->TracksFromGenParticles_trackStates_end)[ip];
+      unsigned int trackStates_begin = (*eventReader->Tracks_trackStates_begin)[ip];
+      unsigned int trackStates_end = (*eventReader->Tracks_trackStates_end)[ip];
       if (debug) std::cout << "  trackStates begin , end = " << trackStates_begin << " , " << trackStates_end << std::endl;
       // store in vectors the track state positions and momenta
       unsigned int nTrackStates = 1 + trackStates_end - trackStates_begin;
@@ -2228,19 +2228,19 @@ void EventDisplay::loadEvent(int event)
       float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5];
       for (unsigned int i=0; i<5; i++) x[i]=-1e6; // set to some large value to check later if track state has been filled
       for (unsigned int its = trackStates_begin; its < trackStates_end; its++) {
-        int location = (*eventReader->_TracksFromGenParticles_trackStates_location)[its];
+        int location = (*eventReader->_Tracks_trackStates_location)[its];
         if (debug) {
           std::cout << "Trackstate " << its << std::endl;
           std::cout << "  location = " << location << std::endl;
         }
         // if (location<1 or location>4) continue;
         if (location>4) continue;
-        x[location] = (*eventReader->_TracksFromGenParticles_trackStates_referencePoint_x)[its];
-        y[location] = (*eventReader->_TracksFromGenParticles_trackStates_referencePoint_y)[its];
-        z[location] = (*eventReader->_TracksFromGenParticles_trackStates_referencePoint_z)[its];
-        omega[location] = (*eventReader->_TracksFromGenParticles_trackStates_omega)[its];
-        tanLambda[location] = (*eventReader->_TracksFromGenParticles_trackStates_tanLambda)[its];
-        phi[location] = (*eventReader->_TracksFromGenParticles_trackStates_phi)[its];
+        x[location] = (*eventReader->_Tracks_trackStates_referencePoint_x)[its];
+        y[location] = (*eventReader->_Tracks_trackStates_referencePoint_y)[its];
+        z[location] = (*eventReader->_Tracks_trackStates_referencePoint_z)[its];
+        omega[location] = (*eventReader->_Tracks_trackStates_omega)[its];
+        tanLambda[location] = (*eventReader->_Tracks_trackStates_tanLambda)[its];
+        phi[location] = (*eventReader->_Tracks_trackStates_phi)[its];
         if (debug) {
           std::cout << "  x = " << x[location-1] << std::endl;
           std::cout << "  y = " << y[location-1] << std::endl;
@@ -2252,11 +2252,11 @@ void EventDisplay::loadEvent(int event)
       }
       const int nSubDetectors(5);
       int nhits[nSubDetectors];
-      unsigned int hits_begin = (*eventReader->TracksFromGenParticles_subdetectorHitNumbers_begin)[ip];
-      unsigned int hits_end = (*eventReader->TracksFromGenParticles_subdetectorHitNumbers_end)[ip];
+      unsigned int hits_begin = (*eventReader->Tracks_subdetectorHitNumbers_begin)[ip];
+      unsigned int hits_end = (*eventReader->Tracks_subdetectorHitNumbers_end)[ip];
       if (debug) std::cout << "  subdetectorHitNumbers_begin , end = " << hits_begin << " , " << hits_end << std::endl;
       for (unsigned int ih = hits_begin; ih < hits_end; ih++) {
-        nhits[ih-hits_begin] = (*eventReader->_TracksFromGenParticles_subdetectorHitNumbers)[ih];
+        nhits[ih-hits_begin] = (*eventReader->_Tracks_subdetectorHitNumbers)[ih];
       }
       
       const int tsOrig=2; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
@@ -2384,9 +2384,16 @@ void EventDisplay::startDisplay(int initialEvent)
   geomReader = new DetectorGeometry(detectorVersion);
 
   // create magnetic field
-  magField = new MagField(geomReader->Bin, geomReader->Bout, geomReader->zMax, geomReader->rMax);
-  // magField = new CylField("data/ALLEGRO_fieldmap_2T_20260424.root", "fieldmap");
-    
+  std::string bFieldType = displayConfig.getStringConfig("bField");
+  if (bFieldType == "GlobalSolenoid") {
+    std::cout << "Using ideal solenoid magnetic field" << std::endl;
+    magField = new MagField(geomReader->Bin, geomReader->Bout, geomReader->zMax, geomReader->rMax);
+  }
+  else {
+    std::cout << "Using magnetic field map" << std::endl;
+    magField = new CylField("data/ALLEGRO_fieldmap_2T_20260424.root", "fieldmap");
+  }
+
   std::cout << "******************************************************************************" << std::endl;
   std::cout << "Displaying the geometry" << std::endl;
   std::cout << "******************************************************************************" << std::endl

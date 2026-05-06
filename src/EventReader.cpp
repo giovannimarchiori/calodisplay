@@ -109,18 +109,18 @@ void EventReader::SetBranches()
       }
       else
       {
-        TracksFromGenParticles_trackStates_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.trackStates_begin", branch));
-        TracksFromGenParticles_trackStates_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.trackStates_end", branch));
-        TracksFromGenParticles_subdetectorHitNumbers_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.subdetectorHitNumbers_begin", branch));
-        TracksFromGenParticles_subdetectorHitNumbers_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.subdetectorHitNumbers_end", branch));
-        _TracksFromGenParticles_trackStates_location = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_trackStates.location", branch));
-        _TracksFromGenParticles_trackStates_omega = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.omega", branch));
-        _TracksFromGenParticles_trackStates_phi = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.phi", branch));
-        _TracksFromGenParticles_trackStates_tanLambda = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.tanLambda", branch));
-        _TracksFromGenParticles_trackStates_referencePoint_x = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.x", branch));
-        _TracksFromGenParticles_trackStates_referencePoint_y = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.y", branch));
-        _TracksFromGenParticles_trackStates_referencePoint_z = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.z", branch));
-        _TracksFromGenParticles_subdetectorHitNumbers = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_subdetectorHitNumbers", branch));
+        Tracks_trackStates_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.trackStates_begin", branch));
+        Tracks_trackStates_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.trackStates_end", branch));
+        Tracks_subdetectorHitNumbers_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.subdetectorHitNumbers_begin", branch));
+        Tracks_subdetectorHitNumbers_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.subdetectorHitNumbers_end", branch));
+        _Tracks_trackStates_location = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_trackStates.location", branch));
+        _Tracks_trackStates_omega = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.omega", branch));
+        _Tracks_trackStates_phi = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.phi", branch));
+        _Tracks_trackStates_tanLambda = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.tanLambda", branch));
+        _Tracks_trackStates_referencePoint_x = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.x", branch));
+        _Tracks_trackStates_referencePoint_y = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.y", branch));
+        _Tracks_trackStates_referencePoint_z = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.z", branch));
+        _Tracks_subdetectorHitNumbers = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_subdetectorHitNumbers", branch));
       }
     }
   }
@@ -960,19 +960,19 @@ EventReader::~EventReader() {
     delete SimParticleSecondaries_momentum_y;
     delete SimParticleSecondaries_momentum_z;
   }
-  if (TracksFromGenParticles_trackStates_begin) {
-    delete TracksFromGenParticles_trackStates_begin;
-    delete TracksFromGenParticles_trackStates_end;
-    delete TracksFromGenParticles_subdetectorHitNumbers_begin;
-    delete TracksFromGenParticles_subdetectorHitNumbers_end;
-    delete _TracksFromGenParticles_trackStates_location;
-    delete _TracksFromGenParticles_trackStates_omega;
-    delete _TracksFromGenParticles_trackStates_phi;
-    delete _TracksFromGenParticles_trackStates_tanLambda;
-    delete _TracksFromGenParticles_trackStates_referencePoint_x;
-    delete _TracksFromGenParticles_trackStates_referencePoint_y;
-    delete _TracksFromGenParticles_trackStates_referencePoint_z;
-    delete _TracksFromGenParticles_subdetectorHitNumbers;
+  if (Tracks_trackStates_begin) {
+    delete Tracks_trackStates_begin;
+    delete Tracks_trackStates_end;
+    delete Tracks_subdetectorHitNumbers_begin;
+    delete Tracks_subdetectorHitNumbers_end;
+    delete _Tracks_trackStates_location;
+    delete _Tracks_trackStates_omega;
+    delete _Tracks_trackStates_phi;
+    delete _Tracks_trackStates_tanLambda;
+    delete _Tracks_trackStates_referencePoint_x;
+    delete _Tracks_trackStates_referencePoint_y;
+    delete _Tracks_trackStates_referencePoint_z;
+    delete _Tracks_subdetectorHitNumbers;
   }
   if (VertexBarrelHits_cellID) {
     delete VertexBarrelHits_cellID;

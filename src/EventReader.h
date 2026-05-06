@@ -69,18 +69,18 @@ public:
   TTreeReaderArray<Double_t> *SimParticleSecondaries_momentum_z = nullptr;
 
   // the tracks
-  TTreeReaderArray<UInt_t> *TracksFromGenParticles_trackStates_begin = nullptr;
-  TTreeReaderArray<UInt_t> *TracksFromGenParticles_trackStates_end = nullptr;
-  TTreeReaderArray<UInt_t> *TracksFromGenParticles_subdetectorHitNumbers_begin = nullptr;
-  TTreeReaderArray<UInt_t> *TracksFromGenParticles_subdetectorHitNumbers_end = nullptr;
-  TTreeReaderArray<Int_t> *_TracksFromGenParticles_trackStates_location = nullptr;
-  TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_omega = nullptr;
-  TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_phi = nullptr;
-  TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_tanLambda = nullptr;
-  TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_referencePoint_x = nullptr;
-  TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_referencePoint_y = nullptr;
-  TTreeReaderArray<Float_t> *_TracksFromGenParticles_trackStates_referencePoint_z = nullptr;
-  TTreeReaderArray<Int_t> *_TracksFromGenParticles_subdetectorHitNumbers = nullptr;
+  TTreeReaderArray<UInt_t> *Tracks_trackStates_begin = nullptr;
+  TTreeReaderArray<UInt_t> *Tracks_trackStates_end = nullptr;
+  TTreeReaderArray<UInt_t> *Tracks_subdetectorHitNumbers_begin = nullptr;
+  TTreeReaderArray<UInt_t> *Tracks_subdetectorHitNumbers_end = nullptr;
+  TTreeReaderArray<Int_t> *_Tracks_trackStates_location = nullptr;
+  TTreeReaderArray<Float_t> *_Tracks_trackStates_omega = nullptr;
+  TTreeReaderArray<Float_t> *_Tracks_trackStates_phi = nullptr;
+  TTreeReaderArray<Float_t> *_Tracks_trackStates_tanLambda = nullptr;
+  TTreeReaderArray<Float_t> *_Tracks_trackStates_referencePoint_x = nullptr;
+  TTreeReaderArray<Float_t> *_Tracks_trackStates_referencePoint_y = nullptr;
+  TTreeReaderArray<Float_t> *_Tracks_trackStates_referencePoint_z = nullptr;
+  TTreeReaderArray<Int_t> *_Tracks_subdetectorHitNumbers = nullptr;
   
   // the hits in the vertex (barrel)
   TTreeReaderArray<ULong_t> *VertexBarrelHits_cellID = nullptr;
