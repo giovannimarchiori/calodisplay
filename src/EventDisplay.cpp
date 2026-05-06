@@ -2222,7 +2222,9 @@ void EventDisplay::loadEvent(int event)
       unsigned int trackStates_end = (*eventReader->Tracks_trackStates_end)[ip];
       if (debug) std::cout << "  trackStates begin , end = " << trackStates_begin << " , " << trackStates_end << std::endl;
       // store in vectors the track state positions and momenta
-      unsigned int nTrackStates = 1 + trackStates_end - trackStates_begin;
+      unsigned int nTrackStates = 0;
+      if (trackStates_end > trackStates_begin)
+        nTrackStates = 1 + trackStates_end - trackStates_begin;
       // std::vector<float> x(nTrackStates), y(nTrackStates), z(nTrackStates), omega(nTrackStates), tanLambda(nTrackStates), phi(nTrackStates);
       // for (unsigned int i=0; i<nTrackStates; i++) x[i]=-1e6; // set to some large value to check later if track state has been filled
       float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5];
@@ -2245,6 +2247,7 @@ void EventDisplay::loadEvent(int event)
           std::cout << "  x = " << x[location-1] << std::endl;
           std::cout << "  y = " << y[location-1] << std::endl;
           std::cout << "  z = " << z[location-1] << std::endl;
+          std::cout << "  r = " << sqrt(x[location-1]*x[location-1] + y[location-1]*y[location-1]) << std::endl;
           std::cout << "  omega = " << omega[location-1] << std::endl;
           std::cout << "  phi = " << phi[location-1] << std::endl;
           std::cout << "  tanLambda = " << tanLambda[location-1] << std::endl;
@@ -2259,8 +2262,10 @@ void EventDisplay::loadEvent(int event)
         nhits[ih-hits_begin] = (*eventReader->_Tracks_subdetectorHitNumbers)[ih];
       }
       
-      const int tsOrig=2; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
-      if (std::fabs(x[tsOrig]>-5e5)) {
+      // const int tsOrig=2; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
+      const int tsOrig=1; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
+      //if (std::fabs(x[tsOrig])<5e5) {  // GM dont remember what is this about..
+      if (nTrackStates > 0) {
         TEveRecTrack t;
         float x1 = x[tsOrig]*mm;
         float y1 = y[tsOrig]*mm;
@@ -2299,7 +2304,7 @@ void EventDisplay::loadEvent(int event)
           track->SetRnrPoints(true);
           track->SetMarkerStyle(4);
         }
-        // could also save decay ...	
+        // could also save decay ...
         tracks->AddElement(track);
       }
     }
@@ -2393,6 +2398,7 @@ void EventDisplay::startDisplay(int initialEvent)
     std::cout << "Using magnetic field map" << std::endl;
     magField = new CylField("data/ALLEGRO_fieldmap_2T_20260424.root", "fieldmap");
   }
+  std::cout << "\n" << std::endl;
 
   std::cout << "******************************************************************************" << std::endl;
   std::cout << "Displaying the geometry" << std::endl;
