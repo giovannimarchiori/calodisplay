@@ -2224,7 +2224,7 @@ void EventDisplay::loadEvent(int event)
       // store in vectors the track state positions and momenta
       unsigned int nTrackStates = 0;
       if (trackStates_end > trackStates_begin)
-        nTrackStates = 1 + trackStates_end - trackStates_begin;
+        nTrackStates = trackStates_end - trackStates_begin;
       // std::vector<float> x(nTrackStates), y(nTrackStates), z(nTrackStates), omega(nTrackStates), tanLambda(nTrackStates), phi(nTrackStates);
       // for (unsigned int i=0; i<nTrackStates; i++) x[i]=-1e6; // set to some large value to check later if track state has been filled
       float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5];
@@ -2264,7 +2264,7 @@ void EventDisplay::loadEvent(int event)
       
       // const int tsOrig=2; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
       const int tsOrig=1; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
-      //if (std::fabs(x[tsOrig])<5e5) {  // GM dont remember what is this about..
+      //if (x[tsOrig]<5e5) {  // GM dont remember what is this about..
       if (nTrackStates > 0) {
         TEveRecTrack t;
         float x1 = x[tsOrig]*mm;
