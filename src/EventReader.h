@@ -97,11 +97,11 @@ public:
   TTreeReaderArray<Double_t> *VertexEndcapHits_position_z = nullptr;
 
   // the hits in the DCH
-  TTreeReaderArray<ULong_t> *DriftChamberHits_cellID = nullptr;
-  TTreeReaderArray<Float_t> *DriftChamberHits_energy = nullptr;
-  TTreeReaderArray<Double_t> *DriftChamberHits_position_x = nullptr;
-  TTreeReaderArray<Double_t> *DriftChamberHits_position_y = nullptr;
-  TTreeReaderArray<Double_t> *DriftChamberHits_position_z = nullptr;
+  TTreeReaderArray<ULong_t> *MainTrackerHits_cellID = nullptr;
+  TTreeReaderArray<Float_t> *MainTrackerHits_energy = nullptr;
+  TTreeReaderArray<Double_t> *MainTrackerHits_position_x = nullptr;
+  TTreeReaderArray<Double_t> *MainTrackerHits_position_y = nullptr;
+  TTreeReaderArray<Double_t> *MainTrackerHits_position_z = nullptr;
 
   // the hits in the Si wrapper (barrel)
   TTreeReaderArray<ULong_t> *SiWrapperBarrelHits_cellID = nullptr;
@@ -133,11 +133,11 @@ public:
   TTreeReaderArray<Double_t> *VertexEndcapDigis_position_z = nullptr;
 
   // the digis in the DCH
-  TTreeReaderArray<ULong_t> *DriftChamberDigis_cellID = nullptr;
-  TTreeReaderArray<Float_t> *DriftChamberDigis_energy = nullptr;
-  TTreeReaderArray<Double_t> *DriftChamberDigis_position_x = nullptr;
-  TTreeReaderArray<Double_t> *DriftChamberDigis_position_y = nullptr;
-  TTreeReaderArray<Double_t> *DriftChamberDigis_position_z = nullptr;
+  TTreeReaderArray<ULong_t> *MainTrackerDigis_cellID = nullptr;
+  TTreeReaderArray<Float_t> *MainTrackerDigis_energy = nullptr;
+  TTreeReaderArray<Double_t> *MainTrackerDigis_position_x = nullptr;
+  TTreeReaderArray<Double_t> *MainTrackerDigis_position_y = nullptr;
+  TTreeReaderArray<Double_t> *MainTrackerDigis_position_z = nullptr;
 
   // the digis in the Si wrapper (barrel)
   TTreeReaderArray<ULong_t> *SiWrapperBarrelDigis_cellID = nullptr;

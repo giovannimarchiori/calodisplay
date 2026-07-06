@@ -17,7 +17,7 @@ DisplayConfig::DisplayConfig() {
   setBoolConfig("drawGenParticles", true);
   setBoolConfig("drawSimParticles", true);
   setBoolConfig("drawVertexHits", true);
-  setBoolConfig("drawDriftChamberHits", true);
+  setBoolConfig("drawMainTrackerHits", true);
   setBoolConfig("drawECalBarrelHits", true);
   setBoolConfig("drawECalBarrelCells", true);
   setBoolConfig("drawECalBarrelMergedCells", false);
@@ -32,7 +32,7 @@ DisplayConfig::DisplayConfig() {
   setStringConfig("vertexInnerBarrelHits", "VertexInnerBarrelCollection");
   setStringConfig("vertexOuterBarrelHits", "VertexOuterBarrelCollection");
   setStringConfig("vertexEndcapHits", "VertexEndcapCollection");
-  setStringConfig("driftChamberHits", "DriftChamber_simHits");
+  setStringConfig("mainTrackerHits", "MainTracker_simHits");
   setStringConfig("ecalBarrelHits", "ECalBarrelPositionedHits");
   setStringConfig("ecalBarrelCells", "ECalBarrelPositionedCells");
   setStringConfig("ecalBarrelMergedCells", "ECalParrelPositionedCells2");

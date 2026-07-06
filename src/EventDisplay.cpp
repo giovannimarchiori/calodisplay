@@ -1568,7 +1568,7 @@ void EventDisplay::loadEvent(int event)
     }
   }
 
-  if (displayConfig.getBoolConfig("drawDriftChamberHits"))
+  if (displayConfig.getBoolConfig("drawMainTrackerHits"))
   {
     if (hits == nullptr)
     {
@@ -1576,7 +1576,7 @@ void EventDisplay::loadEvent(int event)
       gEve->AddElement(hits);
     }
     // do we need to Reset() otherwise ?
-    std::cout << "Creating drift chamber hits" << std::endl;
+    std::cout << "Creating main tracker hits" << std::endl;
     if (dchHits == nullptr)
     {
       dchHits = new TEvePointSet();
@@ -1590,15 +1590,15 @@ void EventDisplay::loadEvent(int event)
     }
     else
       dchHits->Reset();
-    for (unsigned int i = 0; i < eventReader->DriftChamberHits_position_x->GetSize(); i++)
+    for (unsigned int i = 0; i < eventReader->MainTrackerHits_position_x->GetSize(); i++)
     {
-      // float E = (*eventReader->DriftChamberHits_energy)[i];
+      // float E = (*eventReader->MainTrackerHits_energy)[i];
       // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->DriftChamberHits_cellID)[i];
+      // ULong_t cellID = (*eventReader->MainTrackerHits_cellID)[i];
       dchHits->SetNextPoint(
-                            (*eventReader->DriftChamberHits_position_x)[i] * mm,
-                            (*eventReader->DriftChamberHits_position_y)[i] * mm,
-                            (*eventReader->DriftChamberHits_position_z)[i] * mm);
+                            (*eventReader->MainTrackerHits_position_x)[i] * mm,
+                            (*eventReader->MainTrackerHits_position_y)[i] * mm,
+                            (*eventReader->MainTrackerHits_position_z)[i] * mm);
     }
   }
 
@@ -1876,7 +1876,7 @@ void EventDisplay::loadEvent(int event)
     }
   }
 
-  if (displayConfig.getBoolConfig("drawDriftChamberDigis"))
+  if (displayConfig.getBoolConfig("drawMainTrackerDigis"))
   {
     if (digis == nullptr)
     {
@@ -1884,7 +1884,7 @@ void EventDisplay::loadEvent(int event)
       gEve->AddElement(digis);
     }
     // do we need to Reset() otherwise ?
-    std::cout << "Creating drift chamber digis" << std::endl;
+    std::cout << "Creating main tracker digis" << std::endl;
     if (dchDigis == nullptr)
     {
       dchDigis = new TEvePointSet();
@@ -1897,15 +1897,15 @@ void EventDisplay::loadEvent(int event)
     }
     else
       dchDigis->Reset();
-    for (unsigned int i = 0; i < eventReader->DriftChamberDigis_position_x->GetSize(); i++)
+    for (unsigned int i = 0; i < eventReader->MainTrackerDigis_position_x->GetSize(); i++)
     {
-      // float E = (*eventReader->DriftChamberDigis_energy)[i];
+      // float E = (*eventReader->MainTrackerDigis_energy)[i];
       // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->DriftChamberDigis_cellID)[i];
+      // ULong_t cellID = (*eventReader->MainTrackerDigis_cellID)[i];
       dchDigis->SetNextPoint(
-                            (*eventReader->DriftChamberDigis_position_x)[i] * mm,
-                            (*eventReader->DriftChamberDigis_position_y)[i] * mm,
-                            (*eventReader->DriftChamberDigis_position_z)[i] * mm);
+                            (*eventReader->MainTrackerDigis_position_x)[i] * mm,
+                            (*eventReader->MainTrackerDigis_position_y)[i] * mm,
+                            (*eventReader->MainTrackerDigis_position_z)[i] * mm);
     }
   }
 
@@ -2453,6 +2453,7 @@ void EventDisplay::startDisplay(int initialEvent)
       // group together elements
       TPRegexp re_lc("LumiCal_*");
       TPRegexp re_dch("DCH_*");
+      TPRegexp re_stt("STT_*");
       TPRegexp re_siwrapb("SiWrB_*");
       TPRegexp re_siwrapec("SiWrD_*");
       TPRegexp re_ecalb("ECalBarrel*");
@@ -2460,6 +2461,8 @@ void EventDisplay::startDisplay(int initialEvent)
       TPRegexp re_hcalec("HCal(\\w+)Endcap(\\w+)");
       TPRegexp re_muonb("MuonTaggerBarrel*");
       TPRegexp re_muonec("MuonTaggerEndcap*");
+
+      bool has_STT = false;
 
       TEveElementList *mdi = new TEveElementList("MDI");
       geom->AddElement(mdi);
@@ -2484,6 +2487,9 @@ void EventDisplay::startDisplay(int initialEvent)
 
       TEveElementList *dch = new TEveElementList("Drift chamber");
       geom->AddElement(dch);
+
+      //TEveElementList *stt = new TEveElementList("Straw tube tracker");
+      //geom->AddElement(stt);
 
       TEveElementList *siwrapb = new TEveElementList("Si wrapper barrel");
       geom->AddElement(siwrapb);
@@ -2582,6 +2588,20 @@ void EventDisplay::startDisplay(int initialEvent)
             cout << "Adding " << s << " to drift chamber" << endl;
           }
           dch->AddElement(a);
+          a->SetRnrSelfChildren(true, false);
+          a->SetMainTransparency(useTransparencies ? 60 : 0);
+          //a->SetMainTransparency(0);
+          a->SetMainColor(kGreen-5);
+          ((TEveGeoShape *)a)->SetNSegments(128);
+          ((TEveGeoShape *)a)->SetDrawFrame(false);
+        }
+        else if (re_stt.MatchB(s))
+        {
+          if (debug) {
+            cout << "Adding " << s << " to straw tube tracker" << endl;
+          }
+          dch->AddElement(a);
+          has_STT = true;
           a->SetRnrSelfChildren(true, false);
           a->SetMainTransparency(useTransparencies ? 60 : 0);
           //a->SetMainTransparency(0);
@@ -2740,6 +2760,10 @@ void EventDisplay::startDisplay(int initialEvent)
           std::cout << "Unexpected volume: " << s << std::endl;
           geom->AddElement(a);
         }
+      }
+      if (has_STT) {
+        dch->SetTitle("Straw tube tracker");
+        dch->SetName("Straw tube tracker");
       }
     }
     else

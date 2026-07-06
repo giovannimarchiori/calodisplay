@@ -184,29 +184,29 @@ void EventReader::SetBranches()
     }
   }
 
-  // hits in drift chamber
-  if (displayConfig.getBoolConfig("drawDriftChamberHits"))
+  // hits in DCH or STT
+  if (displayConfig.getBoolConfig("drawMainTrackerHits"))
   {
-    std::string branchName = displayConfig.getStringConfig("driftChamberHits");
+    std::string branchName = displayConfig.getStringConfig("mainTrackerHits");
     const char* branch = branchName.c_str();
     if (branchName == "") {
-      std::cout << "WARNING: driftChamberHits not set, disabling drift chamber hits" << std::endl;
-      displayConfig.setBoolConfig("drawDriftChamberHits", false);
+      std::cout << "WARNING: mainTrackerHits not set, disabling main tracker hits" << std::endl;
+      displayConfig.setBoolConfig("drawMainTrackerHits", false);
     }
     else {
       if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
       {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling drift chamber hits" << std::endl;
-        displayConfig.setBoolConfig("drawDriftChamberHits", false);
-        displayConfig.setStringConfig("driftChamberHits", "");
+        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling main tracker hits" << std::endl;
+        displayConfig.setBoolConfig("drawMainTrackerHits", false);
+        displayConfig.setStringConfig("mainTrackerHits", "");
       }
       else
       {
-        DriftChamberHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-        DriftChamberHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-        DriftChamberHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-        DriftChamberHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-        DriftChamberHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+        MainTrackerHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+        MainTrackerHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+        MainTrackerHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+        MainTrackerHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+        MainTrackerHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
       }
     }
   }
@@ -329,29 +329,29 @@ void EventReader::SetBranches()
     }
   }
 
-  // digis in drift chamber
-  if (displayConfig.getBoolConfig("drawDriftChamberDigis"))
+  // digis in DCH / STT
+  if (displayConfig.getBoolConfig("drawMainTrackerDigis"))
   {
-    std::string branchName = displayConfig.getStringConfig("driftChamberDigis");
+    std::string branchName = displayConfig.getStringConfig("mainTrackerDigis");
     const char* branch = branchName.c_str();
     if (branchName == "") {
-      std::cout << "WARNING: driftChamberDigis not set, disabling drift chamber digis" << std::endl;
-      displayConfig.setBoolConfig("drawDriftChamberDigis", false);
+      std::cout << "WARNING: mainTrackerDigis not set, disabling main tracker digis" << std::endl;
+      displayConfig.setBoolConfig("drawMainTrackerDigis", false);
     }
     else {
       if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
       {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling drift chamber digis" << std::endl;
-        displayConfig.setBoolConfig("drawDriftChamberDigis", false);
-        displayConfig.setStringConfig("driftChamberDigis", "");
+        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling main tracker digis" << std::endl;
+        displayConfig.setBoolConfig("drawMainTrackerDigis", false);
+        displayConfig.setStringConfig("mainTrackerDigis", "");
       }
       else
       {
-        DriftChamberDigis_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-        DriftChamberDigis_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-        DriftChamberDigis_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-        DriftChamberDigis_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-        DriftChamberDigis_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
+        MainTrackerDigis_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
+        MainTrackerDigis_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
+        MainTrackerDigis_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
+        MainTrackerDigis_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
+        MainTrackerDigis_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
       }
     }
   }
@@ -988,12 +988,12 @@ EventReader::~EventReader() {
     delete VertexEndcapHits_position_y;
     delete VertexEndcapHits_position_z;
   }
-  if (DriftChamberHits_cellID) {
-    delete DriftChamberHits_cellID;
-    delete DriftChamberHits_energy;
-    delete DriftChamberHits_position_x;
-    delete DriftChamberHits_position_y;
-    delete DriftChamberHits_position_z;
+  if (MainTrackerHits_cellID) {
+    delete MainTrackerHits_cellID;
+    delete MainTrackerHits_energy;
+    delete MainTrackerHits_position_x;
+    delete MainTrackerHits_position_y;
+    delete MainTrackerHits_position_z;
   }
   if (SiWrapperBarrelHits_cellID) {
     delete SiWrapperBarrelHits_cellID;
@@ -1023,12 +1023,12 @@ EventReader::~EventReader() {
     delete VertexEndcapDigis_position_y;
     delete VertexEndcapDigis_position_z;
   }
-  if (DriftChamberDigis_cellID) {
-    delete DriftChamberDigis_cellID;
-    delete DriftChamberDigis_energy;
-    delete DriftChamberDigis_position_x;
-    delete DriftChamberDigis_position_y;
-    delete DriftChamberDigis_position_z;
+  if (MainTrackerDigis_cellID) {
+    delete MainTrackerDigis_cellID;
+    delete MainTrackerDigis_energy;
+    delete MainTrackerDigis_position_x;
+    delete MainTrackerDigis_position_y;
+    delete MainTrackerDigis_position_z;
   }
   if (SiWrapperBarrelDigis_cellID) {
     delete SiWrapperBarrelDigis_cellID;
