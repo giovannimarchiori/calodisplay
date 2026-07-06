@@ -45,7 +45,7 @@ root
 .L gdmltoroot.C+
 gdmltoroot("../data/ALLEGRO_o1_v03_noDCHcells.gdml","../data/ALLEGRO_o1_v03_noDCHcells.root", "world")
 ```
-- for allegro_o1_v03, I had to remove from the gdml all DCH cells since they use a volume (G4TwistedTube) not available in ROOT
+- for allegro_o1_v03, I had to remove from the gdml all DCH cells since they use a volume (G4TwistedTube) not available in ROOT. Note that the latest version (July 2026) uses a very detailed model of the vertex detector that is making the rendering pretty slow, so consider hiding the elements/show the envelope only/..
 
 ## Code structure
 The package is organised in the following subdirectories:
