@@ -1,4 +1,5 @@
 # setup ROOT
+HOSTNAME=`hostname`
 echo $HOSTNAME
 if [[ $HOSTNAME = apcatlas01.in2p3.fr ]]; then
     source /usr/local/root-6.30.06/install/bin/thisroot.sh
