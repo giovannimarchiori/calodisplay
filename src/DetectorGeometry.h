@@ -33,8 +33,8 @@ public:
   // magnetic field (only in barrel: outside it is assumed to be zero)
   // zmin, zmax = ECAL barrel zmin, zmax (EMBarrel_dz = BarECal_dz-CryoBarrelSide)
   // Rsol = BarCryoECal_rmax-CryoBarrelBackWarm-CryoBarrelBackCold
-  const double Bin = -2.;  // in Tesla, magnetic field for zmin<z<zmax, R<Rsol
-  const double Bout = 1.;  // in Tesla, magnetic field for zmin<z<zmax, R>Rsol
+  const double Bin = 2.;  // in Tesla, magnetic field for zmin<z<zmax, R<Rsol
+  const double Bout = -1.;  // in Tesla, magnetic field for zmin<z<zmax, R>Rsol
 
   // ECAL barrel
 
