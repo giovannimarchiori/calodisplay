@@ -2202,10 +2202,9 @@ void EventDisplay::loadEvent(int event)
       tracks = new TEveTrackList("tracks");
       TEveTrackPropagator *trkProp = tracks->GetPropagator();
       trkProp->SetMagFieldObj(magField);
-      trkProp->SetMaxR(rMax);
+      //trkProp->SetMaxR(rMax);
       // trkProp->SetMaxZ(geomReader->zMax);
-      trkProp->SetMaxZ(geomReader->zMaxEndCap);
-      trkProp->SetMaxStep(1.);
+      //trkProp->SetMaxZ(geomReader->zMaxEndCap);
       trkProp->SetRnrReferences(true);
       // trkProp->SetFitReferences(true);
       tracks->SetMainColor(kCyan);
@@ -2313,6 +2312,7 @@ void EventDisplay::loadEvent(int event)
           float px = pxy * std::cos(phi[i]);
           float py = pxy * std::sin(phi[i]);
           float pz = tanLambda[i] * pxy;
+	  // commented - screwing up the fit
           track->AddPathMark(TEvePathMarkD(TEvePathMarkD::kReference,
                                            TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
                                            TEveVectorD(px, py, pz)));
@@ -2406,6 +2406,9 @@ void EventDisplay::startDisplay(int initialEvent)
   if (bFieldType == "GlobalSolenoid") {
     std::cout << "Using ideal solenoid magnetic field" << std::endl;
     magField = new MagField(geomReader->Bin, geomReader->Bout, geomReader->zMax, geomReader->rMax);
+    
+    // field is reversed in root on mac??? TO BE INVESTIGATED
+    // ((MagField*) magField)->setReverseState(true);
   }
   else {
     std::cout << "Using magnetic field map" << std::endl;

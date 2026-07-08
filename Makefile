@@ -150,6 +150,7 @@ clean:
 	rm -f $(SHARED_LIBRARY)
 	rm -f -r $(SHARED_LIBRARY_DS)
 	rm -f *~ src/*~
+	rm -f src/*_cpp.* src/*.pcm
 
 # Target for creating the ./build and ./dist directories 
 directories:

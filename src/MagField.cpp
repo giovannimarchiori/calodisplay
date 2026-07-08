@@ -31,12 +31,12 @@ bool MagField::isMagnetOn() const
 
 void MagField::setReverseState(bool state)
 {
-  m_reverse = state; }
+  m_reverse = state;
+}
 
 bool MagField::isReverse() const
 {
   return m_reverse;
-
 }
 
 TEveVectorD MagField::GetFieldD(Double_t x, Double_t y, Double_t z) const
