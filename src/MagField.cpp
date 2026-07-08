@@ -3,6 +3,7 @@
 
 MagField::MagField(double Bi, double Bo, double z, double R):
   m_magnetIsOn(true),
+  m_reverse(false),
   Bin(Bi),
   Bout(Bo),
   zmax(z),

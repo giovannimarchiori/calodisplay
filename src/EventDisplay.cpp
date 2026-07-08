@@ -2312,7 +2312,6 @@ void EventDisplay::loadEvent(int event)
           float px = pxy * std::cos(phi[i]);
           float py = pxy * std::sin(phi[i]);
           float pz = tanLambda[i] * pxy;
-	  // commented - screwing up the fit
           track->AddPathMark(TEvePathMarkD(TEvePathMarkD::kReference,
                                            TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
                                            TEveVectorD(px, py, pz)));
@@ -2407,8 +2406,8 @@ void EventDisplay::startDisplay(int initialEvent)
     std::cout << "Using ideal solenoid magnetic field" << std::endl;
     magField = new MagField(geomReader->Bin, geomReader->Bout, geomReader->zMax, geomReader->rMax);
     
-    // field is reversed in root on mac??? TO BE INVESTIGATED
-    // ((MagField*) magField)->setReverseState(true);
+    // field seems to be reversed in eve, to be investigated..
+    ((MagField*) magField)->setReverseState(true);
   }
   else {
     std::cout << "Using magnetic field map" << std::endl;
