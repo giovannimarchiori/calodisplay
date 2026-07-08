@@ -2205,8 +2205,9 @@ void EventDisplay::loadEvent(int event)
       trkProp->SetMaxR(rMax);
       // trkProp->SetMaxZ(geomReader->zMax);
       trkProp->SetMaxZ(geomReader->zMaxEndCap);
+      trkProp->SetMaxStep(1.);
       trkProp->SetRnrReferences(true);
-      trkProp->SetFitReferences(true);
+      // trkProp->SetFitReferences(true);
       tracks->SetMainColor(kCyan);
       tracks->SetLineWidth(2.);
       tracks->SetLineStyle(5);
@@ -2225,17 +2226,14 @@ void EventDisplay::loadEvent(int event)
       unsigned int nTrackStates = 0;
       if (trackStates_end > trackStates_begin)
         nTrackStates = trackStates_end - trackStates_begin;
-      // std::vector<float> x(nTrackStates), y(nTrackStates), z(nTrackStates), omega(nTrackStates), tanLambda(nTrackStates), phi(nTrackStates);
-      // for (unsigned int i=0; i<nTrackStates; i++) x[i]=-1e6; // set to some large value to check later if track state has been filled
-      float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5];
-      for (unsigned int i=0; i<5; i++) x[i]=-1e6; // set to some large value to check later if track state has been filled
+      float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5], px[5], py[5], pz[5], p[5];
+      for (unsigned int i=0; i<5; i++) x[i]=-1e9; // set to some large value to check later if track state has been filled
       for (unsigned int its = trackStates_begin; its < trackStates_end; its++) {
         int location = (*eventReader->_Tracks_trackStates_location)[its];
         if (debug) {
           std::cout << "Trackstate " << its << std::endl;
           std::cout << "  location = " << location << std::endl;
         }
-        // if (location<1 or location>4) continue;
         if (location>4) continue;
         x[location] = (*eventReader->_Tracks_trackStates_referencePoint_x)[its];
         y[location] = (*eventReader->_Tracks_trackStates_referencePoint_y)[its];
@@ -2244,17 +2242,25 @@ void EventDisplay::loadEvent(int event)
         tanLambda[location] = (*eventReader->_Tracks_trackStates_tanLambda)[its];
         phi[location] = (*eventReader->_Tracks_trackStates_phi)[its];
         if (debug) {
-          std::cout << "  x = " << x[location-1] << std::endl;
-          std::cout << "  y = " << y[location-1] << std::endl;
-          std::cout << "  z = " << z[location-1] << std::endl;
-          std::cout << "  r = " << sqrt(x[location-1]*x[location-1] + y[location-1]*y[location-1]) << std::endl;
-          std::cout << "  omega = " << omega[location-1] << std::endl;
-          std::cout << "  phi = " << phi[location-1] << std::endl;
-          std::cout << "  tanLambda = " << tanLambda[location-1] << std::endl;
+          std::cout << "  x = " << x[location] << std::endl;
+          std::cout << "  y = " << y[location] << std::endl;
+          std::cout << "  z = " << z[location] << std::endl;
+          std::cout << "  r = " << sqrt(x[location]*x[location] + y[location]*y[location]) << std::endl;
+          std::cout << "  omega = " << omega[location] << std::endl;
+          std::cout << "  phi = " << phi[location] << std::endl;
+          std::cout << "  tanLambda = " << tanLambda[location] << std::endl;
+          const float FCT = 2.99792458E-4f;
+          const float bField = 2.0;
+          float radius = 1.f / std::fabs(omega[location]);
+          float pxy = FCT * bField * radius;
+          float pz = tanLambda[location] * pxy;
+          float p = std::sqrt(pxy*pxy+pz*pz);
+          std::cout << "  p = " << p << std::endl;
         }
       }
       const int nSubDetectors(5);
       int nhits[nSubDetectors];
+      for (int ihit = 0 ; ihit < nSubDetectors; ++ihit) nhits[ihit]=0;
       unsigned int hits_begin = (*eventReader->Tracks_subdetectorHitNumbers_begin)[ip];
       unsigned int hits_end = (*eventReader->Tracks_subdetectorHitNumbers_end)[ip];
       if (debug) std::cout << "  subdetectorHitNumbers_begin , end = " << hits_begin << " , " << hits_end << std::endl;
@@ -2291,18 +2297,25 @@ void EventDisplay::loadEvent(int event)
           nhits[0], nhits[1], nhits[2], nhits[3], nhits[4]));
 
         // add other track states (at last hit, at ECAL, and at other=2nd ECAL projection) references
+        track->SetRnrPoints(true);
+        track->SetMarkerStyle(4);
         for (int i=0; i<5; i++) {
-          if (std::fabs(x[i]<-5e5)) continue;
+          if (i==tsOrig) {
+              if (debug) std::cout << "Skipping track state at location " << i << std::endl;
+              // continue;
+          }
+          if (x[i]<-1e8) {
+            if (debug) std::cout << "Skipping track state at location " << i << std::endl;
+            continue;
+          }
           float radius = 1.f / std::fabs(omega[i]);
           float pxy = FCT * bField * radius;
           float px = pxy * std::cos(phi[i]);
           float py = pxy * std::sin(phi[i]);
           float pz = tanLambda[i] * pxy;
           track->AddPathMark(TEvePathMarkD(TEvePathMarkD::kReference,
-                               TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
-                               TEveVectorD(px, py, pz)));
-          track->SetRnrPoints(true);
-          track->SetMarkerStyle(4);
+                                           TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
+                                           TEveVectorD(px, py, pz)));
         }
         // could also save decay ...
         tracks->AddElement(track);
@@ -2570,19 +2583,25 @@ void EventDisplay::startDisplay(int initialEvent)
                 ((TEveGeoShape *)el)->SetDrawFrame(false);
                 if (elName.Contains("VertexInnerBarrel"))
                   ((TEveGeoShape *)el)->SetNSegments(128);
+
+                // by default draw only the sensors
+                // sensors are so thin that some of them are not drawn ...
+                // TO BE INVESTIGATED
+                // if (!elName.Contains("sensor"))
+                //   el->SetRnrSelfChildren(false, false);
               }
             }
             else if (sVtx.Contains("VertexDisks")) {
               if (debug) cout << "Adding " << sVtx << " to vertex endcap" << endl;
               vertexEndcap->AddElement(elVtx);
               elVtx->SetMainColor(kRed);
-              // rather than the assembly we add directly the layers
-              //for (TEveElement::List_i itr2 = elVtx->BeginChildren(); itr2 != elVtx->EndChildren(); itr2++) {
-              //TEveElement *el = *itr2;
-              //vertexEndcap->AddElement(el);
-              //el->SetMainColor(kRed);
-              //((TEveGeoShape *)el)->SetDrawFrame(false);
-              //}
+              ((TEveGeoShape *)elVtx)->SetDrawFrame(false);
+              // by default draw only the sensors
+              // sensors are so thin that some of them are not drawn ...
+              // TO BE INVESTIGATED
+              // if (!sVtx.Contains("sensor")) {
+              //   elVtx->SetRnrSelfChildren(false, false);
+              // }
             }
             else
               std::cout << "Unexpected volume: " << sVtx << std::endl;
