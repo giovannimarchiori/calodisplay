@@ -8,6 +8,9 @@
 class CylField : public TEveMagField
 {
 private:
+  bool m_magnetIsOn;
+  bool m_reverse;
+
   TH2D* fBr;  // Br(r,z)
   TH2D* fBz;  // Bz(r,z)
 
@@ -20,6 +23,11 @@ public:
   CylField(const std::string& filename,
            const std::string& treename = "tree");
   virtual ~CylField();
+
+  void setMagnetState(bool state);
+  bool isMagnetOn() const;
+  void setReverseState(bool state);
+  bool isReverse() const;
 
   // Override double-precision interface
   virtual Double_t GetMaxFieldMagD() const override;

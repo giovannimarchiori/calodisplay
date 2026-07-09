@@ -19,7 +19,7 @@ using Units::m;
 
 CylField::CylField(const std::string& filename,
                    const std::string& treename)
-  : fBr(nullptr), fBz(nullptr)
+  : m_magnetIsOn(true), m_reverse(false), fBr(nullptr), fBz(nullptr)
 {
   std::cout << "Reading magnetic field map from file " << filename << std::endl;
   
@@ -103,6 +103,33 @@ CylField::~CylField()
   delete fBz;
 }
 
+void CylField::setMagnetState(bool state)
+{
+  if (state != m_magnetIsOn)
+    {
+      if ( state )
+	std::cout << "Magnet state is changed to ON" << std::endl;
+      else
+	std::cout << "Magnet state is changed to OFF" << std::endl;
+    }
+  m_magnetIsOn = state;
+}
+
+bool CylField::isMagnetOn() const
+{
+  return m_magnetIsOn;
+}
+
+void CylField::setReverseState(bool state)
+{
+  m_reverse = state;
+}
+
+bool CylField::isReverse() const
+{
+  return m_reverse;
+}
+
 Double_t CylField::GetMaxFieldMagD() const
 {
   return fMaxFieldMag;
@@ -110,6 +137,9 @@ Double_t CylField::GetMaxFieldMagD() const
 
 TEveVectorD CylField::GetFieldD(Double_t x, Double_t y, Double_t z) const
 {
+  if (!m_magnetIsOn)
+    return TEveVectorD(0,0,0);
+
   const double r = std::sqrt(x*x + y*y);
 
   // Outside map return zero field

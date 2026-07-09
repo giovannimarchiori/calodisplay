@@ -16,7 +16,7 @@ private:
 public:
    MagField(double Bi, double Bo, double z, double R);
    ~MagField() override;
-   void setMagnetState( bool state );
+   void setMagnetState(bool state);
    bool isMagnetOn() const;
    void setReverseState(bool state);
    bool isReverse() const;

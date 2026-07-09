@@ -2202,9 +2202,9 @@ void EventDisplay::loadEvent(int event)
       tracks = new TEveTrackList("tracks");
       TEveTrackPropagator *trkProp = tracks->GetPropagator();
       trkProp->SetMagFieldObj(magField);
-      //trkProp->SetMaxR(rMax);
-      // trkProp->SetMaxZ(geomReader->zMax);
-      //trkProp->SetMaxZ(geomReader->zMaxEndCap);
+      // trkProp->SetMaxR(rMax);
+      // trkProp->SetMaxZ(geomReader->zMaxEndCap);
+      // trkProp->SetMaxZ(10000.*mm);
       trkProp->SetRnrReferences(true);
       // trkProp->SetFitReferences(true);
       tracks->SetMainColor(kCyan);
@@ -2406,12 +2406,13 @@ void EventDisplay::startDisplay(int initialEvent)
     std::cout << "Using ideal solenoid magnetic field" << std::endl;
     magField = new MagField(geomReader->Bin, geomReader->Bout, geomReader->zMax, geomReader->rMax);
     
-    // field seems to be reversed in eve, to be investigated..
+    // Note: field is reversed in EVE (see https://root.cern/doc/v636/classTEveTrackPropagator.html)
     ((MagField*) magField)->setReverseState(true);
   }
   else {
     std::cout << "Using magnetic field map" << std::endl;
     magField = new CylField("data/ALLEGRO_fieldmap_2T_20260424.root", "fieldmap");
+    ((CylField*) magField)->setReverseState(true);
   }
   std::cout << "\n" << std::endl;
 

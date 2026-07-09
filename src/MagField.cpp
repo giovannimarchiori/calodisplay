@@ -13,7 +13,7 @@ MagField::MagField(double Bi, double Bo, double z, double R):
 MagField::~MagField()
 {};
 
-void MagField::setMagnetState( bool state )
+void MagField::setMagnetState(bool state)
 {
   if (state != m_magnetIsOn)
     {
