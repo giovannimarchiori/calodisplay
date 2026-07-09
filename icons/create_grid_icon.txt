@@ -1,0 +1,5 @@
+convert -size 24x24 xc:none \
+    -stroke black -strokewidth 1 \
+    -draw "line 4,2 4,21 line 9,2 9,21 line 14,2 14,21 line 19,2 19,21" \
+    -draw "line 2,4 21,4 line 2,9 21,9 line 2,14 21,14 line 2,19 21,19" \
+    grid_icon.png

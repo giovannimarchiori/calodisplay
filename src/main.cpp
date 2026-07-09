@@ -75,11 +75,11 @@ int main(int argc, char *argv[])
     {
       if (i == args.size() - 1)
       {
-	throw std::runtime_error("missing config file after -c/--config option!");
+        throw std::runtime_error("missing config file after -c/--config option!");
       }
       else
       {
-	configFile = args[i+1];
+        configFile = args[i+1];
       }
       break;
     }
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
         }
         continue;
 	*/
-	i++; continue;
+        i++; continue;
       }
 
       else if (arg == "-s" || arg == "--skipEvents")

@@ -142,12 +142,11 @@ public:
   /******************************************************************************/
   // ELEMENTS OF THE EVENT DISPLAY
   /******************************************************************************/
-  // MC particles
-  TEveTrackList *particles = nullptr;
-  // Reconstructed tracks
-  TEveTrackList *tracks = nullptr;
   // Magnetic field
   TEveMagField* magField = nullptr;
+
+  // MC particles
+  TEveTrackList *particles = nullptr;
   
   // Sim hits
   TEvePointSet *vtxHits = nullptr;
@@ -156,6 +155,7 @@ public:
   TEvePointSet *ecalHits = nullptr;
   TEvePointSet *hcalHits = nullptr;
   TEvePointSet *muonHits = nullptr;
+  TEveElementList *hits = nullptr;
 
   // Digitised hits
   TEvePointSet *vtxDigis = nullptr;
@@ -167,16 +167,19 @@ public:
   MyPointSet *hcalCells = nullptr;
   TEvePointSet *muonCells = nullptr;
   TEvePointSet *cells_merged = nullptr;
+  TEveElementList *digis = nullptr;
 
-  // calorimeter cluster barycenters
+  // Reconstructed tracks
+  TEveTrackList *tracks = nullptr;
+
+  // clusters
+  // - calorimeter cluster barycenters
   TEvePointSet *topoclustersCenter = nullptr;
   TEvePointSet *swclustersCenter = nullptr;
-
-  // cluster directions
+  // - cluster directions
   TEveStraightLineSet *swclustersDirection = nullptr;
   TEveStraightLineSet *topoclustersDirection = nullptr;
-
-  // clusters (only works for ecal barrel, needs calculation of geometry for other detectors)
+  // - clusters (only works for ecal barrel, needs calculation of geometry for other detectors)
   TEveElementList *topoclusters_rhoz = nullptr;
   TEveElementList *topoclusters_rhophi = nullptr;
   TEveElementList *swclusters_rhoz = nullptr;
@@ -184,13 +187,13 @@ public:
   TEveElementList *topoclusters_3D = nullptr;
   TEveElementList *swclusters_3D = nullptr;
 
-  TEveElementList *hits = nullptr;
-  TEveElementList *digis = nullptr;
-  
+  //
   TEveGeoShape *ecalbarrel = nullptr;
   TEveElementList *ecalendcap = nullptr;
   TEveGeoShape *hcalbarrel = nullptr;
   TEveElementList *hcalendcap = nullptr;
+
+  // the various views/scenes/projection managers
   TEveViewer *rhoPhiView = nullptr;
   TEveViewer *rhoZView = nullptr;
   TGLViewer *rhoPhiGLView = nullptr;
@@ -205,6 +208,9 @@ public:
   TEveProjectionManager *rhoPhiProjManager = nullptr;
   TEveProjectionManager *rhoZProjManager = nullptr;
 
+  // the list of the readout elements
+  TEveElementList *readout = nullptr;
+
   TGLConstAnnotation *eventLabel = nullptr;
   TGTextEntry *textEntry = nullptr;
 
@@ -217,6 +223,8 @@ public:
 
   bool initRhoPhiView = false;
   bool initRhoZView = false;
+
+  bool showReadout = true;
 
   /******************************************************************************/
   // class methods
@@ -243,6 +251,9 @@ public:
 
   // move to previous event
   void bck();
+
+  // show/hide the readouts
+  void toggleReadout();
 
   // create the buttons for navigating through the events
   void makeGui();

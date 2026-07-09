@@ -2446,7 +2446,8 @@ void EventDisplay::startDisplay(int initialEvent)
   TEveElementList *PCBs = new TEveElementList("PCBs");
   TEveElementList *actives = new TEveElementList("Active elements");
   TEveElementList *passives = new TEveElementList("Passive elements");
-  TEveElementList *readout = new TEveElementList("Readout");
+  readout = new TEveElementList("Readout");
+  readout->SetRnrSelfChildren(showReadout, showReadout);
   if (useG4geom)
   {
     // auto fGeom = TFile::Open(geomFile.c_str(), "CACHEREAD");
@@ -2590,8 +2591,8 @@ void EventDisplay::startDisplay(int initialEvent)
                 // by default draw only the sensors
                 // sensors are so thin that some of them are not drawn ...
                 // TO BE INVESTIGATED
-                // if (!elName.Contains("sensor"))
-                //   el->SetRnrSelfChildren(false, false);
+                if (!elName.Contains("sensor"))
+                  el->SetRnrSelfChildren(false, false);
               }
             }
             else if (sVtx.Contains("VertexDisks")) {
@@ -2602,9 +2603,9 @@ void EventDisplay::startDisplay(int initialEvent)
               // by default draw only the sensors
               // sensors are so thin that some of them are not drawn ...
               // TO BE INVESTIGATED
-              // if (!sVtx.Contains("sensor")) {
-              //   elVtx->SetRnrSelfChildren(false, false);
-              // }
+              if (!sVtx.Contains("sensor")) {
+                elVtx->SetRnrSelfChildren(false, false);
+              }
             }
             else
               std::cout << "Unexpected volume: " << sVtx << std::endl;
@@ -3243,8 +3244,8 @@ void EventDisplay::startDisplay(int initialEvent)
 
   // draw the merged ECAL readout segmentation in rho-phi
   TEveStraightLineSet *gridmod = new TEveStraightLineSet("ECAL phi readout merged");
-  gridmod->SetLineColor(kViolet + 2);
-  gridmod->SetLineWidth(5);
+  gridmod->SetLineColor(kViolet);
+  gridmod->SetLineWidth(3);
   for (int iLayer = 0; iLayer < geomReader->nLayers; iLayer++)
   {
     double Lin = geomReader->getL(geomReader->alpha, geomReader->rMin, geomReader->r[iLayer]);
@@ -3268,7 +3269,7 @@ void EventDisplay::startDisplay(int initialEvent)
   if (doHCal)
   {
     TEveStraightLineSet *hcalPhiReadout = new TEveStraightLineSet("HCAL phi readout");
-    hcalPhiReadout->SetLineColor(kViolet + 2);
+    hcalPhiReadout->SetLineColor(kViolet);
     hcalPhiReadout->SetLineWidth(5);
     double r1 = geomReader->rMinHCal;
     double r2 = geomReader->rMaxHCal;
@@ -3354,8 +3355,8 @@ void EventDisplay::startDisplay(int initialEvent)
 
   // the merged grid
   TEveStraightLineSet *grid2 = new TEveStraightLineSet("ECAL theta readout merged");
-  grid2->SetLineColor(kViolet + 2);
-  grid2->SetLineWidth(5);
+  grid2->SetLineColor(kViolet);
+  grid2->SetLineWidth(3);
   for (int iLayer = 0; iLayer < geomReader->nLayers; iLayer++)
   {
     double r1 = geomReader->r[iLayer];
@@ -3651,6 +3652,22 @@ void EventDisplay::bck()
   }
 }
 
+void EventDisplay::toggleReadout()
+{
+  if (showReadout) {
+    showReadout = false;
+  }
+  else {
+    showReadout = true;
+  }
+  readout->SetRnrSelfChildren(showReadout, showReadout);
+  for (TEveElement::List_i itr = readout->BeginChildren(); itr != readout->EndChildren(); itr++) {
+    TEveElement *el = *itr;
+    el->SetRnrSelf(showReadout);
+  }
+  gEve->FullRedraw3D(false);
+}
+
 void EventDisplay::takeScreenshot()
 {
   TString view;
@@ -3689,8 +3706,8 @@ void EventDisplay::makeGui()
   frmMain->SetWindowName("GUI");
   frmMain->SetCleanup(kDeepCleanup);
 
-  TGHorizontalFrame *hf = new TGHorizontalFrame(frmMain);
   {
+    TGHorizontalFrame *hf = new TGHorizontalFrame(frmMain);
     TGPictureButton *b = 0;
 
     b = new TGPictureButton(hf, gClient->GetPicture("icons/TakeScreenshot.png"));
@@ -3708,13 +3725,23 @@ void EventDisplay::makeGui()
     b->Connect("Clicked()", "EventDisplay", this, "fwd()");
     b->SetToolTipText("Go to next event");
 
+    b = new TGPictureButton(hf, gClient->GetPicture("icons/grid_icon.png"));
+    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
+    b->Connect("Clicked()", "EventDisplay", this, "toggleReadout()");
+    b->SetToolTipText("Hide/Show readouts");
+    frmMain->AddFrame(hf);
+  }
+
+  {
+    TGHorizontalFrame *hf = new TGHorizontalFrame(frmMain);
+    TGPictureButton *b = 0;
     textEntry = new TGTextEntry(hf);
     textEntry->SetEnabled(kFALSE);
     hf->AddFrame(textEntry, new TGLayoutHints(kLHintsLeft | kLHintsCenterY |
                                                   kLHintsExpandX,
                                               2, 10, 10, 10));
+    frmMain->AddFrame(hf);
   }
-  frmMain->AddFrame(hf);
 
   frmMain->MapSubwindows();
   frmMain->Resize();
