@@ -1348,13 +1348,6 @@ void EventDisplay::loadEvent(int event)
   if (not showFullDetector) {
     rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
   }
-  /*
-  const double rMin = geomReader->rMin;
-  const double alpha = geomReader->alpha;
-  const double thetaGrid = geomReader->thetaGrid;
-  const double gridPhi = geomReader->gridPhi;
-  const double phiMin = geomReader->phiMin;
-  */
 
   //
   // particles
@@ -1384,7 +1377,7 @@ void EventDisplay::loadEvent(int event)
     else
       particles->DestroyElements();
 
-    // handle differently the e/gamma vs pi0 particle guns
+    // loop over the MC particles to create the particle tracks
     for (unsigned int ip = 0; ip < eventReader->genParticles_generatorStatus->GetSize(); ip++)
     {
       float m = (*eventReader->genParticles_mass)[ip];
@@ -1411,44 +1404,94 @@ void EventDisplay::loadEvent(int event)
       v[1] = (*eventReader->genParticles_endpoint_y)[ip] * mm;
       v[2] = (*eventReader->genParticles_endpoint_z)[ip] * mm;
 
-      // use per-track propagator to set maxR
-      TEveTrackPropagator* prop = new TEveTrackPropagator(Form("propagator_%d", ip), "per-track propagator", magField, false);
-      prop->SetRnrReferences(false);
-      prop->SetFitReferences(false);
-      double propMaxR = rMax;
-      if ((std::sqrt(v[0]*v[0]+v[1]*v[1]) < rMax) && std::sqrt(x1*x1+y1*y1) < rMax) {
-        if (x1*x1+y1*y1 > v[0]*v[0]+v[1]*v[1]) {
-          propMaxR = std::sqrt(x1*x1+y1*y1);
-        }
-        else {
-          propMaxR = std::sqrt(v[0]*v[0]+v[1]*v[1]);
-        }
+      // for electrons, for which there could be some hard bremsstrahlung, we
+      // split the trajectory into pieces between photon emissions
+      if (std::abs((*eventReader->genParticles_PDG)[ip]) == 11)
+      {
+	// retrieve the various splittings
+	auto segments = getElectronBremsstrahlungSegments(
+							  ip,
+							  *eventReader->genParticles_daughters_index,
+							  *eventReader->genParticles_PDG,
+							  *eventReader->genParticles_vertex_x,
+							  *eventReader->genParticles_vertex_y,
+							  *eventReader->genParticles_vertex_z,
+							  *eventReader->genParticles_momentum_x,
+							  *eventReader->genParticles_momentum_y,
+							  *eventReader->genParticles_momentum_z,
+							  *eventReader->genParticles_daughters_begin,
+							  *eventReader->genParticles_daughters_end);
+	// create a track for each segment
+	for(const auto& seg : segments)
+	{
+	  TEveMCTrack mctSegment;
+	  mctSegment.SetPdgCode((*eventReader->genParticles_PDG)[ip]);
+	  double p = seg.momentum.Mag();
+	  double px = seg.momentum.X();
+	  double py = seg.momentum.Y();
+	  double pz = seg.momentum.Z();
+	  double x1 = seg.start.X();
+	  double y1 = seg.start.Y();
+	  double z1 = seg.start.Z();
+	  double m = (*eventReader->genParticles_mass)[ip];
+	  mctSegment.SetMomentum(px, py, pz, sqrt(p*p+m*m));
+	  mctSegment.SetProductionVertex(x1, y1, z1, 0);
+	  TEveTrackPropagator* prop = new TEveTrackPropagator("electron_brem_segment",
+							      "electron brem segment",
+							      magField,
+							      false);
+	  double propMaxR = rMax;
+	  double v[3];
+	  v[0] = seg.end.X();
+	  v[1] = seg.end.Y();
+	  v[2] = seg.end.Z();
+	  if ((std::sqrt(v[0]*v[0]+v[1]*v[1]) < rMax) && std::sqrt(x1*x1+y1*y1) < rMax) {
+	    if (x1*x1+y1*y1 > v[0]*v[0]+v[1]*v[1]) {
+	      propMaxR = std::sqrt(x1*x1+y1*y1);
+	    }
+	    else {
+	      propMaxR = std::sqrt(v[0]*v[0]+v[1]*v[1]);
+	    }
+	  }
+	  prop->SetMaxR(propMaxR);
+	  prop->SetRnrReferences(false);
+	  prop->SetFitReferences(false);
+	  TEveTrack* segTrack = new TEveTrack(&mctSegment, prop);
+	  segTrack->SetAttLineAttMarker(particles);
+	  segTrack->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
+				      p, acos(pz / p), atan2(py, px),
+				      x1 / cm, y1 / cm, z1 / cm));
+	  particles->AddElement(segTrack);
+	}
       }
-      prop->SetMaxR(propMaxR);
-      //  TEveTrack *track = new TEveTrack(&mct, particles->GetPropagator());
-      TEveTrack *track = new TEveTrack(&mct, prop);
-      track->SetAttLineAttMarker(particles);
-      track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
-                                  p, acos(pz / p), atan2(py, px),
-                                x1 / cm, y1 / cm, z1 / cm));
-      // cout << v[0] << " " << v[1] << " " << v[2] << endl;
-      // code below not needed anymore since we have the endpoint info and set the propagator maxR accordingly
-      /*
-      if ((*eventReader->genParticles_PDG)[ip]==22 ||
-          (*eventReader->genParticles_PDG)[ip]==111
-          ) {
-        // don't do it for charged particles otherwise will
-        // force the particle to pass through it and if there
-        // are not enough other reference points along the
-        // trajectory it will screw up the helix
-        TEvePathMark mark(TEvePathMark::kDecay, v);
-        track->AddPathMark(mark);
-        track->SetRnrPoints(true);
+      else {
+	// particles other than electrons
+	// use per-track propagator to set maxR
+	TEveTrackPropagator* prop = new TEveTrackPropagator(Form("propagator_%d", ip), "per-track propagator", magField, false);
+	prop->SetRnrReferences(false);
+	// use this if we add track marks to electrons
+	// prop->SetFitReferences(true);
+	prop->SetFitReferences(false);
+	double propMaxR = rMax;
+	if ((std::sqrt(v[0]*v[0]+v[1]*v[1]) < rMax) && std::sqrt(x1*x1+y1*y1) < rMax) {
+	  if (x1*x1+y1*y1 > v[0]*v[0]+v[1]*v[1]) {
+	    propMaxR = std::sqrt(x1*x1+y1*y1);
+	  }
+	  else {
+	    propMaxR = std::sqrt(v[0]*v[0]+v[1]*v[1]);
+	  }
+	}
+	prop->SetMaxR(propMaxR);
+	
+	TEveTrack *track = new TEveTrack(&mct, prop);
+	track->SetAttLineAttMarker(particles);
+	track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
+				    p, acos(pz / p), atan2(py, px),
+				    x1 / cm, y1 / cm, z1 / cm));
+	
+	
+	particles->AddElement(track);
       }
-      */
-      particles->AddElement(track);
-    }
-
     /*
     // if the particle is a pi0, also draw the two photons, and set the endpoint
     // of the pi0 track
@@ -1518,6 +1561,8 @@ void EventDisplay::loadEvent(int event)
       }
     }
     */
+    }
+    
     particles->MakeTracks();
   }
 
@@ -2316,6 +2361,7 @@ void EventDisplay::loadEvent(int event)
                                            TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
                                            TEveVectorD(px, py, pz)));
         }
+        if (debug) track->PrintPathMarks();
         // could also save decay ...
         tracks->AddElement(track);
       }
@@ -3769,4 +3815,227 @@ void EventDisplay::onTabSelected(Int_t tab)
       initRhoZView = true;
     }
   }
+}
+
+std::vector<TEvePathMarkD> EventDisplay::getElectronBremsstrahlungMarks(
+    unsigned int electronIndex,
+    const TTreeReaderArray<Int_t>& daughters,
+    const TTreeReaderArray<Int_t>& pdg,
+    const TTreeReaderArray<Double_t>& vx,
+    const TTreeReaderArray<Double_t>& vy,
+    const TTreeReaderArray<Double_t>& vz,
+    const TTreeReaderArray<Double_t>& px,
+    const TTreeReaderArray<Double_t>& py,
+    const TTreeReaderArray<Double_t>& pz,
+    const TTreeReaderArray<UInt_t>& daughters_begin,
+    const TTreeReaderArray<UInt_t>& daughters_end)
+{
+  std::vector<TEvePathMarkD> marks;
+  if(electronIndex >= pdg.GetSize()) return marks;
+  if(std::abs(pdg[electronIndex]) != 11)
+    return marks;
+
+  //
+  // Initial electron momentum and vertex
+  //
+  TVector3 electronMomentum(
+			    px[electronIndex],
+			    py[electronIndex],
+			    pz[electronIndex]);
+
+  TVector3 electronVertex(
+			  vx[electronIndex],
+			  vy[electronIndex],
+			  vz[electronIndex]);
+  
+  //
+  // Find daughters
+  //
+  std::vector<unsigned int> photons;
+  bool hasElectronDaughter = false;
+  for(unsigned int i=daughters_begin[electronIndex];
+      i<daughters_end[electronIndex];
+      ++i)
+  {
+    if(i>=daughters.GetSize()) continue;
+      
+    int child = daughters[i];
+    if(child < 0) continue;
+      
+    unsigned int childIndex = static_cast<unsigned int>(child);
+    if(childIndex >= pdg.GetSize()) continue;
+    
+    if(std::abs(pdg[childIndex]) == 11)
+      hasElectronDaughter = true;
+
+    if(pdg[childIndex] == 22)
+      photons.push_back(childIndex);
+  }
+  
+
+  //
+  // If Geant produced a new electron particle,
+  // the daughter electron already has the correct
+  // momentum history.
+  //
+  if(hasElectronDaughter)
+    return marks;
+
+  if(photons.empty())
+    return marks;
+
+  //
+  // Sort photons along electron flight direction
+  //
+  TVector3 direction = electronMomentum.Unit();
+
+  std::sort(photons.begin(), photons.end(),
+	    [&](unsigned int a, unsigned int b)
+	    {
+	      TVector3 va(vx[a], vy[a], vz[a]);
+	      TVector3 vb(vx[b], vy[b], vz[b]);
+	      double da = (va-electronVertex).Dot(direction);
+	      double db = (vb-electronVertex).Dot(direction);
+	      return da < db;
+	    });
+
+  //
+  // Follow the electron momentum after each photon
+  //
+  TVector3 currentMomentum = electronMomentum;
+  for(unsigned int gamma : photons)
+  {
+    if(gamma >= static_cast<unsigned int>(px.GetSize()))
+      continue;
+    TVector3 photonMomentum(px[gamma], py[gamma], pz[gamma]);
+
+    //
+    // Bremsstrahlung:
+    // p_e(new) = p_e(old) - p_gamma
+    //
+    currentMomentum -= photonMomentum;
+    double p = currentMomentum.Mag();
+    if(p==0)
+      continue;
+
+    TEveVectorD position(vx[gamma]*mm, vy[gamma]*mm, vz[gamma]*mm);
+    TEveVectorD momentum(currentMomentum.X(), currentMomentum.Y(), currentMomentum.Z());
+    marks.emplace_back(TEvePathMarkD::kReference,position,momentum);
+  }
+  return marks;
+}
+
+std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
+    unsigned int electronIndex,
+    const TTreeReaderArray<Int_t>& daughters,
+    const TTreeReaderArray<Int_t>& pdg,
+    const TTreeReaderArray<Double_t>& vx,
+    const TTreeReaderArray<Double_t>& vy,
+    const TTreeReaderArray<Double_t>& vz,
+    const TTreeReaderArray<Double_t>& px,
+    const TTreeReaderArray<Double_t>& py,
+    const TTreeReaderArray<Double_t>& pz,
+    const TTreeReaderArray<UInt_t>& daughters_begin,
+    const TTreeReaderArray<UInt_t>& daughters_end)
+{
+  // 1. Pre-calculate search bounds and safely reserve space
+  const size_t d_begin = daughters_begin[electronIndex];
+  const size_t d_end = daughters_end[electronIndex];
+  const size_t max_daughters = (d_end > d_begin) ? (d_end - d_begin) : 0;
+
+  // Use a pair to store: <Distance Along Direction, Photon Index>
+  std::vector<std::pair<double, unsigned int>> photonsWithDist;
+  photonsWithDist.reserve(max_daughters);
+
+  // Initial momentum and vertex
+  const double el_px = px[electronIndex];
+  const double el_py = py[electronIndex];
+  const double el_pz = pz[electronIndex];
+  const double el_vx = vx[electronIndex]*mm;
+  const double el_vy = vy[electronIndex]*mm;
+  const double el_vz = vz[electronIndex]*mm;
+  
+  TVector3 electronMomentum(el_px, el_py, el_pz);
+  TVector3 direction = electronMomentum.Unit();
+ 
+  // Find photon daughters and pre-calculate projection distances
+  const size_t daughters_size = daughters.GetSize();
+  for(unsigned int i=d_begin; i<d_end; ++i)
+  {
+    if(i >= daughters_size) continue;
+
+    int child = daughters[i];
+    if(child < 0) continue;
+    
+    if(pdg[child] == 22)
+    {
+      // Pre-calculate projection along direction to avoid heavy lifting inside std::sort
+      double dx = vx[child]*mm - el_vx;
+      double dy = vy[child]*mm - el_vy;
+      double dz = vz[child]*mm - el_vz;
+      double dist = dx * direction.X() + dy * direction.Y() + dz * direction.Z();
+      photonsWithDist.emplace_back(dist, static_cast<unsigned int>(child));
+    }
+  }
+
+  //
+  // Sort photons by distance along electron direction
+  // (rather sort by time...)
+  std::sort(photonsWithDist.begin(), photonsWithDist.end(),
+            [](const auto& a, const auto& b) { return a.first < b.first; });
+  
+  // Create electron segments
+  std::vector<ElectronSegment> segments;
+  segments.reserve(photonsWithDist.size() + 1);
+ 
+  TVector3 currentMomentum = electronMomentum;
+  TVector3 currentVertex(el_vx, el_vy, el_vz);
+  int charge = -sgn(pdg[electronIndex]);
+
+  // Create propagator
+  TEveTrackPropagator* propagator = new TEveTrackPropagator();
+  propagator->SetMagFieldObj(magField);
+  // propagator.SetStepper(TEveTrackPropagator::kHelix);
+
+  for(const auto& [dist, gamma] : photonsWithDist)
+  {
+    const double g_vx = vx[gamma] * mm;
+    const double g_vy = vy[gamma] * mm;
+    const double g_vz = vz[gamma] * mm;
+    
+    TVector3 start(currentVertex.X(), currentVertex.Y(), currentVertex.Z());
+    TVector3 end(g_vx, g_vy, g_vz);
+
+    segments.push_back({start, end, currentMomentum});
+
+    // Extrapolate electron to gamma vertex
+    TEveVectorD start_pos(start.X(), start.Y(), start.Z());
+    propagator->InitTrack(start_pos, charge);
+    TEveVectorD target_pos(g_vx, g_vy, g_vz);
+      
+    TEveVectorD propagated_mom(currentMomentum.X(), currentMomentum.Y(), currentMomentum.Z());
+    Bool_t success = propagator->GoToVertex(target_pos, propagated_mom);
+    if (not success) {
+      std::cout << "ERROR: failed to propagate electron!" << std::endl; 
+    }
+
+    // Update electron momentum after photon emission
+    currentMomentum.SetXYZ(propagated_mom.fX - px[gamma],
+			   propagated_mom.fY - py[gamma],
+			   propagated_mom.fZ - pz[gamma]);
+
+    // Set new vertex
+    currentVertex.SetXYZ(g_vx, g_vy, g_vz);
+  }
+
+  // Add final electron segment
+  TVector3 endpoint((*eventReader->genParticles_endpoint_x)[electronIndex]*mm,
+		    (*eventReader->genParticles_endpoint_y)[electronIndex]*mm,
+		    (*eventReader->genParticles_endpoint_z)[electronIndex]*mm);
+  segments.push_back({
+      TVector3(currentVertex.X(), currentVertex.Y(), currentVertex.Z()),
+      TVector3(endpoint.X(), endpoint.Y(), endpoint.Z()),
+      currentMomentum
+    });
+  return segments;
 }

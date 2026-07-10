@@ -51,6 +51,12 @@ void EventReader::SetBranches()
         genParticles_momentum_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.x", branch));
         genParticles_momentum_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.y", branch));
         genParticles_momentum_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.z", branch));
+	genParticles_parents_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.parents_begin", branch));
+	genParticles_parents_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.parents_end", branch));
+	genParticles_parents_index = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_parents.index", branch));
+	genParticles_daughters_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.daughters_begin", branch));
+	genParticles_daughters_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.daughters_end", branch));
+	genParticles_daughters_index = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_daughters.index", branch));
       }
     }
   }
@@ -941,6 +947,12 @@ EventReader::~EventReader() {
     delete genParticles_momentum_x;
     delete genParticles_momentum_y;
     delete genParticles_momentum_z;
+    delete genParticles_parents_begin;
+    delete genParticles_parents_end;
+    delete genParticles_parents_index;
+    delete genParticles_daughters_begin;
+    delete genParticles_daughters_end;
+    delete genParticles_daughters_index;
   }
   
   if (SimParticleSecondaries_PDG) {

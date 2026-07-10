@@ -46,6 +46,12 @@ public:
   TTreeReaderArray<Double_t> *genParticles_momentum_x = nullptr;
   TTreeReaderArray<Double_t> *genParticles_momentum_y = nullptr;
   TTreeReaderArray<Double_t> *genParticles_momentum_z = nullptr;
+  TTreeReaderArray<UInt_t> *genParticles_parents_begin = nullptr;
+  TTreeReaderArray<UInt_t> *genParticles_parents_end = nullptr;
+  TTreeReaderArray<Int_t> *genParticles_parents_index = nullptr;
+  TTreeReaderArray<UInt_t> *genParticles_daughters_begin = nullptr;
+  TTreeReaderArray<UInt_t> *genParticles_daughters_end = nullptr;
+  TTreeReaderArray<Int_t> *genParticles_daughters_index = nullptr;
 
   // 1a. - secondary particles
   TTreeReaderArray<Int_t> *SimParticleSecondaries_PDG = nullptr;

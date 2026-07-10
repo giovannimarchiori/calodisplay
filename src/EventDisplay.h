@@ -26,6 +26,7 @@
 #include <TGLViewer.h>
 #include <TGLAnnotation.h>
 #include <TGTextEntry.h>
+#include <TVector3.h>
 
 #include "DetectorGeometry.h"
 #include "EventReader.h"
@@ -39,6 +40,14 @@ using namespace std;
 
 // helper function to return the sign of a float
 int sgn(float val);
+
+// struct to hold start/end/momentum info to calculate e- brem from MCParticles
+struct ElectronSegment
+{
+  TVector3 start;
+  TVector3 end;
+  TVector3 momentum;
+};
 
 // derived TGLAnnotation class that overrides MouseEnter method
 // to avoid editing of annotation
@@ -264,8 +273,36 @@ public:
   // void on3DViewActivated();
   void onTabSelected(Int_t tab);
 
+  // take a screenshot
   void takeScreenshot();
 
+  // find path marks for electron brem to make more realistic rendering of electron trajectories
+  std::vector<TEvePathMarkD> getElectronBremsstrahlungMarks(
+    unsigned int electronIndex,
+    const TTreeReaderArray<Int_t>& daughters,
+    const TTreeReaderArray<Int_t>& pdg,
+    const TTreeReaderArray<Double_t>& vx,
+    const TTreeReaderArray<Double_t>& vy,
+    const TTreeReaderArray<Double_t>& vz,
+    const TTreeReaderArray<Double_t>& px,
+    const TTreeReaderArray<Double_t>& py,
+    const TTreeReaderArray<Double_t>& pz,
+    const TTreeReaderArray<UInt_t>& daughters_begin,
+    const TTreeReaderArray<UInt_t>& daughters_end);
+
+  std::vector<ElectronSegment> getElectronBremsstrahlungSegments(
+    unsigned int electronIndex,
+    const TTreeReaderArray<Int_t>& daughters,
+    const TTreeReaderArray<Int_t>& pdg,
+    const TTreeReaderArray<Double_t>& vx,
+    const TTreeReaderArray<Double_t>& vy,
+    const TTreeReaderArray<Double_t>& vz,
+    const TTreeReaderArray<Double_t>& px,
+    const TTreeReaderArray<Double_t>& py,
+    const TTreeReaderArray<Double_t>& pz,
+    const TTreeReaderArray<UInt_t>& daughters_begin,
+    const TTreeReaderArray<UInt_t>& daughters_end);
+  
 };
 
 #endif
