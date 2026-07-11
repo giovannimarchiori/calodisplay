@@ -51,6 +51,11 @@ DisplayConfig::DisplayConfig() {
 
   // default bkg color
   setIntConfig("bkgColor3D", 1);
+
+  // files
+  setStringConfig("configFile", "");
+  setStringConfig("geometryFile", "");
+  setStringConfig("eventFile", "");
 }
 
 
@@ -86,11 +91,12 @@ void DisplayConfig::ReadFromFile(std::string filename) {
   std::stringstream buffer;
   buffer << in.rdbuf();
   std::string json = buffer.str();
-  // to read from json if we stream DisplayConfig when it uses bool/string:
-  // std::unique_ptr<DisplayConfig> b = TBufferJSON::FromJSON<DisplayConfig>(json);
-  // *this = *b;
-  // to read the configMap when a map is used:
   std::unique_ptr<std::map<std::string, std::string>> b = TBufferJSON::FromJSON<std::map<std::string, std::string>>(json);
-  configMap = *b;
+  // this one keeps only the values in the JSON
+  // configMap = *b;
+  // this one merges the values in the JSON with the defaults if not specified
+  for (const auto& [key, value] : *b) {
+    configMap[key] = value;
+  }
   in.close();
 }

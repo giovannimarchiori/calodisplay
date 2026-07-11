@@ -169,25 +169,16 @@ int main(int argc, char *argv[])
         {
           i++;
           display.evtFile = args[i];
+          std::string s(args[i]);
+          displayConfig.setStringConfig("eventFile", s);
         }
         continue;
       }
 
       else if (arg == "-c" || arg == "--config")
       {
-	/*
-        if (i == args.size() - 1)
-        {
-          throw std::runtime_error("missing config file after -c/--config option!");
-        }
-        else
-        {
-          i++;
-          configFile = args[i];
-        }
+        i++;
         continue;
-	*/
-        i++; continue;
       }
 
       else if (arg == "-s" || arg == "--skipEvents")
@@ -240,6 +231,11 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
+  // store event file and geom file in config
+  displayConfig.setStringConfig("geometryFile", display.geomFile);
+  displayConfig.setStringConfig("eventFile", display.evtFile);
+  displayConfig.setStringConfig("configFile", configFile);
+  
   // print the configuration
   displayConfig.Print();
 
