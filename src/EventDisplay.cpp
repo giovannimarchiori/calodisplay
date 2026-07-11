@@ -21,6 +21,7 @@
 
 #include <TGButton.h>
 #include <TGTab.h>
+#include <TGMsgBox.h>
 
 #include <TGeoTube.h>
 #include <TGeoMatrix.h>
@@ -1317,12 +1318,17 @@ void EventDisplay::loadEvent(int event)
     eventId = event;
 
   printf("Loading event %d ...\n", eventId);
-  textEntry->SetTextColor(0xff0000);
-  textEntry->SetText(Form("Loading event %d ...", eventId));
+  // textEntry->SetTextColor(0xff0000);
+  // textEntry->SetText(Form("Loading event %d ...", eventId));
 
+  // write event number in status bar
+  gEve->GetBrowser()->SetStatusText(Form("Loading event %d ...", eventId),0);
+  
   eventReader->loadEvent(eventId);
-
+  
   // find out pdgID and momentum of primary particle
+  // not OK for processes like Z->ee....
+  // maybe can read process info from metadata instead?
   double pmax = 0.0;
   int ipmax = -1;
   for (unsigned int i = 0; i < eventReader->genParticles_generatorStatus->GetSize(); i++)
@@ -2385,20 +2391,24 @@ void EventDisplay::loadEvent(int event)
   }
 
   //
-  // event label
+  // process and event label
   //
-  if (eventLabel == nullptr)
-  {
-    eventLabel = new TGLConstAnnotation(mainGLView,
-                                        Form("%s, %.1f GeV\nEvent %d",
-                                             partType(pdgID), pmax, eventId),
-                                        0.1, 0.9);
+  if (processLabel == nullptr) {
+    auto processStr = Form("%s, %.1f GeV", partType(pdgID), pmax);
+    float x(0.05), y(0.95);
+    processLabel = new TGLConstAnnotation(mainGLView, processStr, x, y);
+    processLabel->SetTextSize(0.05); // % of window diagonal
+    processLabel->SetAllowClose(false);
+  }
+  if (eventLabel == nullptr) {
+    auto eventStr = Form("Event %d", eventId);
+    float x(0.05), y(0.90);
+    eventLabel = new TGLConstAnnotation(mainGLView, eventStr, x, y);
     eventLabel->SetTextSize(0.05); // % of window diagonal
     eventLabel->SetAllowClose(false);
   }
-  else
-  {
-    eventLabel->SetText(Form("%s, %.1f GeV\nEvent %d", partType(pdgID), pmax, eventId));
+  else {
+    eventLabel->SetText(Form("Event %d", eventId));
   }
 
   TEveElement *top = (TEveElement *)gEve->GetCurrentEvent();
@@ -2422,8 +2432,9 @@ void EventDisplay::loadEvent(int event)
   std::cout << "Done" << std::endl
             << std::endl;
 
-  textEntry->SetTextColor((Pixel_t)0x000000);
-  textEntry->SetText(Form("Event %d loaded", eventId));
+  // textEntry->SetTextColor((Pixel_t)0x000000);
+  // textEntry->SetText(Form("Event %d loaded", eventId));
+  gEve->GetBrowser()->SetStatusText(Form("Event %d loaded", eventId),0);
 }
 
 // do not implement, use compiler-generated one
@@ -3334,7 +3345,7 @@ void EventDisplay::startDisplay(int initialEvent)
     rhoPhiScene->AddElement(hcalPhiReadout);
     readout->AddElement(hcalPhiReadout);
   }
-  
+
   // third tab (R-z view)
   rhoZView = gEve->SpawnNewViewer("Projection Rho-Z");
   rhoZScene = gEve->SpawnNewScene("Rho-Z geometry",
@@ -3660,9 +3671,18 @@ void EventDisplay::fwd()
 {
   if (evtFile == "")
   {
-    textEntry->SetTextColor(0xff0000);
-    textEntry->SetText("No events loaded");
+    //textEntry->SetTextColor(0xff0000);
+    //textEntry->SetText("No events loaded");
     printf("\nNo events loaded\n");
+    int ret;
+    auto b = new TGMsgBox(gClient->GetRoot(),
+			  gEve->GetBrowser(),
+			  "Error",
+			  "No events loaded",
+			  kMBIconStop,
+			  kMBOk,
+			  &ret);
+
   }
   else if (eventId < nEvents - 1)
   {
@@ -3671,9 +3691,18 @@ void EventDisplay::fwd()
   }
   else
   {
-    textEntry->SetTextColor(0xff0000);
-    textEntry->SetText("Already at last event");
+    //textEntry->SetTextColor(0xff0000);
+    //textEntry->SetText("Already at last event");
     printf("\nAlready at last event\n");
+
+    int ret;
+    auto b = new TGMsgBox(gClient->GetRoot(),
+			  gEve->GetBrowser(),
+			  "Error",
+			  "Already at last event",
+			  kMBIconStop,
+			  kMBOk,
+			  &ret);
   }
 }
 
@@ -3681,9 +3710,18 @@ void EventDisplay::bck()
 {
   if (evtFile == "")
   {
-    textEntry->SetTextColor(0xff0000);
-    textEntry->SetText("No events loaded");
+    //textEntry->SetTextColor(0xff0000);
+    //textEntry->SetText("No events loaded");
     printf("\nNo events loaded\n");
+    int ret;
+    auto b = new TGMsgBox(gClient->GetRoot(),
+			  gEve->GetBrowser(),
+			  "Error",
+			  "Already at last event",
+			  kMBIconStop,
+			  kMBOk,
+			  &ret);
+
   }
   else if (eventId > 0)
   {
@@ -3692,9 +3730,19 @@ void EventDisplay::bck()
   }
   else
   {
-    textEntry->SetTextColor(0xff0000);
-    textEntry->SetText("Already at first event");
+    //textEntry->SetTextColor(0xff0000);
+    //textEntry->SetText("Already at first event");
     printf("\nAlready at first event\n");
+
+    int ret;
+    auto b = new TGMsgBox(gClient->GetRoot(),
+			  gEve->GetBrowser(),
+			  "Error",
+			  "Already at first event",
+			  kMBIconStop,
+			  kMBOk,
+			  &ret);
+
   }
 }
 
@@ -3744,8 +3792,9 @@ void EventDisplay::takeScreenshot()
 void EventDisplay::makeGui()
 {
   // Create minimal GUI for event navigation.
-
   TEveBrowser *browser = gEve->GetBrowser();
+
+  /*
   browser->StartEmbedding(TRootBrowser::kLeft);
 
   TGMainFrame *frmMain = new TGMainFrame(gClient->GetRoot(), 1000, 600);
@@ -3776,15 +3825,12 @@ void EventDisplay::makeGui()
     b->Connect("Clicked()", "EventDisplay", this, "toggleReadout()");
     b->SetToolTipText("Hide/Show readouts");
     frmMain->AddFrame(hf);
-  }
 
-  {
-    TGHorizontalFrame *hf = new TGHorizontalFrame(frmMain);
-    TGPictureButton *b = 0;
-    textEntry = new TGTextEntry(hf);
+    TGHorizontalFrame *hf2 = new TGHorizontalFrame(frmMain);
+    textEntry = new TGTextEntry(hf2);
     textEntry->SetEnabled(kFALSE);
-    hf->AddFrame(textEntry, new TGLayoutHints(kLHintsLeft | kLHintsCenterY |
-                                                  kLHintsExpandX,
+    hf2->AddFrame(textEntry, new TGLayoutHints(kLHintsLeft | kLHintsCenterY |
+					      kLHintsExpandX,
                                               2, 10, 10, 10));
     frmMain->AddFrame(hf);
   }
@@ -3795,12 +3841,61 @@ void EventDisplay::makeGui()
 
   browser->StopEmbedding();
   browser->SetTabTitle("Controls", 0);
+  */
+  
+  // add buttons to go through events
+  TGTab* tab = browser->GetTabRight();
+  Int_t nTabs = tab->GetNumberOfTabs();
+  for (Int_t i = 0; i < nTabs; ++i) {
+
+    TGCompositeFrame* frm = tab->GetTabContainer(i);
+  
+    TGHorizontalFrame* hf = new TGHorizontalFrame(frm);
+    TGPictureButton* b = 0;
+    
+    b = new TGPictureButton(hf, gClient->GetPicture("icons/TakeScreenshot.png"));
+    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
+    b->Connect("Clicked()", "EventDisplay", this, "takeScreenshot()");
+    b->SetToolTipText("Take a screenshot of the selected view");
+
+    b = new TGPictureButton(hf, gClient->GetPicture("icons/GoBack.gif"));
+    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
+    b->Connect("Clicked()", "EventDisplay", this, "bck()");
+    b->SetToolTipText("Go to previous event");
+
+    b = new TGPictureButton(hf, gClient->GetPicture("icons/GoForward.gif"));
+    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
+    b->SetToolTipText("Go to next event");
+    b->Connect("Clicked()", "EventDisplay", this, "fwd()");
+
+    b = new TGPictureButton(hf, gClient->GetPicture("icons/grid_icon.png"));
+    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
+    b->Connect("Clicked()", "EventDisplay", this, "toggleReadout()");
+    b->SetToolTipText("Hide/Show readouts");
+
+    /*
+    if (textEntry == nullptr) {
+      textEntry = new TGTextEntry(hf);
+      textEntry->SetEnabled(kFALSE);
+      hf->AddFrame(textEntry, new TGLayoutHints(kLHintsRight | kLHintsCenterY |
+       kLHintsExpandX, 10, 10, 10, 10));
+    }
+    */
+
+    frm->AddFrame(hf);
+    frm->Layout();
+    frm->MapSubwindows();
+  }
+
+  // hide command tab
+  gEve->GetBrowser()->HideBottomTab();
 }
 
 void EventDisplay::onTabSelected(Int_t tab)
 {
-  // std::cout << "tab selected: " << tab << std::endl;
-  if (tab==0) activeGLViewer = mainGLView;
+  if (tab==0) {
+    activeGLViewer = mainGLView;
+  }
   else if (tab==1) {
     activeGLViewer = rhoPhiGLView;
     if (!initRhoPhiView) {

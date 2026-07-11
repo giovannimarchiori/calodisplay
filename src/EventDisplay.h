@@ -219,7 +219,7 @@ public:
 
   // the list of the readout elements
   TEveElementList *readout = nullptr;
-
+  TGLConstAnnotation *processLabel = nullptr;
   TGLConstAnnotation *eventLabel = nullptr;
   TGTextEntry *textEntry = nullptr;
 
