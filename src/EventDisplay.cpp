@@ -95,7 +95,7 @@ Bool_t TGLConstAnnotation::MouseEnter(TGLOvlSelectRecord & /*rec*/)
   return kTRUE;
 }
 
-void EventDisplay::FillClusters(std::string clusterType)
+void EventDisplay::fillClusters(std::string clusterType)
 {
   std::vector<CaloCluster *> *clusterData = nullptr;
   unsigned int nClusters = 0;
@@ -423,7 +423,793 @@ void EventDisplay::FillClusters(std::string clusterType)
   }
 }
 
-void EventDisplay::DrawClusters(std::string clusterType)
+void EventDisplay::drawParticles()
+{
+  if (displayConfig.getBoolConfig("drawGenParticles"))
+  {
+    std::cout << "Creating particles" << std::endl;
+    if (particles == nullptr)
+    {
+      if (ParticleEnergyThreshold>0.)
+        particles = new TEveTrackList(Form("particles (p>%.2f GeV)", ParticleEnergyThreshold));
+      else
+        particles = new TEveTrackList("particles");
+      TEveTrackPropagator *trkProp = particles->GetPropagator();
+      trkProp->SetMagFieldObj(magField);
+      trkProp->SetMaxR(rMax);
+      // trkProp->SetMaxZ(geomReader->zMax);
+      trkProp->SetMaxZ(geomReader->zMaxEndCap);
+      trkProp->SetRnrReferences(false);
+      trkProp->SetFitReferences(false);
+      particles->SetMainColor(kWhite);
+      particles->SetLineWidth(1.);
+      particles->SetLineStyle(5);
+      gEve->AddElement(particles);
+    }
+    else
+      particles->DestroyElements();
+
+    // loop over the MC particles to create the particle tracks
+    for (unsigned int ip = 0; ip < eventReader->genParticles_generatorStatus->GetSize(); ip++)
+    {
+      float m = (*eventReader->genParticles_mass)[ip];
+      float px = (*eventReader->genParticles_momentum_x)[ip];
+      float py = (*eventReader->genParticles_momentum_y)[ip];
+      float pz = (*eventReader->genParticles_momentum_z)[ip];
+      float p = sqrt(px * px + py * py + pz * pz);
+      if (p < ParticleEnergyThreshold)
+        continue;
+      float pT = sqrt(px * px + py * py);
+
+      double t = (*eventReader->genParticles_time)[ip];
+      double x1 = (*eventReader->genParticles_vertex_x)[ip] * mm;
+      double y1 = (*eventReader->genParticles_vertex_y)[ip] * mm;
+      double z1 = (*eventReader->genParticles_vertex_z)[ip] * mm;
+
+      TEveMCTrack mct;
+      mct.SetPdgCode((*eventReader->genParticles_PDG)[ip]);
+      mct.SetMomentum(px, py, pz, sqrt(p * p + m * m));
+      mct.SetProductionVertex(x1, y1, z1, t);
+
+      TEveVectorF v;
+      v[0] = (*eventReader->genParticles_endpoint_x)[ip] * mm;
+      v[1] = (*eventReader->genParticles_endpoint_y)[ip] * mm;
+      v[2] = (*eventReader->genParticles_endpoint_z)[ip] * mm;
+
+      // for electrons, for which there could be some hard bremsstrahlung, we
+      // split the trajectory into pieces between photon emissions
+      if (std::abs((*eventReader->genParticles_PDG)[ip]) == 11)
+      {
+        // retrieve the various splittings
+        auto segments = getElectronBremsstrahlungSegments(
+                                                          ip,
+                                                          *eventReader->genParticles_daughters_index,
+                                                          *eventReader->genParticles_PDG,
+                                                          *eventReader->genParticles_vertex_x,
+                                                          *eventReader->genParticles_vertex_y,
+                                                          *eventReader->genParticles_vertex_z,
+                                                          *eventReader->genParticles_momentum_x,
+                                                          *eventReader->genParticles_momentum_y,
+                                                          *eventReader->genParticles_momentum_z,
+                                                          *eventReader->genParticles_daughters_begin,
+                                                          *eventReader->genParticles_daughters_end);
+        // create a track for each segment
+        for(const auto& seg : segments)
+        {
+          TEveMCTrack mctSegment;
+          mctSegment.SetPdgCode((*eventReader->genParticles_PDG)[ip]);
+          double p = seg.momentum.Mag();
+          double px = seg.momentum.X();
+          double py = seg.momentum.Y();
+          double pz = seg.momentum.Z();
+          double x1 = seg.start.X();
+          double y1 = seg.start.Y();
+          double z1 = seg.start.Z();
+          double m = (*eventReader->genParticles_mass)[ip];
+          mctSegment.SetMomentum(px, py, pz, sqrt(p*p+m*m));
+          mctSegment.SetProductionVertex(x1, y1, z1, 0);
+          TEveTrackPropagator* prop = new TEveTrackPropagator("electron_brem_segment",
+                                                              "electron brem segment",
+                                                              magField,
+                                                              false);
+          double propMaxR = rMax;
+          double v[3];
+          v[0] = seg.end.X();
+          v[1] = seg.end.Y();
+          v[2] = seg.end.Z();
+          if ((std::sqrt(v[0]*v[0]+v[1]*v[1]) < rMax) && std::sqrt(x1*x1+y1*y1) < rMax) {
+            if (x1*x1+y1*y1 > v[0]*v[0]+v[1]*v[1]) {
+              propMaxR = std::sqrt(x1*x1+y1*y1);
+            }
+            else {
+              propMaxR = std::sqrt(v[0]*v[0]+v[1]*v[1]);
+            }
+          }
+          prop->SetMaxR(propMaxR);
+          prop->SetRnrReferences(false);
+          prop->SetFitReferences(false);
+          TEveTrack* segTrack = new TEveTrack(&mctSegment, prop);
+          segTrack->SetAttLineAttMarker(particles);
+          segTrack->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
+                                      p, acos(pz / p), atan2(py, px),
+                                      x1 / cm, y1 / cm, z1 / cm));
+          particles->AddElement(segTrack);
+        }
+      }
+      else {
+        // particles other than electrons
+        // use per-track propagator to set maxR
+        TEveTrackPropagator* prop = new TEveTrackPropagator(Form("propagator_%d", ip), "per-track propagator", magField, false);
+        prop->SetRnrReferences(false);
+        // use this if we add track marks to electrons
+        // prop->SetFitReferences(true);
+        prop->SetFitReferences(false);
+        double propMaxR = rMax;
+        if ((std::sqrt(v[0]*v[0]+v[1]*v[1]) < rMax) && std::sqrt(x1*x1+y1*y1) < rMax) {
+          if (x1*x1+y1*y1 > v[0]*v[0]+v[1]*v[1]) {
+            propMaxR = std::sqrt(x1*x1+y1*y1);
+          }
+          else {
+            propMaxR = std::sqrt(v[0]*v[0]+v[1]*v[1]);
+          }
+        }
+        prop->SetMaxR(propMaxR);
+        
+        TEveTrack *track = new TEveTrack(&mct, prop);
+        track->SetAttLineAttMarker(particles);
+        track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
+                                    p, acos(pz / p), atan2(py, px),
+                                    x1 / cm, y1 / cm, z1 / cm));
+        
+        
+        particles->AddElement(track);
+      }
+    /*
+    // if the particle is a pi0, also draw the two photons, and set the endpoint
+    // of the pi0 track
+    if ((pdgID == 111) && (displayConfig.getBoolConfig("drawSimParticles")))
+    {
+      bool decayVtxSet = false;
+      for (unsigned int i = 0; i < eventReader->SimParticleSecondaries_PDG->GetSize(); i++)
+      {
+        pdgID = (*eventReader->SimParticleSecondaries_PDG)[i];
+        // keep only photons
+        if (pdgID != 22)
+          continue;
+        // if ( (* eventReader->SimParticleSecondaries_generatorStatus)[i] != 1 ) continue;
+        px = (*eventReader->SimParticleSecondaries_momentum_x)[i];
+        py = (*eventReader->SimParticleSecondaries_momentum_y)[i];
+        pz = (*eventReader->SimParticleSecondaries_momentum_z)[i];
+        m = (*eventReader->SimParticleSecondaries_mass)[i];
+        p = sqrt(px * px + py * py + pz * pz);
+        float e = sqrt(p * p + m * m);
+        // cout << "p = "<< p << endl;
+        if (p < ParticleEnergyThreshold)
+          continue;
+
+        // cout << "PDG = "<< pdgID << endl;
+        t = (*eventReader->SimParticleSecondaries_time)[i];
+        x1 = (*eventReader->SimParticleSecondaries_vertex_x)[i] * mm;
+        y1 = (*eventReader->SimParticleSecondaries_vertex_y)[i] * mm;
+        z1 = (*eventReader->SimParticleSecondaries_vertex_z)[i] * mm;
+        double r1 = sqrt(x1 * x1 + y1 * y1);
+        // the two photons from a pi0 in the origin must come from small R
+        // TODO IMPROVE FOR DDSIM FILES - WHERE PARTICLES PARENTS ARE STORED!
+        if (r1 > 1.)
+          continue;
+        double sintheta = sqrt(px * px + py * py) / p;
+        x2 = x1 + px / p * rMax / sintheta;
+        y2 = y1 + py / p * rMax / sintheta;
+        z2 = z1 + pz / p * rMax / sintheta;
+        // double x2 = (* eventReader->SimParticleSecondaries_endpoint_x)[i] * mm;
+        // double y2 = (* eventReader->SimParticleSecondaries_endpoint_y)[i] * mm;
+        // double z2 = (* eventReader->SimParticleSecondaries_endpoint_z)[i] * mm;
+        // double r2 = sqrt(x2*x2+y2*y2);
+        // cout << "x1 y1 z1 x2 y2 z2 = "
+        //      << x1 << " " << y1 << " " << z1 << " "
+        //      << x2 << " " << y2 << " " << z2 << endl;
+        // set pi0 decay point
+        if (!decayVtxSet)
+        {
+          TEveVectorF v;
+          v[0] = x1;
+          v[1] = y1;
+          v[2] = z1;
+          TEvePathMark mark(TEvePathMark::kDecay, v);
+          track->AddPathMark(mark);
+          decayVtxSet = true;
+        }
+        TEveMCTrack mct;
+        mct.SetPdgCode(pdgID);
+        mct.SetMomentum(px, py, pz, sqrt(p * p + m * m));
+        mct.SetProductionVertex(x1, y1, z1, t);
+        TEveTrack *track = new TEveTrack(&mct, particles->GetPropagator());
+        track->SetAttLineAttMarker(particles);
+        track->SetElementTitle(Form("p = .3%f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
+                                    p, acos(pz / p), atan2(py, px),
+                                    x1 / cm, y1 / cm, z1 / cm));
+
+        particles->AddElement(track);
+      }
+    }
+    */
+    }
+    particles->MakeTracks();
+  }
+}
+
+void EventDisplay::drawHits()
+{
+  CreateElementList(hits, "hits");
+  // do we need to Reset() or DestroyElements() otherwise ?
+
+  // - hits in vertex
+  if (displayConfig.getBoolConfig("drawVertexHits"))
+  {
+    std::cout << "Creating vertex hits" << std::endl;
+    DrawHitCollection(vtxHits, "VTX",
+		      eventReader->VertexBarrelHits_position_x,
+		      eventReader->VertexBarrelHits_position_y,
+		      eventReader->VertexBarrelHits_position_z,
+		      nullptr, -9999.);
+    DrawHitCollection(vtxHits, "VTX",
+		      eventReader->VertexEndcapHits_position_x,
+		      eventReader->VertexEndcapHits_position_y,
+		      eventReader->VertexEndcapHits_position_z,
+		      nullptr, -9999.,
+		      true);
+  }
+
+  // - hits in DCH/STT
+  if (displayConfig.getBoolConfig("drawMainTrackerHits"))
+  {
+    std::cout << "Creating main tracker hits" << std::endl;
+    DrawHitCollection(dchHits, "DCH",  // TODO modify for STT
+		      eventReader->MainTrackerHits_position_x,
+		      eventReader->MainTrackerHits_position_y,
+		      eventReader->MainTrackerHits_position_z,
+		      nullptr, -9999.);
+  }
+
+  // - hits in Si wrapper
+  if (displayConfig.getBoolConfig("drawSiWrapperHits"))
+  {
+    std::cout << "Creating Si wrapper hits" << std::endl;
+    DrawHitCollection(siwrHits, "Si wrapper",
+		      eventReader->SiWrapperBarrelHits_position_x,
+		      eventReader->SiWrapperBarrelHits_position_y,
+		      eventReader->SiWrapperBarrelHits_position_z,
+		      nullptr, -9999.);
+    DrawHitCollection(siwrHits, "Si wrapper",
+		      eventReader->SiWrapperEndcapHits_position_x,
+		      eventReader->SiWrapperEndcapHits_position_y,
+		      eventReader->SiWrapperEndcapHits_position_z,
+		      nullptr, -9999.,
+		      true);
+  }
+
+  // - hits in ECAL
+  if (displayConfig.getBoolConfig("drawECalBarrelHits"))
+  {
+    std::cout << "Creating ecal barrel hits" << std::endl;
+    DrawHitCollection(ecalHits, "ECAL",
+                      eventReader->ECalBarrelHits_position_x,
+                      eventReader->ECalBarrelHits_position_y,
+                      eventReader->ECalBarrelHits_position_z,
+                      eventReader->ECalBarrelHits_energy,
+                      HitEnergyThreshold);
+  }
+
+  if (displayConfig.getBoolConfig("drawECalEndcapHits"))
+  {
+    std::cout << "Creating ecal endcap hits" << std::endl;
+    DrawHitCollection(ecalHits, "ECAL",
+                      (eventReader->ECalEndcapHits_position_x),
+                      (eventReader->ECalEndcapHits_position_y),
+                      (eventReader->ECalEndcapHits_position_z),
+                      (eventReader->ECalEndcapHits_energy),
+                      HitEnergyThreshold,
+                      true);
+  }
+
+  // - hits in HCAL
+  if (displayConfig.getBoolConfig("drawHCalBarrelHits"))
+  {
+    std::cout << "Creating hcal barrel hits" << std::endl;
+    DrawHitCollection(hcalHits, "HCAL",
+                      eventReader->HCalBarrelHits_position_x,
+                      eventReader->HCalBarrelHits_position_y,
+                      eventReader->HCalBarrelHits_position_z,
+                      eventReader->HCalBarrelHits_energy,
+                      HitEnergyThreshold);
+  }
+  if (displayConfig.getBoolConfig("drawHCalEndcapHits"))
+  {
+    std::cout << "Creating hcal endcap hits" << std::endl;
+    DrawHitCollection(hcalHits, "HCAL",
+                      eventReader->HCalEndcapHits_position_x,
+                      eventReader->HCalEndcapHits_position_y,
+                      eventReader->HCalEndcapHits_position_z,
+                      eventReader->HCalEndcapHits_energy,
+                      HitEnergyThreshold,
+		      true);
+  }
+
+  // - hits in muon detector
+  if (displayConfig.getBoolConfig("drawMuonHits"))
+  {
+    std::cout << "Creating muon barrel hits" << std::endl;
+    DrawHitCollection(muonHits, "MUON",
+                      eventReader->MuonBarrelHits_position_x,
+                      eventReader->MuonBarrelHits_position_y,
+                      eventReader->MuonBarrelHits_position_z,
+		      nullptr, -9999.);
+    std::cout << "Creating muon endcap hits" << std::endl;
+    DrawHitCollection(muonHits, "MUON",
+                      eventReader->MuonEndcapHits_position_x,
+                      eventReader->MuonEndcapHits_position_y,
+                      eventReader->MuonEndcapHits_position_z,
+                      nullptr, -9999.,
+                      true);
+  }
+}
+
+void EventDisplay::drawDigis()
+{
+  CreateElementList(digis, "digis");
+
+  // digis in VTX
+  if (displayConfig.getBoolConfig("drawVertexDigis"))
+  {
+    std::cout << "Creating vertex digis" << std::endl;
+    if (vtxDigis == nullptr)
+    {
+      vtxDigis = new TEvePointSet();
+      // vtxDigis->SetName(Form("VTX digis (E>%.2f GeV)", HitEnergyThreshold));
+      vtxDigis->SetName("VTX digis");
+      vtxDigis->SetMarkerStyle(4);
+      vtxDigis->SetMarkerSize(2);
+      vtxDigis->SetMarkerColor(kYellow);
+      digis->AddElement(vtxDigis);
+    }
+    else
+      vtxDigis->Reset();
+    for (unsigned int i = 0; i < eventReader->VertexBarrelDigis_position_x->GetSize(); i++)
+    {
+      // float E = (*eventReader->VertexBarrelDigis_energy)[i];
+      // if (E < HitEnergyThreshold) continue;
+      // ULong_t cellID = (*eventReader->VertexBarrelDigis_cellID)[i];
+      vtxDigis->SetNextPoint(
+           (*eventReader->VertexBarrelDigis_position_x)[i] * mm,
+           (*eventReader->VertexBarrelDigis_position_y)[i] * mm,
+           (*eventReader->VertexBarrelDigis_position_z)[i] * mm);
+    }
+    for (unsigned int i = 0; i < eventReader->VertexEndcapDigis_position_x->GetSize(); i++)
+    {
+      // float E = (*eventReader->VertexEndcapDigis_energy)[i];
+      // if (E < HitEnergyThreshold) continue;
+      // ULong_t cellID = (*eventReader->VertexEndcapDigis_cellID)[i];
+      vtxDigis->SetNextPoint(
+           (*eventReader->VertexEndcapDigis_position_x)[i] * mm,
+           (*eventReader->VertexEndcapDigis_position_y)[i] * mm,
+           (*eventReader->VertexEndcapDigis_position_z)[i] * mm);
+    }
+  }
+
+  // - digis in DCH/STT
+  if (displayConfig.getBoolConfig("drawMainTrackerDigis"))
+  {
+    std::cout << "Creating main tracker digis" << std::endl;
+    if (dchDigis == nullptr)
+    {
+      dchDigis = new TEvePointSet();
+      // dchDigis->SetName(Form("DCH digis (E>%.2f GeV)", HitEnergyThreshold));
+      dchDigis->SetName("DCH digis");
+      dchDigis->SetMarkerStyle(4);
+      dchDigis->SetMarkerSize(2);
+      dchDigis->SetMarkerColor(kYellow);
+      digis->AddElement(dchDigis);
+    }
+    else
+      dchDigis->Reset();
+    for (unsigned int i = 0; i < eventReader->MainTrackerDigis_position_x->GetSize(); i++)
+    {
+      // float E = (*eventReader->MainTrackerDigis_energy)[i];
+      // if (E < HitEnergyThreshold) continue;
+      // ULong_t cellID = (*eventReader->MainTrackerDigis_cellID)[i];
+      dchDigis->SetNextPoint(
+                            (*eventReader->MainTrackerDigis_position_x)[i] * mm,
+                            (*eventReader->MainTrackerDigis_position_y)[i] * mm,
+                            (*eventReader->MainTrackerDigis_position_z)[i] * mm);
+    }
+  }
+
+  // - digis in Si wrapper
+  if (displayConfig.getBoolConfig("drawSiWrapperDigis"))
+  {
+    std::cout << "Creating wrapper digis" << std::endl;
+    if (siwrDigis == nullptr)
+    {
+      siwrDigis = new TEvePointSet();
+      // siwrDigis->SetName(Form("VTX digis (E>%.2f GeV)", HitEnergyThreshold));
+      siwrDigis->SetName("SiWr digis");
+      siwrDigis->SetMarkerStyle(4);
+      siwrDigis->SetMarkerSize(2);
+      siwrDigis->SetMarkerColor(kYellow);
+      digis->AddElement(siwrDigis);
+    }
+    else
+      siwrDigis->Reset();
+    for (unsigned int i = 0; i < eventReader->SiWrapperBarrelDigis_position_x->GetSize(); i++)
+    {
+      // float E = (*eventReader->SiWrapperBarrelDigis_energy)[i];
+      // if (E < HitEnergyThreshold) continue;
+      // ULong_t cellID = (*eventReader->SiWrapperBarrelDigis_cellID)[i];
+      siwrDigis->SetNextPoint(
+                             (*eventReader->SiWrapperBarrelDigis_position_x)[i] * mm,
+                             (*eventReader->SiWrapperBarrelDigis_position_y)[i] * mm,
+                             (*eventReader->SiWrapperBarrelDigis_position_z)[i] * mm);
+    }
+    for (unsigned int i = 0; i < eventReader->SiWrapperEndcapDigis_position_x->GetSize(); i++)
+    {
+      // float E = (*eventReader->SiWrapperEndcapDigis_energy)[i];
+      // if (E < HitEnergyThreshold) continue;
+      // ULong_t cellID = (*eventReader->SiWrapperEndcapDigis_cellID)[i];
+      siwrDigis->SetNextPoint(
+                             (*eventReader->SiWrapperEndcapDigis_position_x)[i] * mm,
+                             (*eventReader->SiWrapperEndcapDigis_position_y)[i] * mm,
+                             (*eventReader->SiWrapperEndcapDigis_position_z)[i] * mm);
+    }
+  }
+
+  // - digis (cells) in ECAL/HCAL/muon
+  if (displayConfig.getBoolConfig("drawECalBarrelCells"))
+  {
+    std::cout << "Creating ecal barrel cells" << std::endl;
+    if (ecalCells == nullptr)
+    {
+      // ecalCells = new TEvePointSet();
+      ecalCells = new MyPointSet("ECalCells", debug);
+      ecalCells->SetName(Form("ECAL cells (E>%.2f GeV)", CellEnergyThreshold));
+      ecalCells->SetMarkerStyle(4);
+      ecalCells->SetMarkerSize(2);
+      ecalCells->SetMarkerColor(kYellow);
+      //ecalCells->SetPickable(kTRUE);
+      //ecalCells->SetOwnIds(kTRUE);
+      digis->AddElement(ecalCells);
+    }
+    else
+      ecalCells->Reset();
+    for (unsigned int i = 0; i < eventReader->ECalBarrelCells_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->ECalBarrelCells_energy)[i];
+      if (E < CellEnergyThreshold)
+        continue;
+      ecalCells->SetNextPoint((*eventReader->ECalBarrelCells_position_x)[i] * mm,
+                              (*eventReader->ECalBarrelCells_position_y)[i] * mm,
+                              (*eventReader->ECalBarrelCells_position_z)[i] * mm);
+      if (debug) {
+        ULong_t cellID = (*eventReader->ECalBarrelCells_cellID)[i];
+        ULong_t system = geomReader->SystemID(cellID);
+        ULong_t layer = geomReader->ECalBarrelLayer(cellID);
+        ULong_t module = geomReader->ECalBarrelModule(cellID);
+        ULong_t theta = geomReader->ECalBarrelThetaBin(cellID);
+        ecalCells->fTooltips.push_back(Form("Energy = %.3f GeV, System = %lu, Layer = %lu, Module = %lu, Theta = %lu", E, system, layer, module, theta));
+      }
+    }
+  }
+
+  if (displayConfig.getBoolConfig("drawECalEndcapCells"))
+  {
+    std::cout << "Creating ecal endcap cells" << std::endl;
+    if (ecalCells == nullptr)
+    {
+      // ecalCells = new TEvePointSet();
+      ecalCells = new MyPointSet("ECalCells", debug);
+      ecalCells->SetName(Form("ECAL cells (E>%.2f GeV)", CellEnergyThreshold));
+      ecalCells->SetMarkerStyle(4);
+      ecalCells->SetMarkerSize(2);
+      ecalCells->SetMarkerColor(kYellow);
+      digis->AddElement(ecalCells);
+    }
+    else {
+      // dont do it if ecal barrel cells are drawn - this was already done before
+      if (not displayConfig.getBoolConfig("drawECalBarrelCells"))
+        ecalCells->Reset();
+    }
+    for (unsigned int i = 0; i < eventReader->ECalEndcapCells_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->ECalEndcapCells_energy)[i];
+      if (E < CellEnergyThreshold)
+        continue;
+      ecalCells->SetNextPoint((*eventReader->ECalEndcapCells_position_x)[i] * mm,
+                              (*eventReader->ECalEndcapCells_position_y)[i] * mm,
+                              (*eventReader->ECalEndcapCells_position_z)[i] * mm);
+      if (debug) {
+        ULong_t cellID = (*eventReader->ECalEndcapCells_cellID)[i];
+        ULong_t system = geomReader->SystemID(cellID);
+        Long_t side = geomReader->ECalEndCapSide(cellID);
+        ULong_t wheel = geomReader->ECalEndCapWheel(cellID);
+        ULong_t module = geomReader->ECalEndCapModule(cellID);
+        ULong_t rho = geomReader->ECalEndCapRhoBin(cellID);
+        ULong_t z = geomReader->ECalEndCapZBin(cellID);
+        ULong_t layer = geomReader->ECalBarrelLayer(cellID);
+        ecalCells->fTooltips.push_back(Form("Energy = %.3f GeV, System = %lu, Side = %ld, Wheel = %lu, Layer = %lu, Module = %lu, rho = %lu, z = %lu", E, system, side, wheel, layer, module, rho, z));
+      }
+    }
+  }
+
+  if (displayConfig.getBoolConfig("drawHCalBarrelCells"))
+  {
+    std::cout << "Creating hcal barrel cells" << std::endl;
+    if (hcalCells == nullptr)
+    {
+      // hcalCells = new TEvePointSet();
+      hcalCells = new MyPointSet("HCalCells", debug);
+      hcalCells->SetName(Form("HCAL cells (E>%.2f GeV)", CellEnergyThreshold));
+      hcalCells->SetMarkerStyle(4);
+      hcalCells->SetMarkerSize(2);
+      hcalCells->SetMarkerColor(kYellow);
+      digis->AddElement(hcalCells);
+    }
+    else
+      hcalCells->Reset();
+    for (unsigned int i = 0; i < eventReader->HCalBarrelCells_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->HCalBarrelCells_energy)[i];
+      if (E < CellEnergyThreshold)
+        continue;
+      hcalCells->SetNextPoint((*eventReader->HCalBarrelCells_position_x)[i] * mm,
+                              (*eventReader->HCalBarrelCells_position_y)[i] * mm,
+                              (*eventReader->HCalBarrelCells_position_z)[i] * mm);
+
+      if (debug) {
+        ULong_t cellID = (*eventReader->HCalBarrelCells_cellID)[i];
+        ULong_t system = geomReader->SystemID(cellID);
+        ULong_t layer = geomReader->HCalBarrelLayer(cellID);
+        ULong_t phi = geomReader->HCalBarrelPhiBin(cellID);
+        ULong_t theta = geomReader->HCalBarrelThetaBin(cellID);
+        hcalCells->fTooltips.push_back(Form("Energy = %.3f GeV, System = %lu, Layer = %lu, Phi = %lu, Theta = %lu", E, system, layer, phi, theta));
+      }
+    }
+  }
+
+  if (displayConfig.getBoolConfig("drawHCalEndcapCells"))
+  {
+    std::cout << "Creating hcal endcap cells" << std::endl;
+    if (hcalCells == nullptr)
+    {
+      // hcalCells = new TEvePointSet();
+      hcalCells = new MyPointSet("HCalCells", debug);
+      hcalCells->SetName(Form("HCAL cells (E>%.2f GeV)", CellEnergyThreshold));
+      hcalCells->SetMarkerStyle(4);
+      hcalCells->SetMarkerSize(2);
+      hcalCells->SetMarkerColor(kYellow);
+      digis->AddElement(hcalCells);
+    }
+    else {
+      // dont do it if hcal barrel cells are drawn - this was already done before
+      if (not displayConfig.getBoolConfig("drawHCalBarrelCells"))
+        hcalCells->Reset();
+    }
+    for (unsigned int i = 0; i < eventReader->HCalEndcapCells_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->HCalEndcapCells_energy)[i];
+      if (E < CellEnergyThreshold)
+        continue;
+      hcalCells->SetNextPoint((*eventReader->HCalEndcapCells_position_x)[i] * mm,
+                              (*eventReader->HCalEndcapCells_position_y)[i] * mm,
+                              (*eventReader->HCalEndcapCells_position_z)[i] * mm);
+      if (debug) {
+        ULong_t cellID = (*eventReader->HCalEndcapCells_cellID)[i];
+        ULong_t system = geomReader->SystemID(cellID);
+        ULong_t layer = geomReader->HCalEndCapLayer(cellID);
+        ULong_t phi = geomReader->HCalEndCapPhiBin(cellID);
+        ULong_t theta = geomReader->HCalEndCapThetaBin(cellID);
+        hcalCells->fTooltips.push_back(Form("Energy = %.3f GeV, System = %lu, Layer = %lu, Phi = %lu, Theta = %lu", E, system, layer, phi, theta));
+      }
+    }
+  }
+
+  if (displayConfig.getBoolConfig("drawMuonCells"))
+  {
+    std::cout << "Creating muon barrel cells" << std::endl;
+    if (muonCells == nullptr)
+    {
+      muonCells = new TEvePointSet();
+      muonCells->SetName(Form("MUON cells (E>%.2f GeV)", CellEnergyThreshold));
+      muonCells->SetMarkerStyle(4);
+      muonCells->SetMarkerSize(2);
+      muonCells->SetMarkerColor(kYellow);
+      digis->AddElement(muonCells);
+    }
+    else
+      muonCells->Reset();
+    for (unsigned int i = 0; i < eventReader->MuonBarrelCells_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->MuonBarrelCells_energy)[i];
+      if (E < CellEnergyThreshold)
+        continue;
+      muonCells->SetNextPoint((*eventReader->MuonBarrelCells_position_x)[i] * mm,
+                              (*eventReader->MuonBarrelCells_position_y)[i] * mm,
+                              (*eventReader->MuonBarrelCells_position_z)[i] * mm);
+    }
+    std::cout << "Creating muon endcap cells" << std::endl;
+    for (unsigned int i = 0; i < eventReader->MuonEndcapCells_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->MuonEndcapCells_energy)[i];
+      if (E < CellEnergyThreshold)
+        continue;
+      muonCells->SetNextPoint((*eventReader->MuonEndcapCells_position_x)[i] * mm,
+                              (*eventReader->MuonEndcapCells_position_y)[i] * mm,
+                              (*eventReader->MuonEndcapCells_position_z)[i] * mm);
+    }
+  }
+
+  //
+  // cells merged (ECAL)
+  //
+  if (displayConfig.getBoolConfig("drawECalBarrelMergedCells"))
+  {
+    std::cout << "Creating merged ecal barrel cells" << std::endl;
+    if (cells_merged == nullptr)
+    {
+      cells_merged = new TEvePointSet();
+      cells_merged->SetName("cells_merged");
+      cells_merged->SetMarkerStyle(4);
+      cells_merged->SetMarkerSize(3);
+      cells_merged->SetMarkerColor(kBlue);
+      digis->AddElement(cells_merged);
+    }
+    else
+      cells_merged->Reset();
+    for (unsigned int i = 0; i < eventReader->ECalBarrelCells2_position_x->GetSize(); i++)
+    {
+      float E = (*eventReader->ECalBarrelCells2_energy)[i];
+      // if (E<minCellE) continue;
+      // ULong_t cellID = (*eventReader->ECalBarrelCells_cellID)[i];
+      // ULong_t layer = DetectorGeometry::Layer(cellID);
+      cells_merged->SetNextPoint((*eventReader->ECalBarrelCells2_position_x)[i] * mm,
+                                 (*eventReader->ECalBarrelCells2_position_y)[i] * mm,
+                                 (*eventReader->ECalBarrelCells2_position_z)[i] * mm);
+    }
+  }
+}
+
+void EventDisplay::drawTracks()
+{
+  if (displayConfig.getBoolConfig("drawTracks"))
+  {
+    std::cout << "Creating tracks" << std::endl;
+    if (tracks == nullptr)
+    {
+      tracks = new TEveTrackList("tracks");
+      TEveTrackPropagator *trkProp = tracks->GetPropagator();
+      trkProp->SetMagFieldObj(magField);
+      // trkProp->SetMaxR(rMax);
+      // trkProp->SetMaxZ(geomReader->zMaxEndCap);
+      // trkProp->SetMaxZ(10000.*mm);
+      trkProp->SetRnrReferences(true);
+      // trkProp->SetFitReferences(true);
+      tracks->SetMainColor(kCyan);
+      tracks->SetLineWidth(2.);
+      tracks->SetLineStyle(5);
+      gEve->AddElement(tracks);
+    }
+    else
+      tracks->DestroyElements();
+
+    for (unsigned int ip = 0; ip < eventReader->Tracks_subdetectorHitNumbers_begin->GetSize(); ip++)
+    {
+      if (debug) std::cout << "Track " << ip << std::endl;
+      unsigned int trackStates_begin = (*eventReader->Tracks_trackStates_begin)[ip];
+      unsigned int trackStates_end = (*eventReader->Tracks_trackStates_end)[ip];
+      if (debug) std::cout << "  trackStates begin , end = " << trackStates_begin << " , " << trackStates_end << std::endl;
+      // store in vectors the track state positions and momenta
+      unsigned int nTrackStates = 0;
+      if (trackStates_end > trackStates_begin)
+        nTrackStates = trackStates_end - trackStates_begin;
+      float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5], px[5], py[5], pz[5], p[5];
+      for (unsigned int i=0; i<5; i++) x[i]=-1e9; // set to some large value to check later if track state has been filled
+      for (unsigned int its = trackStates_begin; its < trackStates_end; its++) {
+        int location = (*eventReader->_Tracks_trackStates_location)[its];
+        if (debug) {
+          std::cout << "Trackstate " << its << std::endl;
+          std::cout << "  location = " << location << std::endl;
+        }
+        if (location>4) continue;
+        x[location] = (*eventReader->_Tracks_trackStates_referencePoint_x)[its];
+        y[location] = (*eventReader->_Tracks_trackStates_referencePoint_y)[its];
+        z[location] = (*eventReader->_Tracks_trackStates_referencePoint_z)[its];
+        omega[location] = (*eventReader->_Tracks_trackStates_omega)[its];
+        tanLambda[location] = (*eventReader->_Tracks_trackStates_tanLambda)[its];
+        phi[location] = (*eventReader->_Tracks_trackStates_phi)[its];
+        if (debug) {
+          std::cout << "  x = " << x[location] << std::endl;
+          std::cout << "  y = " << y[location] << std::endl;
+          std::cout << "  z = " << z[location] << std::endl;
+          std::cout << "  r = " << sqrt(x[location]*x[location] + y[location]*y[location]) << std::endl;
+          std::cout << "  omega = " << omega[location] << std::endl;
+          std::cout << "  phi = " << phi[location] << std::endl;
+          std::cout << "  tanLambda = " << tanLambda[location] << std::endl;
+          const float FCT = 2.99792458E-4f;
+          const float bField = 2.0;
+          float radius = 1.f / std::fabs(omega[location]);
+          float pxy = FCT * bField * radius;
+          float pz = tanLambda[location] * pxy;
+          float p = std::sqrt(pxy*pxy+pz*pz);
+          std::cout << "  p = " << p << std::endl;
+        }
+      }
+      const int nSubDetectors(5);
+      int nhits[nSubDetectors];
+      for (int ihit = 0 ; ihit < nSubDetectors; ++ihit) nhits[ihit]=0;
+      unsigned int hits_begin = (*eventReader->Tracks_subdetectorHitNumbers_begin)[ip];
+      unsigned int hits_end = (*eventReader->Tracks_subdetectorHitNumbers_end)[ip];
+      if (debug) std::cout << "  subdetectorHitNumbers_begin , end = " << hits_begin << " , " << hits_end << std::endl;
+      for (unsigned int ih = hits_begin; ih < hits_end; ih++) {
+        nhits[ih-hits_begin] = (*eventReader->_Tracks_subdetectorHitNumbers)[ih];
+      }
+      
+      // const int tsOrig=2; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
+      const int tsOrig=1; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
+      //if (x[tsOrig]<5e5) {  // GM dont remember what is this about..
+      if (nTrackStates > 0) {
+        TEveRecTrack t;
+        float x1 = x[tsOrig]*mm;
+        float y1 = y[tsOrig]*mm;
+        float z1 = z[tsOrig]*mm;
+        const float FCT = 2.99792458E-4f;
+        const float bField = 2.0;
+        int charge = sgn(omega[tsOrig]);
+        float radius = 1.f / std::fabs(omega[tsOrig]);
+        float pxy = FCT * bField * radius;
+        float px = pxy * std::cos(phi[tsOrig]);
+        float py = pxy * std::sin(phi[tsOrig]);
+        float pz = tanLambda[tsOrig] * pxy;
+        float p = std::sqrt(px*px+py*py+pz*pz);
+        t.fV.Set(x1, y1, z1);
+        t.fP.Set(px, py, pz);
+        t.fSign = charge;
+        TEveTrack* track = new TEveTrack(&t, tracks->GetPropagator());
+        track->SetElementName(Form("Track %d", ip));
+        track->SetAttLineAttMarker(tracks);
+        track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm\nhits = %d/%d/%d/%d/%d",
+          p, std::acos(pz / p), std::atan2(py, px),
+          x1 / cm, y1 / cm, z1 / cm,
+          nhits[0], nhits[1], nhits[2], nhits[3], nhits[4]));
+
+        // add other track states (at last hit, at ECAL, and at other=2nd ECAL projection) references
+        track->SetRnrPoints(true);
+        track->SetMarkerStyle(4);
+        for (int i=0; i<5; i++) {
+          if (i==tsOrig) {
+              if (debug) std::cout << "Skipping track state at location " << i << std::endl;
+              // continue;
+          }
+          if (x[i]<-1e8) {
+            if (debug) std::cout << "Skipping track state at location " << i << std::endl;
+            continue;
+          }
+          float radius = 1.f / std::fabs(omega[i]);
+          float pxy = FCT * bField * radius;
+          float px = pxy * std::cos(phi[i]);
+          float py = pxy * std::sin(phi[i]);
+          float pz = tanLambda[i] * pxy;
+          track->AddPathMark(TEvePathMarkD(TEvePathMarkD::kReference,
+                                           TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
+                                           TEveVectorD(px, py, pz)));
+        }
+        if (debug) track->PrintPathMarks();
+        // could also save decay ...
+        tracks->AddElement(track);
+      }
+    }
+    tracks->MakeTracks();
+  }
+}
+
+void EventDisplay::drawClusters(std::string clusterType)
 {
   std::vector<CaloCluster *> *clusterData = nullptr;
   if (clusterType == "topo")
@@ -1310,7 +2096,7 @@ void EventDisplay::DrawClusters(std::string clusterType)
   }
 }
 
-void EventDisplay::loadEvent(int event)
+void EventDisplay::drawEvent(int event)
 {
 
   if (event != -1)
@@ -1322,7 +2108,8 @@ void EventDisplay::loadEvent(int event)
 
   // write event number in status bar
   gEve->GetBrowser()->SetStatusText(Form("Loading event %d ...", eventId),0);
-  
+
+  // read event from file
   eventReader->loadEvent(eventId);
   
   // find out pdgID and momentum of primary particle
@@ -1349,818 +2136,23 @@ void EventDisplay::loadEvent(int event)
   }
   int pdgID = (*eventReader->genParticles_PDG)[ipmax];
 
-  double rMax = 5000.*mm;
-  if (not showFullDetector) {
-    rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
-  }
-
-  //
-  // particles
-  //
-  
-  if (displayConfig.getBoolConfig("drawGenParticles"))
-  {
-    std::cout << "Creating particles" << std::endl;
-    if (particles == nullptr)
-    {
-      if (ParticleEnergyThreshold>0.)
-        particles = new TEveTrackList(Form("particles (p>%.2f GeV)", ParticleEnergyThreshold));
-      else
-        particles = new TEveTrackList("particles");
-      TEveTrackPropagator *trkProp = particles->GetPropagator();
-      trkProp->SetMagFieldObj(magField);
-      trkProp->SetMaxR(rMax);
-      // trkProp->SetMaxZ(geomReader->zMax);
-      trkProp->SetMaxZ(geomReader->zMaxEndCap);
-      trkProp->SetRnrReferences(false);
-      trkProp->SetFitReferences(false);
-      particles->SetMainColor(kWhite);
-      particles->SetLineWidth(1.);
-      particles->SetLineStyle(5);
-      gEve->AddElement(particles);
-    }
-    else
-      particles->DestroyElements();
-
-    // loop over the MC particles to create the particle tracks
-    for (unsigned int ip = 0; ip < eventReader->genParticles_generatorStatus->GetSize(); ip++)
-    {
-      float m = (*eventReader->genParticles_mass)[ip];
-      float px = (*eventReader->genParticles_momentum_x)[ip];
-      float py = (*eventReader->genParticles_momentum_y)[ip];
-      float pz = (*eventReader->genParticles_momentum_z)[ip];
-      float p = sqrt(px * px + py * py + pz * pz);
-      if (p < ParticleEnergyThreshold)
-        continue;
-      float pT = sqrt(px * px + py * py);
-
-      double t = (*eventReader->genParticles_time)[ip];
-      double x1 = (*eventReader->genParticles_vertex_x)[ip] * mm;
-      double y1 = (*eventReader->genParticles_vertex_y)[ip] * mm;
-      double z1 = (*eventReader->genParticles_vertex_z)[ip] * mm;
-
-      TEveMCTrack mct;
-      mct.SetPdgCode((*eventReader->genParticles_PDG)[ip]);
-      mct.SetMomentum(px, py, pz, sqrt(p * p + m * m));
-      mct.SetProductionVertex(x1, y1, z1, t);
-
-      TEveVectorF v;
-      v[0] = (*eventReader->genParticles_endpoint_x)[ip] * mm;
-      v[1] = (*eventReader->genParticles_endpoint_y)[ip] * mm;
-      v[2] = (*eventReader->genParticles_endpoint_z)[ip] * mm;
-
-      // for electrons, for which there could be some hard bremsstrahlung, we
-      // split the trajectory into pieces between photon emissions
-      if (std::abs((*eventReader->genParticles_PDG)[ip]) == 11)
-      {
-        // retrieve the various splittings
-        auto segments = getElectronBremsstrahlungSegments(
-                                                          ip,
-                                                          *eventReader->genParticles_daughters_index,
-                                                          *eventReader->genParticles_PDG,
-                                                          *eventReader->genParticles_vertex_x,
-                                                          *eventReader->genParticles_vertex_y,
-                                                          *eventReader->genParticles_vertex_z,
-                                                          *eventReader->genParticles_momentum_x,
-                                                          *eventReader->genParticles_momentum_y,
-                                                          *eventReader->genParticles_momentum_z,
-                                                          *eventReader->genParticles_daughters_begin,
-                                                          *eventReader->genParticles_daughters_end);
-        // create a track for each segment
-        for(const auto& seg : segments)
-        {
-          TEveMCTrack mctSegment;
-          mctSegment.SetPdgCode((*eventReader->genParticles_PDG)[ip]);
-          double p = seg.momentum.Mag();
-          double px = seg.momentum.X();
-          double py = seg.momentum.Y();
-          double pz = seg.momentum.Z();
-          double x1 = seg.start.X();
-          double y1 = seg.start.Y();
-          double z1 = seg.start.Z();
-          double m = (*eventReader->genParticles_mass)[ip];
-          mctSegment.SetMomentum(px, py, pz, sqrt(p*p+m*m));
-          mctSegment.SetProductionVertex(x1, y1, z1, 0);
-          TEveTrackPropagator* prop = new TEveTrackPropagator("electron_brem_segment",
-                                                              "electron brem segment",
-                                                              magField,
-                                                              false);
-          double propMaxR = rMax;
-          double v[3];
-          v[0] = seg.end.X();
-          v[1] = seg.end.Y();
-          v[2] = seg.end.Z();
-          if ((std::sqrt(v[0]*v[0]+v[1]*v[1]) < rMax) && std::sqrt(x1*x1+y1*y1) < rMax) {
-            if (x1*x1+y1*y1 > v[0]*v[0]+v[1]*v[1]) {
-              propMaxR = std::sqrt(x1*x1+y1*y1);
-            }
-            else {
-              propMaxR = std::sqrt(v[0]*v[0]+v[1]*v[1]);
-            }
-          }
-          prop->SetMaxR(propMaxR);
-          prop->SetRnrReferences(false);
-          prop->SetFitReferences(false);
-          TEveTrack* segTrack = new TEveTrack(&mctSegment, prop);
-          segTrack->SetAttLineAttMarker(particles);
-          segTrack->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
-                                      p, acos(pz / p), atan2(py, px),
-                                      x1 / cm, y1 / cm, z1 / cm));
-          particles->AddElement(segTrack);
-        }
-      }
-      else {
-        // particles other than electrons
-        // use per-track propagator to set maxR
-        TEveTrackPropagator* prop = new TEveTrackPropagator(Form("propagator_%d", ip), "per-track propagator", magField, false);
-        prop->SetRnrReferences(false);
-        // use this if we add track marks to electrons
-        // prop->SetFitReferences(true);
-        prop->SetFitReferences(false);
-        double propMaxR = rMax;
-        if ((std::sqrt(v[0]*v[0]+v[1]*v[1]) < rMax) && std::sqrt(x1*x1+y1*y1) < rMax) {
-          if (x1*x1+y1*y1 > v[0]*v[0]+v[1]*v[1]) {
-            propMaxR = std::sqrt(x1*x1+y1*y1);
-          }
-          else {
-            propMaxR = std::sqrt(v[0]*v[0]+v[1]*v[1]);
-          }
-        }
-        prop->SetMaxR(propMaxR);
-        
-        TEveTrack *track = new TEveTrack(&mct, prop);
-        track->SetAttLineAttMarker(particles);
-        track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
-                                    p, acos(pz / p), atan2(py, px),
-                                    x1 / cm, y1 / cm, z1 / cm));
-        
-        
-        particles->AddElement(track);
-      }
-    /*
-    // if the particle is a pi0, also draw the two photons, and set the endpoint
-    // of the pi0 track
-    if ((pdgID == 111) && (displayConfig.getBoolConfig("drawSimParticles")))
-    {
-      bool decayVtxSet = false;
-      for (unsigned int i = 0; i < eventReader->SimParticleSecondaries_PDG->GetSize(); i++)
-      {
-        pdgID = (*eventReader->SimParticleSecondaries_PDG)[i];
-        // keep only photons
-        if (pdgID != 22)
-          continue;
-        // if ( (* eventReader->SimParticleSecondaries_generatorStatus)[i] != 1 ) continue;
-        px = (*eventReader->SimParticleSecondaries_momentum_x)[i];
-        py = (*eventReader->SimParticleSecondaries_momentum_y)[i];
-        pz = (*eventReader->SimParticleSecondaries_momentum_z)[i];
-        m = (*eventReader->SimParticleSecondaries_mass)[i];
-        p = sqrt(px * px + py * py + pz * pz);
-        float e = sqrt(p * p + m * m);
-        // cout << "p = "<< p << endl;
-        if (p < ParticleEnergyThreshold)
-          continue;
-
-        // cout << "PDG = "<< pdgID << endl;
-        t = (*eventReader->SimParticleSecondaries_time)[i];
-        x1 = (*eventReader->SimParticleSecondaries_vertex_x)[i] * mm;
-        y1 = (*eventReader->SimParticleSecondaries_vertex_y)[i] * mm;
-        z1 = (*eventReader->SimParticleSecondaries_vertex_z)[i] * mm;
-        double r1 = sqrt(x1 * x1 + y1 * y1);
-        // the two photons from a pi0 in the origin must come from small R
-        // TODO IMPROVE FOR DDSIM FILES - WHERE PARTICLES PARENTS ARE STORED!
-        if (r1 > 1.)
-          continue;
-        double sintheta = sqrt(px * px + py * py) / p;
-        x2 = x1 + px / p * rMax / sintheta;
-        y2 = y1 + py / p * rMax / sintheta;
-        z2 = z1 + pz / p * rMax / sintheta;
-        // double x2 = (* eventReader->SimParticleSecondaries_endpoint_x)[i] * mm;
-        // double y2 = (* eventReader->SimParticleSecondaries_endpoint_y)[i] * mm;
-        // double z2 = (* eventReader->SimParticleSecondaries_endpoint_z)[i] * mm;
-        // double r2 = sqrt(x2*x2+y2*y2);
-        // cout << "x1 y1 z1 x2 y2 z2 = "
-        //      << x1 << " " << y1 << " " << z1 << " "
-        //      << x2 << " " << y2 << " " << z2 << endl;
-        // set pi0 decay point
-        if (!decayVtxSet)
-        {
-          TEveVectorF v;
-          v[0] = x1;
-          v[1] = y1;
-          v[2] = z1;
-          TEvePathMark mark(TEvePathMark::kDecay, v);
-          track->AddPathMark(mark);
-          decayVtxSet = true;
-        }
-        TEveMCTrack mct;
-        mct.SetPdgCode(pdgID);
-        mct.SetMomentum(px, py, pz, sqrt(p * p + m * m));
-        mct.SetProductionVertex(x1, y1, z1, t);
-        TEveTrack *track = new TEveTrack(&mct, particles->GetPropagator());
-        track->SetAttLineAttMarker(particles);
-        track->SetElementTitle(Form("p = .3%f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
-                                    p, acos(pz / p), atan2(py, px),
-                                    x1 / cm, y1 / cm, z1 / cm));
-
-        particles->AddElement(track);
-      }
-    }
-    */
-    }
-    
-    particles->MakeTracks();
-  }
-
-  //
-  // hits
-  //
-  CreateElementList(hits, "hits");
-  // do we need to Reset() or DestroyElements() otherwise ?
-
-  // - hits in vertex
-  if (displayConfig.getBoolConfig("drawVertexHits"))
-  {
-    std::cout << "Creating vertex hits" << std::endl;
-    DrawHitCollection(vtxHits, "VTX",
-		      eventReader->VertexBarrelHits_position_x,
-		      eventReader->VertexBarrelHits_position_y,
-		      eventReader->VertexBarrelHits_position_z,
-		      nullptr, -9999.);
-    DrawHitCollection(vtxHits, "VTX",
-		      eventReader->VertexEndcapHits_position_x,
-		      eventReader->VertexEndcapHits_position_y,
-		      eventReader->VertexEndcapHits_position_z,
-		      nullptr, -9999.,
-		      true);
-  }
-
-  // - hits in DCH/STT
-  if (displayConfig.getBoolConfig("drawMainTrackerHits"))
-  {
-    std::cout << "Creating main tracker hits" << std::endl;
-    DrawHitCollection(dchHits, "DCH",  // TODO modify for STT
-		      eventReader->MainTrackerHits_position_x,
-		      eventReader->MainTrackerHits_position_y,
-		      eventReader->MainTrackerHits_position_z,
-		      nullptr, -9999.);
-  }
-
-  // - hits in Si wrapper
-  if (displayConfig.getBoolConfig("drawSiWrapperHits"))
-  {
-    std::cout << "Creating Si wrapper hits" << std::endl;
-    DrawHitCollection(siwrHits, "Si wrapper",
-		      eventReader->SiWrapperBarrelHits_position_x,
-		      eventReader->SiWrapperBarrelHits_position_y,
-		      eventReader->SiWrapperBarrelHits_position_z,
-		      nullptr, -9999.);
-    DrawHitCollection(siwrHits, "Si wrapper",
-		      eventReader->SiWrapperEndcapHits_position_x,
-		      eventReader->SiWrapperEndcapHits_position_y,
-		      eventReader->SiWrapperEndcapHits_position_z,
-		      nullptr, -9999.,
-		      true);
-  }
-
-  // - hits in ECAL
-  if (displayConfig.getBoolConfig("drawECalBarrelHits"))
-  {
-    std::cout << "Creating ecal barrel hits" << std::endl;
-    DrawHitCollection(ecalHits, "ECAL",
-                      eventReader->ECalBarrelHits_position_x,
-                      eventReader->ECalBarrelHits_position_y,
-                      eventReader->ECalBarrelHits_position_z,
-                      eventReader->ECalBarrelHits_energy,
-                      HitEnergyThreshold);
-  }
-
-  if (displayConfig.getBoolConfig("drawECalEndcapHits"))
-  {
-    std::cout << "Creating ecal endcap hits" << std::endl;
-    DrawHitCollection(ecalHits, "ECAL",
-                      (eventReader->ECalEndcapHits_position_x),
-                      (eventReader->ECalEndcapHits_position_y),
-                      (eventReader->ECalEndcapHits_position_z),
-                      (eventReader->ECalEndcapHits_energy),
-                      HitEnergyThreshold,
-                      true);
-  }
-
-  // - hits in HCAL
-  if (displayConfig.getBoolConfig("drawHCalBarrelHits"))
-  {
-    std::cout << "Creating hcal barrel hits" << std::endl;
-    DrawHitCollection(hcalHits, "HCAL",
-                      eventReader->HCalBarrelHits_position_x,
-                      eventReader->HCalBarrelHits_position_y,
-                      eventReader->HCalBarrelHits_position_z,
-                      eventReader->HCalBarrelHits_energy,
-                      HitEnergyThreshold);
-  }
-  if (displayConfig.getBoolConfig("drawHCalEndcapHits"))
-  {
-    std::cout << "Creating hcal endcap hits" << std::endl;
-    DrawHitCollection(hcalHits, "HCAL",
-                      eventReader->HCalEndcapHits_position_x,
-                      eventReader->HCalEndcapHits_position_y,
-                      eventReader->HCalEndcapHits_position_z,
-                      eventReader->HCalEndcapHits_energy,
-                      HitEnergyThreshold,
-		      true);
-  }
-
-  // - hits in muon detector
-  if (displayConfig.getBoolConfig("drawMuonHits"))
-  {
-    std::cout << "Creating muon barrel hits" << std::endl;
-    DrawHitCollection(muonHits, "MUON",
-                      eventReader->MuonBarrelHits_position_x,
-                      eventReader->MuonBarrelHits_position_y,
-                      eventReader->MuonBarrelHits_position_z,
-		      nullptr, -9999.);
-    std::cout << "Creating muon endcap hits" << std::endl;
-    DrawHitCollection(muonHits, "MUON",
-                      eventReader->MuonEndcapHits_position_x,
-                      eventReader->MuonEndcapHits_position_y,
-                      eventReader->MuonEndcapHits_position_z,
-                      nullptr, -9999.,
-                      true);
-  }
-
-
-  //
-  // digis
-  //
-  CreateElementList(digis, "digis");
-
-  // digis in VTX
-  if (displayConfig.getBoolConfig("drawVertexDigis"))
-  {
-    std::cout << "Creating vertex digis" << std::endl;
-    if (vtxDigis == nullptr)
-    {
-      vtxDigis = new TEvePointSet();
-      // vtxDigis->SetName(Form("VTX digis (E>%.2f GeV)", HitEnergyThreshold));
-      vtxDigis->SetName("VTX digis");
-      vtxDigis->SetMarkerStyle(4);
-      vtxDigis->SetMarkerSize(2);
-      vtxDigis->SetMarkerColor(kYellow);
-      digis->AddElement(vtxDigis);
-    }
-    else
-      vtxDigis->Reset();
-    for (unsigned int i = 0; i < eventReader->VertexBarrelDigis_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->VertexBarrelDigis_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->VertexBarrelDigis_cellID)[i];
-      vtxDigis->SetNextPoint(
-           (*eventReader->VertexBarrelDigis_position_x)[i] * mm,
-           (*eventReader->VertexBarrelDigis_position_y)[i] * mm,
-           (*eventReader->VertexBarrelDigis_position_z)[i] * mm);
-    }
-    for (unsigned int i = 0; i < eventReader->VertexEndcapDigis_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->VertexEndcapDigis_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->VertexEndcapDigis_cellID)[i];
-      vtxDigis->SetNextPoint(
-           (*eventReader->VertexEndcapDigis_position_x)[i] * mm,
-           (*eventReader->VertexEndcapDigis_position_y)[i] * mm,
-           (*eventReader->VertexEndcapDigis_position_z)[i] * mm);
-    }
-  }
-
-  // - digis in DCH/STT
-  if (displayConfig.getBoolConfig("drawMainTrackerDigis"))
-  {
-    std::cout << "Creating main tracker digis" << std::endl;
-    if (dchDigis == nullptr)
-    {
-      dchDigis = new TEvePointSet();
-      // dchDigis->SetName(Form("DCH digis (E>%.2f GeV)", HitEnergyThreshold));
-      dchDigis->SetName("DCH digis");
-      dchDigis->SetMarkerStyle(4);
-      dchDigis->SetMarkerSize(2);
-      dchDigis->SetMarkerColor(kYellow);
-      digis->AddElement(dchDigis);
-    }
-    else
-      dchDigis->Reset();
-    for (unsigned int i = 0; i < eventReader->MainTrackerDigis_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->MainTrackerDigis_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->MainTrackerDigis_cellID)[i];
-      dchDigis->SetNextPoint(
-                            (*eventReader->MainTrackerDigis_position_x)[i] * mm,
-                            (*eventReader->MainTrackerDigis_position_y)[i] * mm,
-                            (*eventReader->MainTrackerDigis_position_z)[i] * mm);
-    }
-  }
-
-  // - digis in Si wrapper
-  if (displayConfig.getBoolConfig("drawSiWrapperDigis"))
-  {
-    std::cout << "Creating wrapper digis" << std::endl;
-    if (siwrDigis == nullptr)
-    {
-      siwrDigis = new TEvePointSet();
-      // siwrDigis->SetName(Form("VTX digis (E>%.2f GeV)", HitEnergyThreshold));
-      siwrDigis->SetName("SiWr digis");
-      siwrDigis->SetMarkerStyle(4);
-      siwrDigis->SetMarkerSize(2);
-      siwrDigis->SetMarkerColor(kYellow);
-      digis->AddElement(siwrDigis);
-    }
-    else
-      siwrDigis->Reset();
-    for (unsigned int i = 0; i < eventReader->SiWrapperBarrelDigis_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->SiWrapperBarrelDigis_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->SiWrapperBarrelDigis_cellID)[i];
-      siwrDigis->SetNextPoint(
-                             (*eventReader->SiWrapperBarrelDigis_position_x)[i] * mm,
-                             (*eventReader->SiWrapperBarrelDigis_position_y)[i] * mm,
-                             (*eventReader->SiWrapperBarrelDigis_position_z)[i] * mm);
-    }
-    for (unsigned int i = 0; i < eventReader->SiWrapperEndcapDigis_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->SiWrapperEndcapDigis_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->SiWrapperEndcapDigis_cellID)[i];
-      siwrDigis->SetNextPoint(
-                             (*eventReader->SiWrapperEndcapDigis_position_x)[i] * mm,
-                             (*eventReader->SiWrapperEndcapDigis_position_y)[i] * mm,
-                             (*eventReader->SiWrapperEndcapDigis_position_z)[i] * mm);
-    }
-  }
-
-  // - digis (cells) in ECAL/HCAL/muon
-  if (displayConfig.getBoolConfig("drawECalBarrelCells"))
-  {
-    std::cout << "Creating ecal barrel cells" << std::endl;
-    if (ecalCells == nullptr)
-    {
-      // ecalCells = new TEvePointSet();
-      ecalCells = new MyPointSet("ECalCells", debug);
-      ecalCells->SetName(Form("ECAL cells (E>%.2f GeV)", CellEnergyThreshold));
-      ecalCells->SetMarkerStyle(4);
-      ecalCells->SetMarkerSize(2);
-      ecalCells->SetMarkerColor(kYellow);
-      //ecalCells->SetPickable(kTRUE);
-      //ecalCells->SetOwnIds(kTRUE);
-      digis->AddElement(ecalCells);
-    }
-    else
-      ecalCells->Reset();
-    for (unsigned int i = 0; i < eventReader->ECalBarrelCells_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->ECalBarrelCells_energy)[i];
-      if (E < CellEnergyThreshold)
-        continue;
-      ecalCells->SetNextPoint((*eventReader->ECalBarrelCells_position_x)[i] * mm,
-                              (*eventReader->ECalBarrelCells_position_y)[i] * mm,
-                              (*eventReader->ECalBarrelCells_position_z)[i] * mm);
-      if (debug) {
-        ULong_t cellID = (*eventReader->ECalBarrelCells_cellID)[i];
-        ULong_t system = geomReader->SystemID(cellID);
-        ULong_t layer = geomReader->ECalBarrelLayer(cellID);
-        ULong_t module = geomReader->ECalBarrelModule(cellID);
-        ULong_t theta = geomReader->ECalBarrelThetaBin(cellID);
-        ecalCells->fTooltips.push_back(Form("Energy = %.3f GeV, System = %lu, Layer = %lu, Module = %lu, Theta = %lu", E, system, layer, module, theta));
-      }
-    }
-  }
-
-  if (displayConfig.getBoolConfig("drawECalEndcapCells"))
-  {
-    std::cout << "Creating ecal endcap cells" << std::endl;
-    if (ecalCells == nullptr)
-    {
-      // ecalCells = new TEvePointSet();
-      ecalCells = new MyPointSet("ECalCells", debug);
-      ecalCells->SetName(Form("ECAL cells (E>%.2f GeV)", CellEnergyThreshold));
-      ecalCells->SetMarkerStyle(4);
-      ecalCells->SetMarkerSize(2);
-      ecalCells->SetMarkerColor(kYellow);
-      digis->AddElement(ecalCells);
-    }
-    else {
-      // dont do it if ecal barrel cells are drawn - this was already done before
-      if (not displayConfig.getBoolConfig("drawECalBarrelCells"))
-        ecalCells->Reset();
-    }
-    for (unsigned int i = 0; i < eventReader->ECalEndcapCells_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->ECalEndcapCells_energy)[i];
-      if (E < CellEnergyThreshold)
-        continue;
-      ecalCells->SetNextPoint((*eventReader->ECalEndcapCells_position_x)[i] * mm,
-                              (*eventReader->ECalEndcapCells_position_y)[i] * mm,
-                              (*eventReader->ECalEndcapCells_position_z)[i] * mm);
-      if (debug) {
-        ULong_t cellID = (*eventReader->ECalEndcapCells_cellID)[i];
-        ULong_t system = geomReader->SystemID(cellID);
-        Long_t side = geomReader->ECalEndCapSide(cellID);
-        ULong_t wheel = geomReader->ECalEndCapWheel(cellID);
-        ULong_t module = geomReader->ECalEndCapModule(cellID);
-        ULong_t rho = geomReader->ECalEndCapRhoBin(cellID);
-        ULong_t z = geomReader->ECalEndCapZBin(cellID);
-        ULong_t layer = geomReader->ECalBarrelLayer(cellID);
-        ecalCells->fTooltips.push_back(Form("Energy = %.3f GeV, System = %lu, Side = %ld, Wheel = %lu, Layer = %lu, Module = %lu, rho = %lu, z = %lu", E, system, side, wheel, layer, module, rho, z));
-      }
-    }
-  }
-
-  if (displayConfig.getBoolConfig("drawHCalBarrelCells"))
-  {
-    std::cout << "Creating hcal barrel cells" << std::endl;
-    if (hcalCells == nullptr)
-    {
-      // hcalCells = new TEvePointSet();
-      hcalCells = new MyPointSet("HCalCells", debug);
-      hcalCells->SetName(Form("HCAL cells (E>%.2f GeV)", CellEnergyThreshold));
-      hcalCells->SetMarkerStyle(4);
-      hcalCells->SetMarkerSize(2);
-      hcalCells->SetMarkerColor(kYellow);
-      digis->AddElement(hcalCells);
-    }
-    else
-      hcalCells->Reset();
-    for (unsigned int i = 0; i < eventReader->HCalBarrelCells_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->HCalBarrelCells_energy)[i];
-      if (E < CellEnergyThreshold)
-        continue;
-      hcalCells->SetNextPoint((*eventReader->HCalBarrelCells_position_x)[i] * mm,
-                              (*eventReader->HCalBarrelCells_position_y)[i] * mm,
-                              (*eventReader->HCalBarrelCells_position_z)[i] * mm);
-
-      if (debug) {
-        ULong_t cellID = (*eventReader->HCalBarrelCells_cellID)[i];
-        ULong_t system = geomReader->SystemID(cellID);
-        ULong_t layer = geomReader->HCalBarrelLayer(cellID);
-        ULong_t phi = geomReader->HCalBarrelPhiBin(cellID);
-        ULong_t theta = geomReader->HCalBarrelThetaBin(cellID);
-        hcalCells->fTooltips.push_back(Form("Energy = %.3f GeV, System = %lu, Layer = %lu, Phi = %lu, Theta = %lu", E, system, layer, phi, theta));
-      }
-    }
-  }
-
-  if (displayConfig.getBoolConfig("drawHCalEndcapCells"))
-  {
-    std::cout << "Creating hcal endcap cells" << std::endl;
-    if (hcalCells == nullptr)
-    {
-      // hcalCells = new TEvePointSet();
-      hcalCells = new MyPointSet("HCalCells", debug);
-      hcalCells->SetName(Form("HCAL cells (E>%.2f GeV)", CellEnergyThreshold));
-      hcalCells->SetMarkerStyle(4);
-      hcalCells->SetMarkerSize(2);
-      hcalCells->SetMarkerColor(kYellow);
-      digis->AddElement(hcalCells);
-    }
-    else {
-      // dont do it if hcal barrel cells are drawn - this was already done before
-      if (not displayConfig.getBoolConfig("drawHCalBarrelCells"))
-        hcalCells->Reset();
-    }
-    for (unsigned int i = 0; i < eventReader->HCalEndcapCells_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->HCalEndcapCells_energy)[i];
-      if (E < CellEnergyThreshold)
-        continue;
-      hcalCells->SetNextPoint((*eventReader->HCalEndcapCells_position_x)[i] * mm,
-                              (*eventReader->HCalEndcapCells_position_y)[i] * mm,
-                              (*eventReader->HCalEndcapCells_position_z)[i] * mm);
-      if (debug) {
-        ULong_t cellID = (*eventReader->HCalEndcapCells_cellID)[i];
-        ULong_t system = geomReader->SystemID(cellID);
-        ULong_t layer = geomReader->HCalEndCapLayer(cellID);
-        ULong_t phi = geomReader->HCalEndCapPhiBin(cellID);
-        ULong_t theta = geomReader->HCalEndCapThetaBin(cellID);
-        hcalCells->fTooltips.push_back(Form("Energy = %.3f GeV, System = %lu, Layer = %lu, Phi = %lu, Theta = %lu", E, system, layer, phi, theta));
-      }
-    }
-  }
-
-  if (displayConfig.getBoolConfig("drawMuonCells"))
-  {
-    std::cout << "Creating muon barrel cells" << std::endl;
-    if (muonCells == nullptr)
-    {
-      muonCells = new TEvePointSet();
-      muonCells->SetName(Form("MUON cells (E>%.2f GeV)", CellEnergyThreshold));
-      muonCells->SetMarkerStyle(4);
-      muonCells->SetMarkerSize(2);
-      muonCells->SetMarkerColor(kYellow);
-      digis->AddElement(muonCells);
-    }
-    else
-      muonCells->Reset();
-    for (unsigned int i = 0; i < eventReader->MuonBarrelCells_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->MuonBarrelCells_energy)[i];
-      if (E < CellEnergyThreshold)
-        continue;
-      muonCells->SetNextPoint((*eventReader->MuonBarrelCells_position_x)[i] * mm,
-                              (*eventReader->MuonBarrelCells_position_y)[i] * mm,
-                              (*eventReader->MuonBarrelCells_position_z)[i] * mm);
-    }
-    std::cout << "Creating muon endcap cells" << std::endl;
-    for (unsigned int i = 0; i < eventReader->MuonEndcapCells_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->MuonEndcapCells_energy)[i];
-      if (E < CellEnergyThreshold)
-        continue;
-      muonCells->SetNextPoint((*eventReader->MuonEndcapCells_position_x)[i] * mm,
-                              (*eventReader->MuonEndcapCells_position_y)[i] * mm,
-                              (*eventReader->MuonEndcapCells_position_z)[i] * mm);
-    }
-  }
-
-  //
-  // cells merged (ECAL)
-  //
-  if (displayConfig.getBoolConfig("drawECalBarrelMergedCells"))
-  {
-    std::cout << "Creating merged ecal barrel cells" << std::endl;
-    if (cells_merged == nullptr)
-    {
-      cells_merged = new TEvePointSet();
-      cells_merged->SetName("cells_merged");
-      cells_merged->SetMarkerStyle(4);
-      cells_merged->SetMarkerSize(3);
-      cells_merged->SetMarkerColor(kBlue);
-      digis->AddElement(cells_merged);
-    }
-    else
-      cells_merged->Reset();
-    for (unsigned int i = 0; i < eventReader->ECalBarrelCells2_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->ECalBarrelCells2_energy)[i];
-      // if (E<minCellE) continue;
-      // ULong_t cellID = (*eventReader->ECalBarrelCells_cellID)[i];
-      // ULong_t layer = DetectorGeometry::Layer(cellID);
-      cells_merged->SetNextPoint((*eventReader->ECalBarrelCells2_position_x)[i] * mm,
-                                 (*eventReader->ECalBarrelCells2_position_y)[i] * mm,
-                                 (*eventReader->ECalBarrelCells2_position_z)[i] * mm);
-    }
-  }
-
-  //
-  // tracks
-  //
-  if (displayConfig.getBoolConfig("drawTracks"))
-  {
-    std::cout << "Creating tracks" << std::endl;
-    if (tracks == nullptr)
-    {
-      tracks = new TEveTrackList("tracks");
-      TEveTrackPropagator *trkProp = tracks->GetPropagator();
-      trkProp->SetMagFieldObj(magField);
-      // trkProp->SetMaxR(rMax);
-      // trkProp->SetMaxZ(geomReader->zMaxEndCap);
-      // trkProp->SetMaxZ(10000.*mm);
-      trkProp->SetRnrReferences(true);
-      // trkProp->SetFitReferences(true);
-      tracks->SetMainColor(kCyan);
-      tracks->SetLineWidth(2.);
-      tracks->SetLineStyle(5);
-      gEve->AddElement(tracks);
-    }
-    else
-      tracks->DestroyElements();
-
-    for (unsigned int ip = 0; ip < eventReader->Tracks_subdetectorHitNumbers_begin->GetSize(); ip++)
-    {
-      if (debug) std::cout << "Track " << ip << std::endl;
-      unsigned int trackStates_begin = (*eventReader->Tracks_trackStates_begin)[ip];
-      unsigned int trackStates_end = (*eventReader->Tracks_trackStates_end)[ip];
-      if (debug) std::cout << "  trackStates begin , end = " << trackStates_begin << " , " << trackStates_end << std::endl;
-      // store in vectors the track state positions and momenta
-      unsigned int nTrackStates = 0;
-      if (trackStates_end > trackStates_begin)
-        nTrackStates = trackStates_end - trackStates_begin;
-      float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5], px[5], py[5], pz[5], p[5];
-      for (unsigned int i=0; i<5; i++) x[i]=-1e9; // set to some large value to check later if track state has been filled
-      for (unsigned int its = trackStates_begin; its < trackStates_end; its++) {
-        int location = (*eventReader->_Tracks_trackStates_location)[its];
-        if (debug) {
-          std::cout << "Trackstate " << its << std::endl;
-          std::cout << "  location = " << location << std::endl;
-        }
-        if (location>4) continue;
-        x[location] = (*eventReader->_Tracks_trackStates_referencePoint_x)[its];
-        y[location] = (*eventReader->_Tracks_trackStates_referencePoint_y)[its];
-        z[location] = (*eventReader->_Tracks_trackStates_referencePoint_z)[its];
-        omega[location] = (*eventReader->_Tracks_trackStates_omega)[its];
-        tanLambda[location] = (*eventReader->_Tracks_trackStates_tanLambda)[its];
-        phi[location] = (*eventReader->_Tracks_trackStates_phi)[its];
-        if (debug) {
-          std::cout << "  x = " << x[location] << std::endl;
-          std::cout << "  y = " << y[location] << std::endl;
-          std::cout << "  z = " << z[location] << std::endl;
-          std::cout << "  r = " << sqrt(x[location]*x[location] + y[location]*y[location]) << std::endl;
-          std::cout << "  omega = " << omega[location] << std::endl;
-          std::cout << "  phi = " << phi[location] << std::endl;
-          std::cout << "  tanLambda = " << tanLambda[location] << std::endl;
-          const float FCT = 2.99792458E-4f;
-          const float bField = 2.0;
-          float radius = 1.f / std::fabs(omega[location]);
-          float pxy = FCT * bField * radius;
-          float pz = tanLambda[location] * pxy;
-          float p = std::sqrt(pxy*pxy+pz*pz);
-          std::cout << "  p = " << p << std::endl;
-        }
-      }
-      const int nSubDetectors(5);
-      int nhits[nSubDetectors];
-      for (int ihit = 0 ; ihit < nSubDetectors; ++ihit) nhits[ihit]=0;
-      unsigned int hits_begin = (*eventReader->Tracks_subdetectorHitNumbers_begin)[ip];
-      unsigned int hits_end = (*eventReader->Tracks_subdetectorHitNumbers_end)[ip];
-      if (debug) std::cout << "  subdetectorHitNumbers_begin , end = " << hits_begin << " , " << hits_end << std::endl;
-      for (unsigned int ih = hits_begin; ih < hits_end; ih++) {
-        nhits[ih-hits_begin] = (*eventReader->_Tracks_subdetectorHitNumbers)[ih];
-      }
-      
-      // const int tsOrig=2; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
-      const int tsOrig=1; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
-      //if (x[tsOrig]<5e5) {  // GM dont remember what is this about..
-      if (nTrackStates > 0) {
-        TEveRecTrack t;
-        float x1 = x[tsOrig]*mm;
-        float y1 = y[tsOrig]*mm;
-        float z1 = z[tsOrig]*mm;
-        const float FCT = 2.99792458E-4f;
-        const float bField = 2.0;
-        int charge = sgn(omega[tsOrig]);
-        float radius = 1.f / std::fabs(omega[tsOrig]);
-        float pxy = FCT * bField * radius;
-        float px = pxy * std::cos(phi[tsOrig]);
-        float py = pxy * std::sin(phi[tsOrig]);
-        float pz = tanLambda[tsOrig] * pxy;
-        float p = std::sqrt(px*px+py*py+pz*pz);
-        t.fV.Set(x1, y1, z1);
-        t.fP.Set(px, py, pz);
-        t.fSign = charge;
-        TEveTrack* track = new TEveTrack(&t, tracks->GetPropagator());
-        track->SetElementName(Form("Track %d", ip));
-        track->SetAttLineAttMarker(tracks);
-        track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm\nhits = %d/%d/%d/%d/%d",
-          p, std::acos(pz / p), std::atan2(py, px),
-          x1 / cm, y1 / cm, z1 / cm,
-          nhits[0], nhits[1], nhits[2], nhits[3], nhits[4]));
-
-        // add other track states (at last hit, at ECAL, and at other=2nd ECAL projection) references
-        track->SetRnrPoints(true);
-        track->SetMarkerStyle(4);
-        for (int i=0; i<5; i++) {
-          if (i==tsOrig) {
-              if (debug) std::cout << "Skipping track state at location " << i << std::endl;
-              // continue;
-          }
-          if (x[i]<-1e8) {
-            if (debug) std::cout << "Skipping track state at location " << i << std::endl;
-            continue;
-          }
-          float radius = 1.f / std::fabs(omega[i]);
-          float pxy = FCT * bField * radius;
-          float px = pxy * std::cos(phi[i]);
-          float py = pxy * std::sin(phi[i]);
-          float pz = tanLambda[i] * pxy;
-          track->AddPathMark(TEvePathMarkD(TEvePathMarkD::kReference,
-                                           TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
-                                           TEveVectorD(px, py, pz)));
-        }
-        if (debug) track->PrintPathMarks();
-        // could also save decay ...
-        tracks->AddElement(track);
-      }
-    }
-    tracks->MakeTracks();
-  }
-
-  
-  //
-  // clusters
-  //
+  // draw the various event elements
+  drawParticles();
+  drawHits();
+  drawDigis();
+  drawTracks();
   if (displayConfig.getBoolConfig("drawTopoClusters"))
   {
-    FillClusters("topo");
-    DrawClusters("topo");
+    fillClusters("topo");
+    drawClusters("topo");
   }
   if (displayConfig.getBoolConfig("drawCaloClusters"))
   {
-    FillClusters("sw");
-    DrawClusters("sw");
+    fillClusters("sw");
+    drawClusters("sw");
   }
 
-  //
-  // process and event label
-  //
+  // add process and event label
   if (processLabel == nullptr) {
     auto processStr = Form("%s, %.1f GeV", partType(pdgID), pmax);
     float x(0.05), y(0.95);
@@ -2292,6 +2284,13 @@ void EventDisplay::startDisplay(int initialEvent)
     world->SetMainTransparency(100);
     fGeom->Close();
     delete fGeom;
+
+    if (not showFullDetector) {
+      rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
+    }
+    else {
+      rMax = 5000.*mm;
+    }
 
     if (showFullDetector)
     {
@@ -3407,7 +3406,7 @@ void EventDisplay::startDisplay(int initialEvent)
     cout << "Reading the events" << endl;
     cout << "******************************************************************************" << endl
          << endl;
-    loadEvent(initialEvent);
+    drawEvent(initialEvent);
   }
 
   // Set the 3D view as the active tab and rotate the camera
@@ -3455,7 +3454,7 @@ void EventDisplay::fwd()
   else if (eventId < nEvents - 1)
   {
     ++eventId;
-    loadEvent(eventId);
+    drawEvent(eventId);
   }
   else
   {
@@ -3494,7 +3493,7 @@ void EventDisplay::bck()
   else if (eventId > 0)
   {
     --eventId;
-    loadEvent(eventId);
+    drawEvent(eventId);
   }
   else
   {

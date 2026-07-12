@@ -128,6 +128,8 @@ public:
   float CellEnergyThreshold = 0.0;
   // min cluster energy (in GeV)
   float ClusterEnergyThreshold = 0.0;
+  // max radius for propagator
+  float rMax = 0.0;
 
   // G4 geometry file
   bool useG4geom = true;
@@ -249,14 +251,26 @@ public:
   void startDisplay(int initialEvent = 0);
 
   // fill cluster objects for given collection (sw or topo) and loaded event
-  // invoked by loadEvent
-  void FillClusters(std::string clusterType);
+  // invoked by drawEvent
+  void fillClusters(std::string clusterType);
 
-  // draw the clusters created by FillClusters
-  void DrawClusters(std::string clusterType);
+  // draw the MC particles
+  void drawParticles();
 
-  // load event
-  void loadEvent(int event);
+  // draw the hits
+  void drawHits();
+
+  // draw the digis
+  void drawDigis();
+
+  // draw the reconstructed tracks
+  void drawTracks();
+  
+  // draw the clusters created by fillClusters
+  void drawClusters(std::string clusterType);
+
+  // draw the event
+  void drawEvent(int event);
 
   // move to next event
   void fwd();
