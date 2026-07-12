@@ -32,6 +32,8 @@
 #include "EventReader.h"
 #include "CaloCluster.h"
 
+#include "Globals.h"
+
 using namespace std;
 
 /******************************************************************************/
@@ -91,6 +93,7 @@ public:
     std::cout << "Point selected: idx = " << idx << ", " << fTooltips[idx] << std::endl;
   }
 };
+
 
 /******************************************************************************/
 // main class
@@ -302,7 +305,50 @@ public:
     const TTreeReaderArray<Double_t>& pz,
     const TTreeReaderArray<UInt_t>& daughters_begin,
     const TTreeReaderArray<UInt_t>& daughters_end);
-  
+
+  void CreateElementList(TEveElementList*& list, const std::string& listName);
+
+  template <typename T> void DrawHitCollection(TEvePointSet*& hitSet, const std::string& name,
+                                               const TTreeReaderArray<T> *hit_position_x,
+                                               const TTreeReaderArray<T> *hit_position_y,
+                                               const TTreeReaderArray<T> *hit_position_z,
+                                               const TTreeReaderArray<Float_t> *hit_energy,
+                                               const float Ethr,
+                                               bool append = false)  // if append is true, and the pointer is not null, the collection is not reset
+  {
+    if (hitSet == nullptr)
+    {
+      hitSet = new TEvePointSet();
+      if (Ethr>=0.0)
+        hitSet->SetName(Form("%s (E>%.2f GeV)", name.c_str(), Ethr));
+      else
+        hitSet->SetName(name.c_str());
+
+      hitSet->SetMarkerStyle(hitsMarkerStyle);
+      hitSet->SetMarkerSize(hitsMarkerSize);
+      hitSet->SetMarkerColor(hitsMarkerColor);
+      hits->AddElement(hitSet);
+    }
+    else {
+      if (!append)
+        hitSet->Reset();
+    }
+
+    for (unsigned int i = 0; i < hit_position_x->GetSize(); i++)
+    {
+      // skip hit if energy branch is not nullptr and E<threshold
+      if (hit_energy) {
+        float E = (*hit_energy)[i];
+        if (E < HitEnergyThreshold)
+          continue;
+      }
+      hitSet->SetNextPoint((*hit_position_x)[i] * mm,
+                           (*hit_position_y)[i] * mm,
+                           (*hit_position_z)[i] * mm);
+    }
+  }
+
+
 };
 
 #endif

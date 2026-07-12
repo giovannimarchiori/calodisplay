@@ -10,7 +10,6 @@
 #include "DetectorGeometry.h"
 #include "MagField.h"
 #include "CylField.h"
-#include "Globals.h"
 #include "Units.h"
 
 #include <TMath.h>
@@ -1573,325 +1572,130 @@ void EventDisplay::loadEvent(int event)
   }
 
   //
-  // hits (VTX/DCH/Wrapper)
+  // hits
   //
+  CreateElementList(hits, "hits");
+  // do we need to Reset() or DestroyElements() otherwise ?
+
+  // - hits in vertex
   if (displayConfig.getBoolConfig("drawVertexHits"))
   {
-    if (hits == nullptr)
-    {
-      hits = new TEveElementList("hits");
-      gEve->AddElement(hits);
-    }
-    // do we need to Reset() otherwise ?
     std::cout << "Creating vertex hits" << std::endl;
-    if (vtxHits == nullptr)
-    {
-      vtxHits = new TEvePointSet();
-      // vtxHits->SetName(Form("VTX hits (E>%.2f GeV)", HitEnergyThreshold));
-      vtxHits->SetName("VTX hits");
-      vtxHits->SetMarkerStyle(4);
-      vtxHits->SetMarkerSize(1.6);
-      vtxHits->SetMarkerColor(kRed);
-      // gEve->AddElement(vtxHits);
-      hits->AddElement(vtxHits);
-    }
-    else
-      vtxHits->Reset();
-    for (unsigned int i = 0; i < eventReader->VertexBarrelHits_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->VertexBarrelHits_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->VertexBarrelHits_cellID)[i];
-      vtxHits->SetNextPoint(
-                            (*eventReader->VertexBarrelHits_position_x)[i] * mm,
-                            (*eventReader->VertexBarrelHits_position_y)[i] * mm,
-                            (*eventReader->VertexBarrelHits_position_z)[i] * mm);
-    }
-    for (unsigned int i = 0; i < eventReader->VertexEndcapHits_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->VertexEndcapHits_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->VertexEndcapHits_cellID)[i];
-      vtxHits->SetNextPoint(
-                            (*eventReader->VertexEndcapHits_position_x)[i] * mm,
-                            (*eventReader->VertexEndcapHits_position_y)[i] * mm,
-                            (*eventReader->VertexEndcapHits_position_z)[i] * mm);
-    }
+    DrawHitCollection(vtxHits, "VTX",
+		      eventReader->VertexBarrelHits_position_x,
+		      eventReader->VertexBarrelHits_position_y,
+		      eventReader->VertexBarrelHits_position_z,
+		      nullptr, -9999.);
+    DrawHitCollection(vtxHits, "VTX",
+		      eventReader->VertexEndcapHits_position_x,
+		      eventReader->VertexEndcapHits_position_y,
+		      eventReader->VertexEndcapHits_position_z,
+		      nullptr, -9999.,
+		      true);
   }
 
+  // - hits in DCH/STT
   if (displayConfig.getBoolConfig("drawMainTrackerHits"))
   {
-    if (hits == nullptr)
-    {
-      hits = new TEveElementList("hits");
-      gEve->AddElement(hits);
-    }
-    // do we need to Reset() otherwise ?
     std::cout << "Creating main tracker hits" << std::endl;
-    if (dchHits == nullptr)
-    {
-      dchHits = new TEvePointSet();
-      // dchHits->SetName(Form("DCH hits (E>%.2f GeV)", HitEnergyThreshold));
-      dchHits->SetName("DCH hits");
-      dchHits->SetMarkerStyle(4);
-      dchHits->SetMarkerSize(1.6);
-      dchHits->SetMarkerColor(kRed);
-      // gEve->AddElement(dchHits);
-      hits->AddElement(dchHits);
-    }
-    else
-      dchHits->Reset();
-    for (unsigned int i = 0; i < eventReader->MainTrackerHits_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->MainTrackerHits_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->MainTrackerHits_cellID)[i];
-      dchHits->SetNextPoint(
-                            (*eventReader->MainTrackerHits_position_x)[i] * mm,
-                            (*eventReader->MainTrackerHits_position_y)[i] * mm,
-                            (*eventReader->MainTrackerHits_position_z)[i] * mm);
-    }
+    DrawHitCollection(dchHits, "DCH",  // TODO modify for STT
+		      eventReader->MainTrackerHits_position_x,
+		      eventReader->MainTrackerHits_position_y,
+		      eventReader->MainTrackerHits_position_z,
+		      nullptr, -9999.);
   }
 
+  // - hits in Si wrapper
   if (displayConfig.getBoolConfig("drawSiWrapperHits"))
   {
-    if (hits == nullptr)
-    {
-      hits = new TEveElementList("hits");
-      gEve->AddElement(hits);
-    }
-    std::cout << "Creating wrapper hits" << std::endl;
-    if (siwrHits == nullptr)
-    {
-      siwrHits = new TEvePointSet();
-      // siwrHits->SetName(Form("VTX hits (E>%.2f GeV)", HitEnergyThreshold));
-      siwrHits->SetName("SiWr hits");
-      siwrHits->SetMarkerStyle(4);
-      siwrHits->SetMarkerSize(1.6);
-      siwrHits->SetMarkerColor(kRed);
-      // gEve->AddElement(siwrHits);
-      hits->AddElement(siwrHits);
-    }
-    else
-      siwrHits->Reset();
-    for (unsigned int i = 0; i < eventReader->SiWrapperBarrelHits_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->SiWrapperBarrelHits_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->SiWrapperBarrelHits_cellID)[i];
-      siwrHits->SetNextPoint(
-                             (*eventReader->SiWrapperBarrelHits_position_x)[i] * mm,
-                             (*eventReader->SiWrapperBarrelHits_position_y)[i] * mm,
-                             (*eventReader->SiWrapperBarrelHits_position_z)[i] * mm);
-    }
-    for (unsigned int i = 0; i < eventReader->SiWrapperEndcapHits_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->SiWrapperEndcapHits_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->SiWrapperEndcapHits_cellID)[i];
-      siwrHits->SetNextPoint(
-                             (*eventReader->SiWrapperEndcapHits_position_x)[i] * mm,
-                             (*eventReader->SiWrapperEndcapHits_position_y)[i] * mm,
-                             (*eventReader->SiWrapperEndcapHits_position_z)[i] * mm);
-    }
+    std::cout << "Creating Si wrapper hits" << std::endl;
+    DrawHitCollection(siwrHits, "Si wrapper",
+		      eventReader->SiWrapperBarrelHits_position_x,
+		      eventReader->SiWrapperBarrelHits_position_y,
+		      eventReader->SiWrapperBarrelHits_position_z,
+		      nullptr, -9999.);
+    DrawHitCollection(siwrHits, "Si wrapper",
+		      eventReader->SiWrapperEndcapHits_position_x,
+		      eventReader->SiWrapperEndcapHits_position_y,
+		      eventReader->SiWrapperEndcapHits_position_z,
+		      nullptr, -9999.,
+		      true);
   }
 
-  //
-  // hits (ECAL/HCAL)
-  //
+  // - hits in ECAL
   if (displayConfig.getBoolConfig("drawECalBarrelHits"))
   {
-    if (hits == nullptr)
-    {
-      hits = new TEveElementList("hits");
-      gEve->AddElement(hits);
-    }
     std::cout << "Creating ecal barrel hits" << std::endl;
-    if (ecalHits == nullptr)
-    {
-      ecalHits = new TEvePointSet();
-      ecalHits->SetName(Form("ECAL hits (E>%.2f GeV)", HitEnergyThreshold));
-      ecalHits->SetMarkerStyle(4);
-      ecalHits->SetMarkerSize(1);
-      ecalHits->SetMarkerColor(kRed);
-      // gEve->AddElement(ecalHits);
-      hits->AddElement(ecalHits);
-    }
-    else
-      ecalHits->Reset();
-
-    for (unsigned int i = 0; i < eventReader->ECalBarrelHits_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->ECalBarrelHits_energy)[i];
-      if (E < HitEnergyThreshold)
-        continue;
-      // ULong_t cellID = (*eventReader->ECalBarrelHits_cellID)[i];
-      // ULong_t layer = DetectorGeometry:::Layer(cellID);
-      ecalHits->SetNextPoint(
-          (*eventReader->ECalBarrelHits_position_x)[i] * mm,
-          (*eventReader->ECalBarrelHits_position_y)[i] * mm,
-          (*eventReader->ECalBarrelHits_position_z)[i] * mm);
-    }
+    DrawHitCollection(ecalHits, "ECAL",
+                      eventReader->ECalBarrelHits_position_x,
+                      eventReader->ECalBarrelHits_position_y,
+                      eventReader->ECalBarrelHits_position_z,
+                      eventReader->ECalBarrelHits_energy,
+                      HitEnergyThreshold);
   }
 
   if (displayConfig.getBoolConfig("drawECalEndcapHits"))
   {
-    if (hits == nullptr)
-    {
-      hits = new TEveElementList("hits");
-      gEve->AddElement(hits);
-    }
     std::cout << "Creating ecal endcap hits" << std::endl;
-    if (ecalHits == nullptr)
-    {
-      ecalHits = new TEvePointSet();
-      ecalHits->SetName(Form("ECAL hits (E>%.2f GeV)", HitEnergyThreshold));
-      ecalHits->SetMarkerStyle(4);
-      ecalHits->SetMarkerSize(1);
-      ecalHits->SetMarkerColor(kRed);
-      hits->AddElement(ecalHits);
-    }
-    else {
-      // dont do it if ecal barrel hits are drawn - this was already done before
-      if (not displayConfig.getBoolConfig("drawECalBarrelHits"))
-        ecalHits->Reset();
-    }
-    for (unsigned int i = 0; i < eventReader->ECalEndcapHits_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->ECalEndcapHits_energy)[i];
-      if (E < HitEnergyThreshold)
-        continue;
-      ecalHits->SetNextPoint(
-          (*eventReader->ECalEndcapHits_position_x)[i] * mm,
-          (*eventReader->ECalEndcapHits_position_y)[i] * mm,
-          (*eventReader->ECalEndcapHits_position_z)[i] * mm);
-    }
+    DrawHitCollection(ecalHits, "ECAL",
+                      (eventReader->ECalEndcapHits_position_x),
+                      (eventReader->ECalEndcapHits_position_y),
+                      (eventReader->ECalEndcapHits_position_z),
+                      (eventReader->ECalEndcapHits_energy),
+                      HitEnergyThreshold,
+                      true);
   }
 
+  // - hits in HCAL
   if (displayConfig.getBoolConfig("drawHCalBarrelHits"))
   {
-    if (hits == nullptr)
-    {
-      hits = new TEveElementList("hits");
-      gEve->AddElement(hits);
-    }
     std::cout << "Creating hcal barrel hits" << std::endl;
-    if (hcalHits == nullptr)
-    {
-      hcalHits = new TEvePointSet();
-      hcalHits->SetName(Form("HCAL hits (E>%.2f GeV)", HitEnergyThreshold));
-      hcalHits->SetMarkerStyle(4);
-      hcalHits->SetMarkerSize(1);
-      hcalHits->SetMarkerColor(kRed);
-      hits->AddElement(hcalHits);
-    }
-    else
-      hcalHits->Reset();
-    for (unsigned int i = 0; i < eventReader->HCalBarrelHits_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->HCalBarrelHits_energy)[i];
-      if (E < HitEnergyThreshold)
-        continue;
-      hcalHits->SetNextPoint(
-          (*eventReader->HCalBarrelHits_position_x)[i] * mm,
-          (*eventReader->HCalBarrelHits_position_y)[i] * mm,
-          (*eventReader->HCalBarrelHits_position_z)[i] * mm);
-    }
+    DrawHitCollection(hcalHits, "HCAL",
+                      eventReader->HCalBarrelHits_position_x,
+                      eventReader->HCalBarrelHits_position_y,
+                      eventReader->HCalBarrelHits_position_z,
+                      eventReader->HCalBarrelHits_energy,
+                      HitEnergyThreshold);
   }
-
   if (displayConfig.getBoolConfig("drawHCalEndcapHits"))
   {
-    if (hits == nullptr)
-    {
-      hits = new TEveElementList("hits");
-      gEve->AddElement(hits);
-    }
     std::cout << "Creating hcal endcap hits" << std::endl;
-    if (hcalHits == nullptr)
-    {
-      hcalHits = new TEvePointSet();
-      hcalHits->SetName(Form("HCAL hits (E>%.2f GeV)", HitEnergyThreshold));
-      hcalHits->SetMarkerStyle(4);
-      hcalHits->SetMarkerSize(1);
-      hcalHits->SetMarkerColor(kRed);
-      hits->AddElement(hcalHits);
-    }
-    else {
-      // dont do it if hcal barrel hits are drawn - this was already done before
-      if (not displayConfig.getBoolConfig("drawHCalBarrelHits"))
-        hcalHits->Reset();
-    }
-    for (unsigned int i = 0; i < eventReader->HCalEndcapHits_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->HCalEndcapHits_energy)[i];
-      if (E < HitEnergyThreshold)
-        continue;
-      hcalHits->SetNextPoint(
-          (*eventReader->HCalEndcapHits_position_x)[i] * mm,
-          (*eventReader->HCalEndcapHits_position_y)[i] * mm,
-          (*eventReader->HCalEndcapHits_position_z)[i] * mm);
-    }
+    DrawHitCollection(hcalHits, "HCAL",
+                      eventReader->HCalEndcapHits_position_x,
+                      eventReader->HCalEndcapHits_position_y,
+                      eventReader->HCalEndcapHits_position_z,
+                      eventReader->HCalEndcapHits_energy,
+                      HitEnergyThreshold,
+		      true);
   }
 
-  //
-  // hits (muon)
-  //
+  // - hits in muon detector
   if (displayConfig.getBoolConfig("drawMuonHits"))
   {
-    if (hits == nullptr)
-    {
-      hits = new TEveElementList("hits");
-      gEve->AddElement(hits);
-    }
-    // do we need to Reset() otherwise ?
-    std::cout << "Creating muon hits" << std::endl;
-    if (muonHits == nullptr)
-    {
-      muonHits = new TEvePointSet();
-      // muonHits->SetName(Form("MUON hits (E>%.2f GeV)", HitEnergyThreshold));
-      muonHits->SetName("MUON hits");
-      muonHits->SetMarkerStyle(4);
-      muonHits->SetMarkerSize(1.6);
-      muonHits->SetMarkerColor(kRed);
-      // gEve->AddElement(muonHits);
-      hits->AddElement(muonHits);
-    }
-    else {
-      muonHits->Reset();
-    }
-    for (unsigned int i = 0; i < eventReader->MuonBarrelHits_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->MuonBarrelHits_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->MuonBarrelHits_cellID)[i];
-      muonHits->SetNextPoint(
-                            (*eventReader->MuonBarrelHits_position_x)[i] * mm,
-                            (*eventReader->MuonBarrelHits_position_y)[i] * mm,
-                            (*eventReader->MuonBarrelHits_position_z)[i] * mm);
-    }
-    for (unsigned int i = 0; i < eventReader->MuonEndcapHits_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->MuonEndcapHits_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->MuonEndcapHits_cellID)[i];
-      muonHits->SetNextPoint(
-                            (*eventReader->MuonEndcapHits_position_x)[i] * mm,
-                            (*eventReader->MuonEndcapHits_position_y)[i] * mm,
-                            (*eventReader->MuonEndcapHits_position_z)[i] * mm);
-    }
+    std::cout << "Creating muon barrel hits" << std::endl;
+    DrawHitCollection(muonHits, "MUON",
+                      eventReader->MuonBarrelHits_position_x,
+                      eventReader->MuonBarrelHits_position_y,
+                      eventReader->MuonBarrelHits_position_z,
+		      nullptr, -9999.);
+    std::cout << "Creating muon endcap hits" << std::endl;
+    DrawHitCollection(muonHits, "MUON",
+                      eventReader->MuonEndcapHits_position_x,
+                      eventReader->MuonEndcapHits_position_y,
+                      eventReader->MuonEndcapHits_position_z,
+                      nullptr, -9999.,
+                      true);
   }
 
+
   //
-  // digis (VTX/DCH/Wrapper)
+  // digis
   //
+  CreateElementList(digis, "digis");
+
+  // digis in VTX
   if (displayConfig.getBoolConfig("drawVertexDigis"))
   {
-    if (digis == nullptr)
-    {
-      digis = new TEveElementList("digis");
-      gEve->AddElement(digis);
-    }
-    // do we need to Reset() otherwise ?
     std::cout << "Creating vertex digis" << std::endl;
     if (vtxDigis == nullptr)
     {
@@ -1927,14 +1731,9 @@ void EventDisplay::loadEvent(int event)
     }
   }
 
+  // - digis in DCH/STT
   if (displayConfig.getBoolConfig("drawMainTrackerDigis"))
   {
-    if (digis == nullptr)
-    {
-      digis = new TEveElementList("digis");
-      gEve->AddElement(digis);
-    }
-    // do we need to Reset() otherwise ?
     std::cout << "Creating main tracker digis" << std::endl;
     if (dchDigis == nullptr)
     {
@@ -1960,13 +1759,9 @@ void EventDisplay::loadEvent(int event)
     }
   }
 
+  // - digis in Si wrapper
   if (displayConfig.getBoolConfig("drawSiWrapperDigis"))
   {
-    if (digis == nullptr)
-    {
-      digis = new TEveElementList("digis");
-      gEve->AddElement(digis);
-    }
     std::cout << "Creating wrapper digis" << std::endl;
     if (siwrDigis == nullptr)
     {
@@ -2002,17 +1797,10 @@ void EventDisplay::loadEvent(int event)
     }
   }
 
-  //
-  // cells (ECAL/HCAL/muon)
-  //
+  // - digis (cells) in ECAL/HCAL/muon
   if (displayConfig.getBoolConfig("drawECalBarrelCells"))
   {
     std::cout << "Creating ecal barrel cells" << std::endl;
-    if (digis == nullptr)
-    {
-      digis = new TEveElementList("digis");
-      gEve->AddElement(digis);
-    }
     if (ecalCells == nullptr)
     {
       // ecalCells = new TEvePointSet();
@@ -2049,11 +1837,6 @@ void EventDisplay::loadEvent(int event)
   if (displayConfig.getBoolConfig("drawECalEndcapCells"))
   {
     std::cout << "Creating ecal endcap cells" << std::endl;
-    if (digis == nullptr)
-    {
-      digis = new TEveElementList("digis");
-      gEve->AddElement(digis);
-    }
     if (ecalCells == nullptr)
     {
       // ecalCells = new TEvePointSet();
@@ -2094,11 +1877,6 @@ void EventDisplay::loadEvent(int event)
   if (displayConfig.getBoolConfig("drawHCalBarrelCells"))
   {
     std::cout << "Creating hcal barrel cells" << std::endl;
-    if (digis == nullptr)
-    {
-      digis = new TEveElementList("digis");
-      gEve->AddElement(digis);
-    }
     if (hcalCells == nullptr)
     {
       // hcalCells = new TEvePointSet();
@@ -2134,11 +1912,6 @@ void EventDisplay::loadEvent(int event)
   if (displayConfig.getBoolConfig("drawHCalEndcapCells"))
   {
     std::cout << "Creating hcal endcap cells" << std::endl;
-    if (digis == nullptr)
-    {
-      digis = new TEveElementList("digis");
-      gEve->AddElement(digis);
-    }
     if (hcalCells == nullptr)
     {
       // hcalCells = new TEvePointSet();
@@ -2176,11 +1949,6 @@ void EventDisplay::loadEvent(int event)
   if (displayConfig.getBoolConfig("drawMuonCells"))
   {
     std::cout << "Creating muon barrel cells" << std::endl;
-    if (digis == nullptr)
-    {
-      digis = new TEveElementList("digis");
-      gEve->AddElement(digis);
-    }
     if (muonCells == nullptr)
     {
       muonCells = new TEvePointSet();
@@ -4133,4 +3901,13 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
       currentMomentum
     });
   return segments;
+}
+
+void EventDisplay::CreateElementList(TEveElementList*& list, const std::string& listName)
+{
+  if (list == nullptr)
+  {
+    list = new TEveElementList(listName.c_str());
+    gEve->AddElement(list);
+  }
 }

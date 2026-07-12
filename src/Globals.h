@@ -8,4 +8,12 @@
 
 #include "DisplayConfig.h"
 
+#include "TStyle.h"
+#include "TColor.h"
+
 extern DisplayConfig displayConfig;
+
+extern Float_t hitsMarkerSize;
+extern Style_t hitsMarkerStyle;
+extern Color_t hitsMarkerColor;
+

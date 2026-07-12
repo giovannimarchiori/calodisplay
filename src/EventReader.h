@@ -123,7 +123,6 @@ public:
   TTreeReaderArray<Double_t> *SiWrapperEndcapHits_position_y = nullptr;
   TTreeReaderArray<Double_t> *SiWrapperEndcapHits_position_z = nullptr;
 
-
   // the digis in the vertex (barrel)
   TTreeReaderArray<ULong_t> *VertexBarrelDigis_cellID = nullptr;
   TTreeReaderArray<Float_t> *VertexBarrelDigis_energy = nullptr;
@@ -158,7 +157,6 @@ public:
   TTreeReaderArray<Double_t> *SiWrapperEndcapDigis_position_x = nullptr;
   TTreeReaderArray<Double_t> *SiWrapperEndcapDigis_position_y = nullptr;
   TTreeReaderArray<Double_t> *SiWrapperEndcapDigis_position_z = nullptr;
-
 
   // the digis in ECal barrel
   TTreeReaderArray<Float_t> *ECalBarrelHits_energy = nullptr;

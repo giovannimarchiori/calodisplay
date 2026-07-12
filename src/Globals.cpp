@@ -9,3 +9,7 @@
 #include "Globals.h"
 
 DisplayConfig displayConfig;
+
+Float_t hitsMarkerSize = 1.2;
+Style_t hitsMarkerStyle = 4;
+Color_t hitsMarkerColor = kRed;
