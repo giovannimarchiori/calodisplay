@@ -296,7 +296,25 @@ public:
  public:
   EventReader(TFile* f, bool doHCal=false);
   ~EventReader();
-  void SetBranches();
+  bool checkCollection(const std::string& drawFlag,
+		       const std::string& flagName,
+		       const std::string& requiredBranch,
+		       std::string& collectionName);
+  bool checkCollections(const std::string& drawFlag,
+			const std::string& flagName1,
+			const std::string& flagName2,
+			const std::string& requiredBranch,
+			std::string& collectionName1,
+			std::string& collectionName2);
+  template<class T>
+  TTreeReaderArray<T>* makeArray(const std::string& collection, const std::string& branch)
+  {
+    if (collection == "")
+      return new TTreeReaderArray<T>(*fReader, branch.c_str());
+    else
+      return new TTreeReaderArray<T>(*fReader, Form("%s.%s", collection.c_str(), branch.c_str()));
+  }
+  void setBranches();
   void loadEvent(int event);
   bool m_doHCal;
   bool m_doSW;

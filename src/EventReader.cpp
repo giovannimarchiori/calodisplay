@@ -16,654 +16,304 @@ EventReader::EventReader(TFile* f, bool doHCal)
   m_doHCal = doHCal;
 }
 
-void EventReader::SetBranches()
+bool EventReader::checkCollection(const std::string& drawFlag,
+				  const std::string& flagName,
+				  const std::string& requiredBranch,
+				  std::string& collectionName)
 {
+  if (!displayConfig.getBoolConfig(drawFlag))
+    return false;
+
+  collectionName = displayConfig.getStringConfig(flagName);
+  if (collectionName == "") {
+    std::cout << "WARNING: " << flagName <<  " not set, disabling " << flagName << std::endl;
+    displayConfig.setBoolConfig(drawFlag, false);
+    return false;
+  }
+  else {
+    if (! fReader->GetTree()->FindBranch(Form("%s.%s", collectionName.c_str(), requiredBranch.c_str()))) {
+      std::cout << "WARNING: branch " << collectionName << "." << requiredBranch << " not found, disabling " << flagName << std::endl;
+      displayConfig.setBoolConfig(drawFlag, false);
+      displayConfig.setStringConfig(flagName, "");
+      return false;
+    }
+    else
+      return true;
+  }
+}
+
+bool EventReader::checkCollections(const std::string& drawFlag,
+				   const std::string& flagName1,
+				   const std::string& flagName2,
+				   const std::string& requiredBranch,
+				   std::string& collectionName1,
+				   std::string& collectionName2)
+{
+  if (!displayConfig.getBoolConfig(drawFlag))
+    return false;
+
+  collectionName1 = displayConfig.getStringConfig(flagName1);
+  collectionName2 = displayConfig.getStringConfig(flagName2);
+  if (collectionName1 == "" or collectionName2 == "") {
+    std::cout << "WARNING: at least one of " << flagName1 << " or " << flagName2 << " not set, disabling " << flagName1 << " and " << flagName2 << std::endl;
+    displayConfig.setBoolConfig(drawFlag, false);
+    displayConfig.setStringConfig(flagName1, "");
+    displayConfig.setStringConfig(flagName2, "");
+    return false;
+  }
+  else {
+    if (! fReader->GetTree()->FindBranch(Form("%s.%s", collectionName1.c_str(), requiredBranch.c_str())) or
+	! fReader->GetTree()->FindBranch(Form("%s.%s", collectionName2.c_str(), requiredBranch.c_str())) ) {
+      std::cout << "WARNING: branch " << collectionName1 << "." << requiredBranch << " or "
+		<< collectionName2 << "." << requiredBranch << " not found, disabling " << flagName1 << " and " << flagName2 << std::endl;
+      displayConfig.setBoolConfig(drawFlag, false);
+      displayConfig.setStringConfig(flagName1, "");
+      displayConfig.setStringConfig(flagName2, "");
+      return false;
+    }
+    else
+      return true;
+  }
+}
+
+void EventReader::setBranches()
+{
+  std::string collection, collection2;
+
   // primary particles
-  if (displayConfig.getBoolConfig("drawGenParticles"))
+  if (checkCollection("drawGenParticles", "genParticles", "PDG", collection))
   {
-    std::string branchName = displayConfig.getStringConfig("genParticles");
-    const char* branch = branchName.c_str();
-    if (branchName == "") {
-      std::cout << "WARNING: genParticles not set, disabling gen particles" << std::endl;
-      displayConfig.setBoolConfig("drawGenParticles", false);
-    }
-    else {
-      if (! fReader->GetTree()->FindBranch(Form("%s.PDG", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".PDG not found, disabling gen particles" << std::endl;
-        displayConfig.setBoolConfig("drawGenParticles", false);
-        displayConfig.setStringConfig("genParticles", "");
-      }
-      else
-      {
-        genParticles_PDG = new TTreeReaderArray<Int_t>(*fReader, Form("%s.PDG", branch));
-        genParticles_generatorStatus = new TTreeReaderArray<Int_t>(*fReader, Form("%s.generatorStatus", branch));
-        genParticles_simulatorStatus = new TTreeReaderArray<Int_t>(*fReader, Form("%s.simulatorStatus", branch));
-        genParticles_charge = new TTreeReaderArray<Float_t>(*fReader, Form("%s.charge", branch));
-        genParticles_time = new TTreeReaderArray<Float_t>(*fReader, Form("%s.time", branch));
-        genParticles_mass = new TTreeReaderArray<Double_t>(*fReader, Form("%s.mass", branch));
-        genParticles_vertex_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.vertex.x", branch));
-        genParticles_vertex_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.vertex.y", branch));
-        genParticles_vertex_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.vertex.z", branch));
-        genParticles_endpoint_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.x", branch));
-        genParticles_endpoint_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.y", branch));
-        genParticles_endpoint_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.z", branch));
-        genParticles_momentum_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.x", branch));
-        genParticles_momentum_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.y", branch));
-        genParticles_momentum_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.z", branch));
-	genParticles_parents_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.parents_begin", branch));
-	genParticles_parents_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.parents_end", branch));
-	genParticles_parents_index = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_parents.index", branch));
-	genParticles_daughters_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.daughters_begin", branch));
-	genParticles_daughters_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.daughters_end", branch));
-	genParticles_daughters_index = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_daughters.index", branch));
-      }
-    }
+    genParticles_PDG = makeArray<Int_t>(collection, "PDG");
+    genParticles_generatorStatus = makeArray<Int_t>(collection, "generatorStatus");
+    genParticles_simulatorStatus = makeArray<Int_t>(collection, "simulatorStatus");
+    genParticles_charge = makeArray<Float_t>(collection, "charge");
+    genParticles_time = makeArray<Float_t>(collection, "time");
+    genParticles_mass = makeArray<Double_t>(collection, "mass");
+    genParticles_vertex_x = makeArray<Double_t>(collection, "vertex.x");
+    genParticles_vertex_y = makeArray<Double_t>(collection, "vertex.y");
+    genParticles_vertex_z = makeArray<Double_t>(collection, "vertex.z");
+    genParticles_endpoint_x = makeArray<Double_t>(collection, "endpoint.x");
+    genParticles_endpoint_y = makeArray<Double_t>(collection, "endpoint.y");
+    genParticles_endpoint_z = makeArray<Double_t>(collection, "endpoint.z");
+    genParticles_momentum_x = makeArray<Double_t>(collection, "momentum.x");
+    genParticles_momentum_y = makeArray<Double_t>(collection, "momentum.y");
+    genParticles_momentum_z = makeArray<Double_t>(collection, "momentum.z");
+    genParticles_parents_begin = makeArray<UInt_t>(collection, "parents_begin");
+    genParticles_parents_end = makeArray<UInt_t>(collection, "parents_end");
+    genParticles_parents_index = makeArray<Int_t>("_" + collection + "_parents", "index");
+    genParticles_daughters_begin = makeArray<UInt_t>(collection, "daughters_begin");
+    genParticles_daughters_end = makeArray<UInt_t>(collection, "daughters_end");
+    genParticles_daughters_index = makeArray<Int_t>("_" + collection + "_daughters", "index");
   }
   
   // secondary particles
-  if (displayConfig.getBoolConfig("drawSimParticles"))
+  if (checkCollection("drawSimParticles", "simParticles", "PDG", collection))
   {
-    std::string branchName = displayConfig.getStringConfig("simParticles");
-    const char* branch = branchName.c_str();
-    if (branchName == "") {
-      std::cout << "WARNING: simParticles not set, disabling sim particles" << std::endl;
-      displayConfig.setBoolConfig("drawSimParticles", false);
-    }
-    else {
-      if (! fReader->GetTree()->FindBranch(Form("%s.PDG", branch))) {
-        std::cout << "WARNING: branch " << branch << ".PDG not found, disabling sim particles" << std::endl;
-        displayConfig.setBoolConfig("drawSimParticles", false);
-        displayConfig.setStringConfig("simParticles", "");
-      }
-      else
-      {
-        SimParticleSecondaries_PDG = new TTreeReaderArray<Int_t>(*fReader, Form("%s.PDG", branch));
-        //SimParticleSecondaries_generatorStatus = new TTreeReaderArray<Int_t>(*fReader, Form("%s.generatorStatus", branch));
-        //SimParticleSecondaries_simulatorStatus = new TTreeReaderArray<Int_t>(*fReader, Form("%s.simulatorStatus", branch));
-        //SimParticleSecondaries_charge = new TTreeReaderArray<Float_t>(*fReader, Form("%s.charge", branch));
-        SimParticleSecondaries_time = new TTreeReaderArray<Float_t>(*fReader, Form("%s.time", branch));
-        SimParticleSecondaries_mass = new TTreeReaderArray<Double_t>(*fReader, Form("%s.mass", branch));
-        SimParticleSecondaries_vertex_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.vertex.x", branch));
-        SimParticleSecondaries_vertex_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.vertex.y", branch));
-        SimParticleSecondaries_vertex_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.vertex.z", branch));
-        SimParticleSecondaries_endpoint_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.x", branch));
-        SimParticleSecondaries_endpoint_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.y", branch));
-        SimParticleSecondaries_endpoint_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.endpoint.z", branch));
-        SimParticleSecondaries_momentum_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.x", branch));
-        SimParticleSecondaries_momentum_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.y", branch));
-        SimParticleSecondaries_momentum_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.momentum.z", branch));
-      }
-    }
+    SimParticleSecondaries_PDG = makeArray<Int_t>(collection, "PDG");
+    //SimParticleSecondaries_generatorStatus = makeArray<Int_t>(collection, "generatorStatus");
+    //SimParticleSecondaries_simulatorStatus = makeArray<Int_t>(collection, "simulatorStatus");
+    //SimParticleSecondaries_charge = makeArray<Float_t>(collection, "charge");
+    SimParticleSecondaries_time = makeArray<Float_t>(collection, "time");
+    SimParticleSecondaries_mass = makeArray<Double_t>(collection, "mass");
+    SimParticleSecondaries_vertex_x = makeArray<Double_t>(collection, "vertex.x");
+    SimParticleSecondaries_vertex_y = makeArray<Double_t>(collection, "vertex.y");
+    SimParticleSecondaries_vertex_z = makeArray<Double_t>(collection, "vertex.z");
+    SimParticleSecondaries_endpoint_x = makeArray<Double_t>(collection, "endpoint.x");
+    SimParticleSecondaries_endpoint_y = makeArray<Double_t>(collection, "endpoint.y");
+    SimParticleSecondaries_endpoint_z = makeArray<Double_t>(collection, "endpoint.z");
+    SimParticleSecondaries_momentum_x = makeArray<Double_t>(collection, "momentum.x");
+    SimParticleSecondaries_momentum_y = makeArray<Double_t>(collection, "momentum.y");
+    SimParticleSecondaries_momentum_z = makeArray<Double_t>(collection, "momentum.z");
   }
 
   // reconstructed tracks
-  if (displayConfig.getBoolConfig("drawTracks"))
+  if (checkCollection("drawTracks", "tracks", "trackStates_begin", collection))
   {
-    std::string branchName = displayConfig.getStringConfig("tracks");
-    const char* branch = branchName.c_str();
-    if (branchName == "") {
-      std::cout << "WARNING: tracks not set, disabling tracks" << std::endl;
-      displayConfig.setBoolConfig("drawTracks", false);
-    }
-    else {
-      if (! fReader->GetTree()->FindBranch(Form("%s.trackStates_begin", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".trackStates_begin not found, disabling tracks" << std::endl;
-        displayConfig.setBoolConfig("drawTracks", false);
-        displayConfig.setStringConfig("tracks", "");
-      }
-      else
-      {
-        Tracks_trackStates_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.trackStates_begin", branch));
-        Tracks_trackStates_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.trackStates_end", branch));
-        Tracks_subdetectorHitNumbers_begin = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.subdetectorHitNumbers_begin", branch));
-        Tracks_subdetectorHitNumbers_end = new TTreeReaderArray<UInt_t>(*fReader, Form("%s.subdetectorHitNumbers_end", branch));
-        _Tracks_trackStates_location = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_trackStates.location", branch));
-        _Tracks_trackStates_omega = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.omega", branch));
-        _Tracks_trackStates_phi = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.phi", branch));
-        _Tracks_trackStates_tanLambda = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.tanLambda", branch));
-        _Tracks_trackStates_referencePoint_x = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.x", branch));
-        _Tracks_trackStates_referencePoint_y = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.y", branch));
-        _Tracks_trackStates_referencePoint_z = new TTreeReaderArray<Float_t>(*fReader, Form("_%s_trackStates.referencePoint.z", branch));
-        _Tracks_subdetectorHitNumbers = new TTreeReaderArray<Int_t>(*fReader, Form("_%s_subdetectorHitNumbers", branch));
-      }
-    }
+    std::string trackStateColl = "_" + collection + "_trackStates";
+    Tracks_trackStates_begin = makeArray<UInt_t>(collection, "trackStates_begin");
+    Tracks_trackStates_end = makeArray<UInt_t>(collection, "trackStates_end");
+    Tracks_subdetectorHitNumbers_begin = makeArray<UInt_t>(collection, "subdetectorHitNumbers_begin");
+    Tracks_subdetectorHitNumbers_end = makeArray<UInt_t>(collection, "subdetectorHitNumbers_end");
+    _Tracks_trackStates_location = makeArray<Int_t>(trackStateColl, "location");
+    _Tracks_trackStates_omega = makeArray<Float_t>(trackStateColl, "omega");
+    _Tracks_trackStates_phi = makeArray<Float_t>(trackStateColl, "phi");
+    _Tracks_trackStates_tanLambda = makeArray<Float_t>(trackStateColl, "tanLambda");
+    _Tracks_trackStates_referencePoint_x = makeArray<Float_t>(trackStateColl, "referencePoint.x");
+    _Tracks_trackStates_referencePoint_y = makeArray<Float_t>(trackStateColl, "referencePoint.y");
+    _Tracks_trackStates_referencePoint_z = makeArray<Float_t>(trackStateColl, "referencePoint.z");
+    _Tracks_subdetectorHitNumbers = makeArray<Int_t>("", "_" + collection + "_subdetectorHitNumbers");
   }
 
   // hits in vertex detector
-  if (displayConfig.getBoolConfig("drawVertexHits"))
+  if (checkCollections("drawVertexHits", "vertexBarrelHits", "vertexEndcapHits", "cellID", collection, collection2))
   {
-    // check that branch name for inner barrel is set and branch exists
-    std::string branchName = displayConfig.getStringConfig("vertexBarrelHits");
-    if (branchName == "") {
-      std::cout << "WARNING: vertexBarrelHits not set, disabling vertex hits" << std::endl;
-      displayConfig.setBoolConfig("drawVertexHits", false);
-      displayConfig.setStringConfig("vertexEndcapHits", "");
-    }
-    else {
-      const char* branch = branchName.c_str();
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex hits" << std::endl;
-        displayConfig.setBoolConfig("drawVertexHits", false);
-        displayConfig.setStringConfig("vertexBarrelHits", "");
-        displayConfig.setStringConfig("vertexEndcapHits", "");
-      }
-    }
+    VertexBarrelHits_cellID     = makeArray<ULong_t>(collection, "cellID");
+    VertexBarrelHits_energy     = makeArray<Float_t>(collection, "eDep");
+    VertexBarrelHits_position_x = makeArray<Double_t>(collection, "position.x");
+    VertexBarrelHits_position_y = makeArray<Double_t>(collection, "position.y");
+    VertexBarrelHits_position_z = makeArray<Double_t>(collection, "position.z");
 
-    // check that branch name for endcap is set and branch exists
-    branchName = displayConfig.getStringConfig("vertexEndcapHits");
-    if (branchName == "") {
-      std::cout << "WARNING: vertexEndcapHits not set, disabling vertex hits" << std::endl;
-      displayConfig.setBoolConfig("drawVertexHits", false);
-      displayConfig.setStringConfig("vertexBarrelHits", "");
-    }
-    else {
-      const char* branch = branchName.c_str();
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex hits" << std::endl;
-        displayConfig.setBoolConfig("drawVertexHits", false);
-        displayConfig.setStringConfig("vertexBarrelHits", "");
-        displayConfig.setStringConfig("vertexEndcapHits", "");
-      }
-    }
-
-    // read the branches
-    if (displayConfig.getBoolConfig("drawVertexHits")) {
-      branchName = displayConfig.getStringConfig("vertexBarrelHits");
-      const char* branch = branchName.c_str();
-      VertexBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      VertexBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      VertexBarrelHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      VertexBarrelHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      VertexBarrelHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
-
-      branchName = displayConfig.getStringConfig("vertexEndcapHits");
-      branch = branchName.c_str();
-      VertexEndcapHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      VertexEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      VertexEndcapHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      VertexEndcapHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      VertexEndcapHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
-    }
+    VertexEndcapHits_cellID     = makeArray<ULong_t>(collection2, "cellID");
+    VertexEndcapHits_energy     = makeArray<Float_t>(collection2, "eDep");
+    VertexEndcapHits_position_x = makeArray<Double_t>(collection2, "position.x");
+    VertexEndcapHits_position_y = makeArray<Double_t>(collection2, "position.y");
+    VertexEndcapHits_position_z = makeArray<Double_t>(collection2, "position.z");
   }
 
   // hits in DCH or STT
-  if (displayConfig.getBoolConfig("drawMainTrackerHits"))
+  if (checkCollection("drawMainTrackerHits", "mainTrackerHits", "cellID", collection))
   {
-    std::string branchName = displayConfig.getStringConfig("mainTrackerHits");
-    const char* branch = branchName.c_str();
-    if (branchName == "") {
-      std::cout << "WARNING: mainTrackerHits not set, disabling main tracker hits" << std::endl;
-      displayConfig.setBoolConfig("drawMainTrackerHits", false);
-    }
-    else {
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling main tracker hits" << std::endl;
-        displayConfig.setBoolConfig("drawMainTrackerHits", false);
-        displayConfig.setStringConfig("mainTrackerHits", "");
-      }
-      else
-      {
-        MainTrackerHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-        MainTrackerHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-        MainTrackerHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-        MainTrackerHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-        MainTrackerHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
-      }
-    }
+    MainTrackerHits_cellID     = makeArray<ULong_t>(collection, "cellID");
+    MainTrackerHits_energy     = makeArray<Float_t>(collection, "eDep");
+    MainTrackerHits_position_x = makeArray<Double_t>(collection, "position.x");
+    MainTrackerHits_position_y = makeArray<Double_t>(collection, "position.y");
+    MainTrackerHits_position_z = makeArray<Double_t>(collection, "position.z");
   }
 
   // hits in si wrapper
-  if (displayConfig.getBoolConfig("drawSiWrapperHits"))
+  if (checkCollections("drawSiWrapperHits", "siWrapperBarrelHits", "siWrapperEndcapHits", "cellID", collection, collection2))
   {
-    // check that branch name for inner barrel is set and branch exists
-    std::string branchName = displayConfig.getStringConfig("siWrapperBarrelHits");
-    if (branchName == "") {
-      std::cout << "WARNING: siWrapperBarrelHits not set, disabling silicon wrapper hits" << std::endl;
-      displayConfig.setBoolConfig("drawSiWrapperHits", false);
-      displayConfig.setStringConfig("siWrapperEndcapHits", "");
-    }
-    else {
-      const char* branch = branchName.c_str();
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling silicon wrapper hits" << std::endl;
-        displayConfig.setBoolConfig("drawSiWrapperHits", false);
-        displayConfig.setStringConfig("siWrapperBarrelHits", "");
-        displayConfig.setStringConfig("siWrapperEndcapHits", "");
-      }
-    }
+    SiWrapperBarrelHits_cellID     = makeArray<ULong_t>(collection, "cellID");
+    SiWrapperBarrelHits_energy     = makeArray<Float_t>(collection, "eDep");
+    SiWrapperBarrelHits_position_x = makeArray<Double_t>(collection, "position.x");
+    SiWrapperBarrelHits_position_y = makeArray<Double_t>(collection, "position.y");
+    SiWrapperBarrelHits_position_z = makeArray<Double_t>(collection, "position.z");
 
-    // check that branch name for endcap is set and branch exists
-    branchName = displayConfig.getStringConfig("siWrapperEndcapHits");
-    if (branchName == "") {
-      std::cout << "WARNING: siWrapperEndcapHits not set, disabling silicon wrapper hits" << std::endl;
-      displayConfig.setBoolConfig("drawSiWrapperHits", false);
-      displayConfig.setStringConfig("siWrapperBarrelHits", "");
-    }
-    else {
-      const char* branch = branchName.c_str();
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling silicon wrapper hits" << std::endl;
-        displayConfig.setBoolConfig("drawSiWrapperHits", false);
-        displayConfig.setStringConfig("siWrapperBarrelHits", "");
-        displayConfig.setStringConfig("siWrapperEndcapHits", "");
-      }
-    }
-
-    // read the branches
-    if (displayConfig.getBoolConfig("drawSiWrapperHits")) {
-      branchName = displayConfig.getStringConfig("siWrapperBarrelHits");
-      const char* branch = branchName.c_str();
-      SiWrapperBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      SiWrapperBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      SiWrapperBarrelHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      SiWrapperBarrelHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      SiWrapperBarrelHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
-
-      branchName = displayConfig.getStringConfig("siWrapperEndcapHits");
-      branch = branchName.c_str();
-      SiWrapperEndcapHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      SiWrapperEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      SiWrapperEndcapHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      SiWrapperEndcapHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      SiWrapperEndcapHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
-    }
+    SiWrapperEndcapHits_cellID     = makeArray<ULong_t>(collection2, "cellID");
+    SiWrapperEndcapHits_energy     = makeArray<Float_t>(collection2, "eDep");
+    SiWrapperEndcapHits_position_x = makeArray<Double_t>(collection2, "position.x");
+    SiWrapperEndcapHits_position_y = makeArray<Double_t>(collection2, "position.y");
+    SiWrapperEndcapHits_position_z = makeArray<Double_t>(collection2, "position.z");
   }
 
   // digis in vertex detector
-  if (displayConfig.getBoolConfig("drawVertexDigis"))
+  if (checkCollections("drawVertexDigis", "vertexBarrelDigis", "vertexEndcapDigis", "cellID", collection, collection2))
   {
-    // check that branch name for inner barrel is set and branch exists
-    std::string branchName = displayConfig.getStringConfig("vertexBarrelDigis");
-    if (branchName == "") {
-      std::cout << "WARNING: vertexBarrelDigis not set, disabling vertex digis" << std::endl;
-      displayConfig.setBoolConfig("drawVertexDigis", false);
-      displayConfig.setStringConfig("vertexEndcapDigis", "");
-    }
-    else {
-      const char* branch = branchName.c_str();
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex digis" << std::endl;
-        displayConfig.setBoolConfig("drawVertexDigis", false);
-        displayConfig.setStringConfig("vertexBarrelDigis", "");
-        displayConfig.setStringConfig("vertexEndcapDigis", "");
-      }
-    }
+    VertexBarrelDigis_cellID     = makeArray<ULong_t>(collection, "cellID");
+    VertexBarrelDigis_energy     = makeArray<Float_t>(collection, "eDep");
+    VertexBarrelDigis_position_x = makeArray<Double_t>(collection, "position.x");
+    VertexBarrelDigis_position_y = makeArray<Double_t>(collection, "position.y");
+    VertexBarrelDigis_position_z = makeArray<Double_t>(collection, "position.z");
 
-    // check that branch name for endcap is set and branch exists
-    branchName = displayConfig.getStringConfig("vertexEndcapDigis");
-    if (branchName == "") {
-      std::cout << "WARNING: vertexEndcapDigis not set, disabling vertex digis" << std::endl;
-      displayConfig.setBoolConfig("drawVertexDigis", false);
-      displayConfig.setStringConfig("vertexBarrelDigis", "");
-    }
-    else {
-      const char* branch = branchName.c_str();
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling vertex digis" << std::endl;
-        displayConfig.setBoolConfig("drawVertexDigis", false);
-        displayConfig.setStringConfig("vertexBarrelDigis", "");
-        displayConfig.setStringConfig("vertexEndcapDigis", "");
-      }
-    }
-
-    // read the branches
-    if (displayConfig.getBoolConfig("drawVertexDigis")) {
-      branchName = displayConfig.getStringConfig("vertexBarrelDigis");
-      const char* branch = branchName.c_str();
-      VertexBarrelDigis_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      VertexBarrelDigis_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      VertexBarrelDigis_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      VertexBarrelDigis_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      VertexBarrelDigis_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
-
-      branchName = displayConfig.getStringConfig("vertexEndcapDigis");
-      branch = branchName.c_str();
-      VertexEndcapDigis_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      VertexEndcapDigis_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      VertexEndcapDigis_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      VertexEndcapDigis_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      VertexEndcapDigis_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
-    }
+    VertexEndcapDigis_cellID     = makeArray<ULong_t>(collection2, "cellID");
+    VertexEndcapDigis_energy     = makeArray<Float_t>(collection2, "eDep");
+    VertexEndcapDigis_position_x = makeArray<Double_t>(collection2, "position.x");
+    VertexEndcapDigis_position_y = makeArray<Double_t>(collection2, "position.y");
+    VertexEndcapDigis_position_z = makeArray<Double_t>(collection2, "position.z");
   }
 
   // digis in DCH / STT
-  if (displayConfig.getBoolConfig("drawMainTrackerDigis"))
+  if (checkCollection("drawMainTrackerDigis", "mainTrackerDigis", "cellID", collection))
   {
-    std::string branchName = displayConfig.getStringConfig("mainTrackerDigis");
-    const char* branch = branchName.c_str();
-    if (branchName == "") {
-      std::cout << "WARNING: mainTrackerDigis not set, disabling main tracker digis" << std::endl;
-      displayConfig.setBoolConfig("drawMainTrackerDigis", false);
-    }
-    else {
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling main tracker digis" << std::endl;
-        displayConfig.setBoolConfig("drawMainTrackerDigis", false);
-        displayConfig.setStringConfig("mainTrackerDigis", "");
-      }
-      else
-      {
-        MainTrackerDigis_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-        MainTrackerDigis_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-        MainTrackerDigis_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-        MainTrackerDigis_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-        MainTrackerDigis_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
-      }
-    }
+    MainTrackerDigis_cellID     = makeArray<ULong_t>(collection, "cellID");
+    MainTrackerDigis_energy     = makeArray<Float_t>(collection, "eDep");
+    MainTrackerDigis_position_x = makeArray<Double_t>(collection, "position.x");
+    MainTrackerDigis_position_y = makeArray<Double_t>(collection, "position.y");
+    MainTrackerDigis_position_z = makeArray<Double_t>(collection, "position.z");
   }
 
   // digis in si wrapper
-  if (displayConfig.getBoolConfig("drawSiWrapperDigis"))
+  if (checkCollections("drawSiWrapperDigis", "siWrapperBarrelDigis", "siWrapperEndcapDigis", "cellID", collection, collection2))
   {
-    // check that branch name for inner barrel is set and branch exists
-    std::string branchName = displayConfig.getStringConfig("siWrapperBarrelDigis");
-    if (branchName == "") {
-      std::cout << "WARNING: siWrapperBarrelDigis not set, disabling silicon wrapper digis" << std::endl;
-      displayConfig.setBoolConfig("drawSiWrapperDigis", false);
-      displayConfig.setStringConfig("siWrapperEndcapDigis", "");
-    }
-    else {
-      const char* branch = branchName.c_str();
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling silicon wrapper digis" << std::endl;
-        displayConfig.setBoolConfig("drawSiWrapperDigis", false);
-        displayConfig.setStringConfig("siWrapperBarrelDigis", "");
-        displayConfig.setStringConfig("siWrapperEndcapDigis", "");
-      }
-    }
+    SiWrapperBarrelDigis_cellID     = makeArray<ULong_t>(collection, "cellID");
+    SiWrapperBarrelDigis_energy     = makeArray<Float_t>(collection, "eDep");
+    SiWrapperBarrelDigis_position_x = makeArray<Double_t>(collection, "position.x");
+    SiWrapperBarrelDigis_position_y = makeArray<Double_t>(collection, "position.y");
+    SiWrapperBarrelDigis_position_z = makeArray<Double_t>(collection, "position.z");
 
-    // check that branch name for endcap is set and branch exists
-    branchName = displayConfig.getStringConfig("siWrapperEndcapDigis");
-    if (branchName == "") {
-      std::cout << "WARNING: siWrapperEndcapDigis not set, disabling silicon wrapper digis" << std::endl;
-      displayConfig.setBoolConfig("drawSiWrapperDigis", false);
-      displayConfig.setStringConfig("siWrapperBarrelDigis", "");
-    }
-    else {
-      const char* branch = branchName.c_str();
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling silicon wrapper digis" << std::endl;
-        displayConfig.setBoolConfig("drawSiWrapperDigis", false);
-        displayConfig.setStringConfig("siWrapperBarrelDigis", "");
-        displayConfig.setStringConfig("siWrapperEndcapDigis", "");
-      }
-    }
-
-    // read the branches
-    if (displayConfig.getBoolConfig("drawSiWrapperDigis")) {
-      branchName = displayConfig.getStringConfig("siWrapperBarrelDigis");
-      const char* branch = branchName.c_str();
-      SiWrapperBarrelDigis_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      SiWrapperBarrelDigis_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      SiWrapperBarrelDigis_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      SiWrapperBarrelDigis_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      SiWrapperBarrelDigis_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
-
-      branchName = displayConfig.getStringConfig("siWrapperEndcapDigis");
-      branch = branchName.c_str();
-      SiWrapperEndcapDigis_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      SiWrapperEndcapDigis_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      SiWrapperEndcapDigis_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      SiWrapperEndcapDigis_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      SiWrapperEndcapDigis_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
-    }
+    SiWrapperEndcapDigis_cellID     = makeArray<ULong_t>(collection2, "cellID");
+    SiWrapperEndcapDigis_energy     = makeArray<Float_t>(collection2, "eDep");
+    SiWrapperEndcapDigis_position_x = makeArray<Double_t>(collection2, "position.x");
+    SiWrapperEndcapDigis_position_y = makeArray<Double_t>(collection2, "position.y");
+    SiWrapperEndcapDigis_position_z = makeArray<Double_t>(collection2, "position.z");
   }
 
   // hits in ECal barrel
-  if (displayConfig.getBoolConfig("drawECalBarrelHits"))
+  if (checkCollection("drawECalBarrelHits", "ecalBarrelHits", "energy", collection))
   {
-    std::string branchName = displayConfig.getStringConfig("ecalBarrelHits");
-    const char* branch = branchName.c_str();
-    if (branchName == "") {
-      std::cout << "WARNING: ecalBarrelHits not set, disabling ecal barrel hits" << std::endl;
-      displayConfig.setBoolConfig("drawECalBarrelHits", false);
-    }
-    else {
-      if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".energy not found, disabling ecal barrel hits" << std::endl;
-        displayConfig.setBoolConfig("drawECalBarrelHits", false);
-        displayConfig.setStringConfig("ecalBarrelHits", "");
-      }
-      else
-      {
-        ECalBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-        ECalBarrelHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
-        ECalBarrelHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
-        ECalBarrelHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.z", branch));
-      }
-    }
+    ECalBarrelHits_energy     = makeArray<Float_t>(collection, "energy");
+    ECalBarrelHits_position_x = makeArray<Float_t>(collection, "stepPosition.x");
+    ECalBarrelHits_position_y = makeArray<Float_t>(collection, "stepPosition.y");
+    ECalBarrelHits_position_z = makeArray<Float_t>(collection, "stepPosition.z");
   }
 
   // cells in ECal barrel
-  if (displayConfig.getBoolConfig("drawECalBarrelCells"))
+  if (checkCollection("drawECalBarrelCells", "ecalBarrelCells", "energy", collection))
   {
-    std::string branchName = displayConfig.getStringConfig("ecalBarrelCells");
-    const char* branch = branchName.c_str();
-    if (branchName == "") {
-      std::cout << "WARNING: ecalBarrelCells not set, disabling ecal barrel cells" << std::endl;
-      displayConfig.setBoolConfig("drawECalBarrelCells", false);
-    }
-    else {
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling ecal barrel cells" << std::endl;
-        displayConfig.setBoolConfig("drawECalBarrelCells", false);
-        displayConfig.setStringConfig("ecalBarrelCells", "");
-      }
-      else
-      {
-        ECalBarrelCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-        ECalBarrelCells_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-        ECalBarrelCells_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-        ECalBarrelCells_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-        ECalBarrelCells_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
-      }
-    }
+    ECalBarrelCells_cellID     = makeArray<ULong_t>(collection, "cellID");
+    ECalBarrelCells_energy     = makeArray<Float_t>(collection, "energy");
+    ECalBarrelCells_position_x = makeArray<Float_t>(collection, "position.x");
+    ECalBarrelCells_position_y = makeArray<Float_t>(collection, "position.y");
+    ECalBarrelCells_position_z = makeArray<Float_t>(collection, "position.z");
   }
   
   // cells in ECal barrel with coarser merging
-  if (displayConfig.getBoolConfig("drawECalBarrelMergedCells"))
+  if (checkCollection("drawECalBarrelMergedCells", "ecalBarrelMergedCells", "energy", collection))
   {
-    std::string branchName = displayConfig.getStringConfig("ecalBarrelMergedCells");
-    const char* branch = branchName.c_str();
-    if (branchName == "") {
-      std::cout << "WARNING: ecalBarrelMergedCells not set, disabling ecal barrel merged cells" << std::endl;
-      displayConfig.setBoolConfig("drawECalBarrelMergedCells", false);
-    }
-    else {
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling ecal barrel cells" << std::endl;
-        displayConfig.setBoolConfig("drawECalBarrelMergedCells", false);
-        displayConfig.setStringConfig("ecalBarrelMergedCells", "");
-      }
-      else
-      {
-        // ECalBarrelCells2_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));    
-        ECalBarrelCells2_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));    
-        ECalBarrelCells2_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-        ECalBarrelCells2_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-        ECalBarrelCells2_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
-      }
-    }
-  }
-  else {
-    displayConfig.setStringConfig("ecalBarrelMergedCells", "");
+    // ECalBarrelCells2_cellID     = makeArray<ULong_t>(collection, "cellID");    
+    ECalBarrelCells2_energy     = makeArray<Float_t>(collection, "energy");    
+    ECalBarrelCells2_position_x = makeArray<Float_t>(collection, "position.x");
+    ECalBarrelCells2_position_y = makeArray<Float_t>(collection, "position.y");
+    ECalBarrelCells2_position_z = makeArray<Float_t>(collection, "position.z");
   }
 
   // hits in ECal endcap
-  if (displayConfig.getBoolConfig("drawECalEndcapHits"))
+  if (checkCollection("drawECalEndcapHits", "ecalEndcapHits", "energy", collection))
   {
-    std::string branchName = displayConfig.getStringConfig("ecalEndcapHits");
-    const char* branch = branchName.c_str();
-    if (branchName == "") {
-      std::cout << "WARNING: ecalEndcapHits not set, disabling ecal endcap hits" << std::endl;
-      displayConfig.setBoolConfig("drawECalEndcapHits", false);
-    }
-    else {
-      if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".energy not found, disabling ecal endcap hits" << std::endl;
-        displayConfig.setBoolConfig("drawECalEndcapHits", false);
-        displayConfig.setStringConfig("ecalEndcapHits", "");
-      }
-      else
-      {
-        ECalEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-        ECalEndcapHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
-        ECalEndcapHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
-        ECalEndcapHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.z", branch));
-      }
-    }
+    ECalEndcapHits_energy     = makeArray<Float_t>(collection, "energy");
+    ECalEndcapHits_position_x = makeArray<Float_t>(collection, "stepPosition.x");
+    ECalEndcapHits_position_y = makeArray<Float_t>(collection, "stepPosition.y");
+    ECalEndcapHits_position_z = makeArray<Float_t>(collection, "stepPosition.z");
   }
 
   // cells in ECal endcap
-  if (displayConfig.getBoolConfig("drawECalEndcapCells"))
+  if (checkCollection("drawECalEndcapCells", "ecalEndcapCells", "energy", collection))
   {
-    std::string branchName = displayConfig.getStringConfig("ecalEndcapCells");
-    const char* branch = branchName.c_str();
-    if (branchName == "") {
-      std::cout << "WARNING: ecalEndcapCells not set, disabling ecal endcap cells" << std::endl;
-      displayConfig.setBoolConfig("drawECalEndcapCells", false);
-    }
-    else {
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling ecal endcap cells" << std::endl;
-        displayConfig.setBoolConfig("drawECalEndcapCells", false);
-        displayConfig.setStringConfig("ecalEndcapCells", "");
-      }
-      else
-      {
-        ECalEndcapCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-        ECalEndcapCells_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-        ECalEndcapCells_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-        ECalEndcapCells_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-        ECalEndcapCells_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
-      }
-    }
+    ECalEndcapCells_cellID     = makeArray<ULong_t>(collection, "cellID");
+    ECalEndcapCells_energy     = makeArray<Float_t>(collection, "energy");
+    ECalEndcapCells_position_x = makeArray<Float_t>(collection, "position.x");
+    ECalEndcapCells_position_y = makeArray<Float_t>(collection, "position.y");
+    ECalEndcapCells_position_z = makeArray<Float_t>(collection, "position.z");
   }
   
   if (m_doHCal) {
     // hits in HCal barrel
-    if (displayConfig.getBoolConfig("drawHCalBarrelHits"))
+    if (checkCollection("drawHCalBarrelHits", "hcalBarrelHits", "energy", collection))
     {
-      std::string branchName = displayConfig.getStringConfig("hcalBarrelHits");
-      const char* branch = branchName.c_str();
-      if (branchName == "") {
-        std::cout << "WARNING: hcalBarrelHits not set, disabling hcal barrel hits" << std::endl;
-        displayConfig.setBoolConfig("drawHCalBarrelHits", false);
-      }
-      else {
-        if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
-        {
-          std::cout << "WARNING: branch " << branch << ".energy not found, disabling hcal barrel hits" << std::endl;
-          displayConfig.setBoolConfig("drawHCalBarrelHits", false);
-          displayConfig.setStringConfig("hcalBarrelHits", "");
-        }
-        else
-        {
-          HCalBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));    
-          HCalBarrelHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
-          HCalBarrelHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
-          HCalBarrelHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.z", branch));
-        }
-      }
+      HCalBarrelHits_energy     = makeArray<Float_t>(collection, "energy");    
+      HCalBarrelHits_position_x = makeArray<Float_t>(collection, "stepPosition.x");
+      HCalBarrelHits_position_y = makeArray<Float_t>(collection, "stepPosition.y");
+      HCalBarrelHits_position_z = makeArray<Float_t>(collection, "stepPosition.z");
     }
     
     // cells in HCal barrel
-    if (displayConfig.getBoolConfig("drawHCalBarrelCells"))
+    if (checkCollection("drawHCalBarrelCells", "hcalBarrelCells", "energy", collection))
     {
-      std::string branchName = displayConfig.getStringConfig("hcalBarrelCells");
-      const char* branch = branchName.c_str();
-      if (branchName == "") {
-       std::cout << "WARNING: hcalBarrelCells not set, disabling hcal barrel cells" << std::endl;
-        displayConfig.setBoolConfig("drawHCalBarrelCells", false);
-      }
-      else {
-        if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-        {
-          std::cout << "WARNING: branch " << branch << ".cellID not found, disabling hcal barrel cells" << std::endl;
-          displayConfig.setBoolConfig("drawHCalBarrelCells", false);
-          displayConfig.setStringConfig("hcalBarrelCells", "");
-        }
-        else
-        {
-          HCalBarrelCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-          HCalBarrelCells_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-          HCalBarrelCells_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-          HCalBarrelCells_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-          HCalBarrelCells_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
-        }
-      }
+      HCalBarrelCells_cellID     = makeArray<ULong_t>(collection, "cellID");
+      HCalBarrelCells_energy     = makeArray<Float_t>(collection, "energy");
+      HCalBarrelCells_position_x = makeArray<Float_t>(collection, "position.x");
+      HCalBarrelCells_position_y = makeArray<Float_t>(collection, "position.y");
+      HCalBarrelCells_position_z = makeArray<Float_t>(collection, "position.z");
     }
 
     // hits in HCal endcap
-    if (displayConfig.getBoolConfig("drawHCalEndcapHits"))
+    if (checkCollection("drawHCalEndcapHits", "hcalEndcapHits", "energy", collection))
     {
-      std::string branchName = displayConfig.getStringConfig("hcalEndcapHits");
-      const char* branch = branchName.c_str();
-      if (branchName == "") {
-        std::cout << "WARNING: hcalEndcapHits not set, disabling hcal endcap hits" << std::endl;
-        displayConfig.setBoolConfig("drawHCalEndcapHits", false);
-      }
-      else {
-        if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
-        {
-          std::cout << "WARNING: branch " << branch << ".energy not found, disabling hcal endcap hits" << std::endl;
-          displayConfig.setBoolConfig("drawHCalEndcapHits", false);
-          displayConfig.setStringConfig("hcalEndcapHits", "");
-        }
-        else
-        {
-          HCalEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));    
-          HCalEndcapHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
-          HCalEndcapHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
-          HCalEndcapHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.z", branch));
-        }
-      }
+      HCalEndcapHits_energy     = makeArray<Float_t>(collection, "energy");    
+      HCalEndcapHits_position_x = makeArray<Float_t>(collection, "stepPosition.x");
+      HCalEndcapHits_position_y = makeArray<Float_t>(collection, "stepPosition.y");
+      HCalEndcapHits_position_z = makeArray<Float_t>(collection, "stepPosition.z");
     }
     
     // cells in HCal endcap
-    if (displayConfig.getBoolConfig("drawHCalEndcapCells"))
+    if (checkCollection("drawHCalEndcapCells", "hcalEndcapCells", "energy", collection))
     {
-      std::string branchName = displayConfig.getStringConfig("hcalEndcapCells");
-      const char* branch = branchName.c_str();
-      if (branchName == "") {
-       std::cout << "WARNING: hcalEndcapCells not set, disabling hcal endcap cells" << std::endl;
-        displayConfig.setBoolConfig("drawHCalEndcapCells", false);
-      }
-      else {
-        if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-        {
-          std::cout << "WARNING: branch " << branch << ".cellID not found, disabling hcal endcap cells" << std::endl;
-          displayConfig.setBoolConfig("drawHCalEndcapCells", false);
-          displayConfig.setStringConfig("hcalEndcapCells", "");
-        }
-        else
-        {
-          HCalEndcapCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-          HCalEndcapCells_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-          HCalEndcapCells_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-          HCalEndcapCells_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-          HCalEndcapCells_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
-        }
-      }
+      HCalEndcapCells_cellID     = makeArray<ULong_t>(collection, "cellID");
+      HCalEndcapCells_energy     = makeArray<Float_t>(collection, "energy");
+      HCalEndcapCells_position_x = makeArray<Float_t>(collection, "position.x");
+      HCalEndcapCells_position_y = makeArray<Float_t>(collection, "position.y");
+      HCalEndcapCells_position_z = makeArray<Float_t>(collection, "position.z");
     }
-
   }
   else {
     std::cout << "doHCal is false, setting drawHCal*Hits and drawHCal*Cells to false" << std::endl;
@@ -678,182 +328,64 @@ void EventReader::SetBranches()
   }
 
   // hits in muon tagger
-  if (displayConfig.getBoolConfig("drawMuonHits"))
+  if (checkCollections("drawMuonHits", "muonBarrelHits", "muonEndcapHits", "energy", collection, collection2))
   {
-    // check that branch name for inner barrel is set and branch exists
-    std::string branchName = displayConfig.getStringConfig("muonBarrelHits");
-    if (branchName == "") {
-      std::cout << "WARNING: muonBarrelHits not set, disabling muon hits" << std::endl;
-      displayConfig.setBoolConfig("drawMuonHits", false);
-      displayConfig.setStringConfig("muonEndcapHits", "");
-    }
-    else {
-      const char* branch = branchName.c_str();
-      // tracker-based
-      // if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      // calo-based
-      if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".energy not found, disabling muon hits" << std::endl;
-        displayConfig.setBoolConfig("drawMuonHits", false);
-        displayConfig.setStringConfig("muonBarrelHits", "");
-        displayConfig.setStringConfig("muonEndcapHits", "");
-      }
-    }
+    MuonBarrelHits_energy     = makeArray<Float_t>(collection, "energy");
+    MuonBarrelHits_position_x = makeArray<Float_t>(collection, "stepPosition.x");
+    MuonBarrelHits_position_y = makeArray<Float_t>(collection, "stepPosition.y");
+    MuonBarrelHits_position_z = makeArray<Float_t>(collection, "stepPosition.z");
 
-    // check that branch name for endcap is set and branch exists
-    branchName = displayConfig.getStringConfig("muonEndcapHits");
-    if (branchName == "") {
-      std::cout << "WARNING: muonEndcapHits not set, disabling muon hits" << std::endl;
-      displayConfig.setBoolConfig("drawMuonHits", false);
-      displayConfig.setStringConfig("muonBarrelHits", "");
-    }
-    else {
-      const char* branch = branchName.c_str();
-      if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".energy not found, disabling muon hits" << std::endl;
-        displayConfig.setBoolConfig("drawMuonHits", false);
-        displayConfig.setStringConfig("muonBarrelHits", "");
-        displayConfig.setStringConfig("muonEndcapHits", "");
-      }
-    }
-
-    // read the branches
-    if (displayConfig.getBoolConfig("drawMuonHits")) {
-      branchName = displayConfig.getStringConfig("muonBarrelHits");
-      const char* branch = branchName.c_str();
-      // for tracker-based SD
-      // MuonBarrelHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      // MuonBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      // MuonBarrelHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      // MuonBarrelHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      // MuonBarrelHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
-      // for calo-based SD
-      MuonBarrelHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-      MuonBarrelHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.x", branch));
-      MuonBarrelHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.y", branch));
-      MuonBarrelHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.stepPosition.z", branch));
-
-      branchName = displayConfig.getStringConfig("muonEndcapHits");
-      branch = branchName.c_str();
-      // MuonEndcapHits_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      // for tracker-based SD
-      // MuonEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.eDep", branch));
-      // MuonEndcapHits_position_x = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.x", branch));
-      // MuonEndcapHits_position_y = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.y", branch));
-      // MuonEndcapHits_position_z = new TTreeReaderArray<Double_t>(*fReader, Form("%s.position.z", branch));
-      // for calo-based SD
-      MuonEndcapHits_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-      MuonEndcapHits_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-      MuonEndcapHits_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-      MuonEndcapHits_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
-    }
+    MuonEndcapHits_energy     = makeArray<Float_t>(collection2, "energy");
+    MuonEndcapHits_position_x = makeArray<Float_t>(collection2, "stepPosition.x");
+    MuonEndcapHits_position_y = makeArray<Float_t>(collection2, "stepPosition.y");
+    MuonEndcapHits_position_z = makeArray<Float_t>(collection2, "stepPosition.z");
   }
 
   // cells in muon tagger
-  if (displayConfig.getBoolConfig("drawMuonCells"))
+  if (checkCollections("drawMuonCells", "muonBarrelCells", "muonEndcapCells", "energy", collection, collection2))
   {
-    // check that branch name for inner barrel is set and branch exists
-    std::string branchName = displayConfig.getStringConfig("muonBarrelCells");
-    if (branchName == "") {
-      std::cout << "WARNING: muonBarrelCells not set, disabling muon cells" << std::endl;
-      displayConfig.setBoolConfig("drawMuonCells", false);
-      displayConfig.setStringConfig("muonEndcapCells", "");
-    }
-    else {
-      const char* branch = branchName.c_str();
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling muon cells" << std::endl;
-        displayConfig.setBoolConfig("drawMuonCells", false);
-        displayConfig.setStringConfig("muonBarrelCells", "");
-        displayConfig.setStringConfig("muonEndcapCells", "");
-      }
-    }
+    MuonBarrelCells_cellID     = makeArray<ULong_t>(collection, "cellID");
+    MuonBarrelCells_energy     = makeArray<Float_t>(collection, "energy");
+    MuonBarrelCells_position_x = makeArray<Float_t>(collection, "position.x");
+    MuonBarrelCells_position_y = makeArray<Float_t>(collection, "position.y");
+    MuonBarrelCells_position_z = makeArray<Float_t>(collection, "position.z");
 
-    // check that branch name for endcap is set and branch exists
-    branchName = displayConfig.getStringConfig("muonEndcapCells");
-    if (branchName == "") {
-      std::cout << "WARNING: muonEndcapCells not set, disabling muon cells" << std::endl;
-      displayConfig.setBoolConfig("drawMuonCells", false);
-      displayConfig.setStringConfig("muonBarrelCells", "");
-    }
-    else {
-      const char* branch = branchName.c_str();
-      if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".cellID not found, disabling muon cells" << std::endl;
-        displayConfig.setBoolConfig("drawMuonCells", false);
-        displayConfig.setStringConfig("muonBarrelCells", "");
-        displayConfig.setStringConfig("muonEndcapCells", "");
-      }
-    }
-
-    // read the branches
-    if (displayConfig.getBoolConfig("drawMuonCells")) {
-      branchName = displayConfig.getStringConfig("muonBarrelCells");
-      const char* branch = branchName.c_str();
-      MuonBarrelCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      MuonBarrelCells_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-      MuonBarrelCells_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-      MuonBarrelCells_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-      MuonBarrelCells_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
-
-      branchName = displayConfig.getStringConfig("muonEndcapCells");
-      branch = branchName.c_str();
-      MuonEndcapCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      MuonEndcapCells_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-      MuonEndcapCells_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-      MuonEndcapCells_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-      MuonEndcapCells_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
-    }
+    MuonEndcapCells_cellID     = makeArray<ULong_t>(collection2, "cellID");
+    MuonEndcapCells_energy     = makeArray<Float_t>(collection2, "energy");
+    MuonEndcapCells_position_x = makeArray<Float_t>(collection2, "position.x");
+    MuonEndcapCells_position_y = makeArray<Float_t>(collection2, "position.y");
+    MuonEndcapCells_position_z = makeArray<Float_t>(collection2, "position.z");
   }
 
 
   // SW clusters
-  if (displayConfig.getBoolConfig("drawCaloClusters")) {
-    std::string branchName = displayConfig.getStringConfig("caloClusters");
-    const char* branch = branchName.c_str();
-    if (branchName == "") {
-      std::cout << "WARNING: caloClusters not set, disabling calo clusters" << std::endl;
-      displayConfig.setBoolConfig("drawCaloClusters", false);
-    }
-    else {
-      if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".energy not found, disabling calo clusters" << std::endl;
-        displayConfig.setBoolConfig("drawCaloClusters", false);
-        displayConfig.setStringConfig("caloClusters", "");
-      }
-      else {
-        CaloClusters_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-        CaloClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-        CaloClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-        CaloClusters_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
-        CaloClusters_theta      = new TTreeReaderArray<Float_t>(*fReader, Form("%s.iTheta", branch));
-        CaloClusters_phi        = new TTreeReaderArray<Float_t>(*fReader, Form("%s.phi", branch));
-        CaloClusters_hits_begin = new TTreeReaderArray<UInt_t> (*fReader, Form("%s.hits_begin", branch));
-        CaloClusters_hits_end   = new TTreeReaderArray<UInt_t> (*fReader, Form("%s.hits_end", branch));
-      }
-    }
+  if (checkCollection("drawCaloClusters", "caloClusters", "energy", collection))
+  {
+    CaloClusters_energy     = makeArray<Float_t>(collection, "energy");
+    CaloClusters_position_x = makeArray<Float_t>(collection, "position.x");
+    CaloClusters_position_y = makeArray<Float_t>(collection, "position.y");
+    CaloClusters_position_z = makeArray<Float_t>(collection, "position.z");
+    CaloClusters_theta      = makeArray<Float_t>(collection, "iTheta");
+    CaloClusters_phi        = makeArray<Float_t>(collection, "phi");
+    CaloClusters_hits_begin = makeArray<UInt_t> (collection, "hits_begin");
+    CaloClusters_hits_end   = makeArray<UInt_t> (collection, "hits_end");
   }
+
   // cells in the SW clusters
   // need to modify EventDisplay.cpp FillClusters and DrawClusters if I don't want to use cell info
   //  if (displayConfig.getBoolConfig("drawCaloClusters") && displayConfig.getBoolConfig("drawCaloClusterCells")) {
   if (displayConfig.getBoolConfig("drawCaloClusters")) {
-    std::string branchName = displayConfig.getStringConfig("caloClusterCells");
-    if (branchName == "") {
+    std::string collection = displayConfig.getStringConfig("caloClusterCells");
+    if (collection == "") {
       // try to use default collection
-      branchName = displayConfig.getStringConfig("caloClusters");
-      branchName.pop_back();
-      branchName += "Cells";
-      std::cout << "WARNING: caloClusterCells not set, trying with " << branchName << std::endl;
-      displayConfig.setStringConfig("caloClusterCells", branchName);
+      collection = displayConfig.getStringConfig("caloClusters");
+      collection.pop_back();
+      collection += "Cells";
+      std::cout << "WARNING: caloClusterCells not set, trying with " << collection << std::endl;
+      displayConfig.setStringConfig("caloClusterCells", collection);
     }
-    const char* branch = branchName.c_str();
-    if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch))) {
-      std::cout << "WARNING: branch " << branch << ".cellID not found, disabling calo cluster cells" << std::endl;
+    if (! fReader->GetTree()->FindBranch(Form("%s.cellID", collection.c_str()))) {
+      std::cout << "WARNING: branch " << collection << ".cellID not found, disabling calo cluster cells" << std::endl;
       displayConfig.setBoolConfig("drawCaloClusterCells", false);
       displayConfig.setStringConfig("caloClusterCells", "");
       // also disable the clusters until I fix EventDisplay.cpp
@@ -861,59 +393,42 @@ void EventReader::SetBranches()
       displayConfig.setStringConfig("caloClusters", "");
     }
     else {
-      CaloClusterCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      CaloClusterCells_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-      CaloClusterCells_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-      CaloClusterCells_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-      CaloClusterCells_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
+      CaloClusterCells_cellID     = makeArray<ULong_t>(collection, "cellID");
+      CaloClusterCells_energy     = makeArray<Float_t>(collection, "energy");
+      CaloClusterCells_position_x = makeArray<Float_t>(collection, "position.x");
+      CaloClusterCells_position_y = makeArray<Float_t>(collection, "position.y");
+      CaloClusterCells_position_z = makeArray<Float_t>(collection, "position.z");
     }
   }
 
-
   // topo clusters
-  if (displayConfig.getBoolConfig("drawTopoClusters")) {
-    std::string branchName = displayConfig.getStringConfig("topoClusters");
-    const char* branch = branchName.c_str();
-    if (branchName == "") {
-      std::cout << "WARNING: topoClusters not set, disabling topo clusters" << std::endl;
-      displayConfig.setBoolConfig("drawTopoClusters", false);
-    }
-    else {
-      if (! fReader->GetTree()->FindBranch(Form("%s.energy", branch)))
-      {
-        std::cout << "WARNING: branch " << branch << ".energy not found, disabling topo clusters" << std::endl;
-        displayConfig.setBoolConfig("drawTopoClusters", false);
-        displayConfig.setStringConfig("topoClusters", "");
-      }
-      else {
-        CaloTopoClusters_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-        CaloTopoClusters_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-        CaloTopoClusters_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-        CaloTopoClusters_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
-        CaloTopoClusters_theta      = new TTreeReaderArray<Float_t>(*fReader, Form("%s.iTheta", branch));
-        CaloTopoClusters_phi        = new TTreeReaderArray<Float_t>(*fReader, Form("%s.phi", branch));
-        CaloTopoClusters_hits_begin = new TTreeReaderArray<UInt_t> (*fReader, Form("%s.hits_begin", branch));
-        CaloTopoClusters_hits_end   = new TTreeReaderArray<UInt_t> (*fReader, Form("%s.hits_end", branch));
-      }
-    }
+  if (checkCollection("drawTopoClusters", "topoClusters", "energy", collection))
+  {
+    CaloTopoClusters_energy     = makeArray<Float_t>(collection, "energy");
+    CaloTopoClusters_position_x = makeArray<Float_t>(collection, "position.x");
+    CaloTopoClusters_position_y = makeArray<Float_t>(collection, "position.y");
+    CaloTopoClusters_position_z = makeArray<Float_t>(collection, "position.z");
+    CaloTopoClusters_theta      = makeArray<Float_t>(collection, "iTheta");
+    CaloTopoClusters_phi        = makeArray<Float_t>(collection, "phi");
+    CaloTopoClusters_hits_begin = makeArray<UInt_t> (collection, "hits_begin");
+    CaloTopoClusters_hits_end   = makeArray<UInt_t> (collection, "hits_end");
   }
   
   // cells in the topo clusters
   // need to modify EventDisplay.cpp FillClusters and DrawClusters if I don't want to use cell info
   // if (displayConfig.getBoolConfig("drawTopoClusters") && displayConfig.getBoolConfig("drawTopoClusterCells")) {
   if (displayConfig.getBoolConfig("drawTopoClusters")) {
-    std::string branchName = displayConfig.getStringConfig("topoClusterCells");
-    if (branchName == "") {
+    std::string collection = displayConfig.getStringConfig("topoClusterCells");
+    if (collection == "") {
       // try to use default collection
-      branchName = displayConfig.getStringConfig("topoClusters");
-      branchName.pop_back();
-      branchName += "Cells";
-      std::cout << "WARNING: topoClusterCells not set, trying with " << branchName << std::endl;
-      displayConfig.setStringConfig("topoClusterCells", branchName);
+      collection = displayConfig.getStringConfig("topoClusters");
+      collection.pop_back();
+      collection += "Cells";
+      std::cout << "WARNING: topoClusterCells not set, trying with " << collection << std::endl;
+      displayConfig.setStringConfig("topoClusterCells", collection);
     }
-    const char* branch = branchName.c_str();
-    if (! fReader->GetTree()->FindBranch(Form("%s.cellID", branch))) {
-      std::cout << "WARNING: branch " << branch << ".cellID not found, disabling topo cluster cells" << std::endl;
+    if (! fReader->GetTree()->FindBranch(Form("%s.cellID", collection.c_str()))) {
+      std::cout << "WARNING: branch " << collection << ".cellID not found, disabling topo cluster cells" << std::endl;
       displayConfig.setBoolConfig("drawTopoClusterCells", false);
       displayConfig.setStringConfig("topoClusterCells", "");
       // also disable the clusters until I fix EventDisplay.cpp
@@ -921,11 +436,11 @@ void EventReader::SetBranches()
       displayConfig.setStringConfig("topoClusters", "");
     }
     else {
-      CaloTopoClusterCells_cellID     = new TTreeReaderArray<ULong_t>(*fReader, Form("%s.cellID", branch));
-      CaloTopoClusterCells_energy     = new TTreeReaderArray<Float_t>(*fReader, Form("%s.energy", branch));
-      CaloTopoClusterCells_position_x = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.x", branch));
-      CaloTopoClusterCells_position_y = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.y", branch));
-      CaloTopoClusterCells_position_z = new TTreeReaderArray<Float_t>(*fReader, Form("%s.position.z", branch));
+      CaloTopoClusterCells_cellID     = makeArray<ULong_t>(collection, "cellID");
+      CaloTopoClusterCells_energy     = makeArray<Float_t>(collection, "energy");
+      CaloTopoClusterCells_position_x = makeArray<Float_t>(collection, "position.x");
+      CaloTopoClusterCells_position_y = makeArray<Float_t>(collection, "position.y");
+      CaloTopoClusterCells_position_z = makeArray<Float_t>(collection, "position.z");
     }
   }
 }

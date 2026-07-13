@@ -43,7 +43,7 @@
     "muonBarrelCells": "MuonTaggerBarrelPhiThetaPositioned",
     "muonBarrelHits": "MuonTaggerBarrelPhiThetaContributions",
     "muonEndcapCells": "MuonTaggerEndcapPhiThetaPositioned",
-    "muonEndcapHits": "MuonTaggerEndcapPhiTheta",
+    "muonEndcapHits": "MuonTaggerEndcapPhiThetaContributions",
     "simParticles": "MCParticles",
     "topoClusterCells": "CaloTopoClusterCells",
     "topoClusters": "CaloTopoClusters",
