@@ -2107,7 +2107,7 @@ void EventDisplay::drawEvent(int event)
   // textEntry->SetText(Form("Loading event %d ...", eventId));
 
   // write event number in status bar
-  gEve->GetBrowser()->SetStatusText(Form("Loading event %d ...", eventId),0);
+  browser->SetStatusText(Form("Loading event %d ...", eventId),0);
 
   // read event from file
   eventReader->loadEvent(eventId);
@@ -2194,7 +2194,7 @@ void EventDisplay::drawEvent(int event)
 
   // textEntry->SetTextColor((Pixel_t)0x000000);
   // textEntry->SetText(Form("Event %d loaded", eventId));
-  gEve->GetBrowser()->SetStatusText(Form("Event %d loaded", eventId),0);
+  browser->SetStatusText(Form("Event %d loaded", eventId),0);
 }
 
 // do not implement, use compiler-generated one
@@ -2240,9 +2240,10 @@ void EventDisplay::startDisplay(int initialEvent)
 
   // create the eve manageer
   TEveManager::Create();
+  browser = gEve->GetBrowser();
 
   // Set title of main window
-  gEve->GetBrowser()->SetWindowName("FCC-ee ALLEGRO detector event display");
+  browser->SetWindowName("FCC-ee ALLEGRO detector event display");
 
   // see palettes here: https://root.cern.ch/doc/master/classTColor.html
   // gStyle->SetPalette(kAvocado);
@@ -2256,7 +2257,7 @@ void EventDisplay::startDisplay(int initialEvent)
   mainGLView->DrawGuides();
   gEve->GetDefaultViewer()->SetElementName("3D view");
   mainGLView->CurrentCamera().RotateRad(-.8, 0.5);
-  gEve->GetBrowser()->GetTabRight()->Connect("Selected(Int_t)", "EventDisplay", this, "onTabSelected(Int_t)");
+  browser->GetTabRight()->Connect("Selected(Int_t)", "EventDisplay", this, "onTabSelected(Int_t)");
 
   // Create the geometry and the readouts
   TEveElementList *geom = new TEveElementList("Geometry");
@@ -3373,10 +3374,6 @@ void EventDisplay::startDisplay(int initialEvent)
     std::cout << "evtFile: " << evtFile << std::endl;
   if (evtFile != "")
   {
-    // create the gui for event navigation
-    //makeGui();
-
-
     // setup the event reader
     std::cout << std::endl;
     std::cout << "******************************************************************************" << std::endl;
@@ -3410,7 +3407,7 @@ void EventDisplay::startDisplay(int initialEvent)
   }
 
   // Set the 3D view as the active tab and rotate the camera
-  gEve->GetBrowser()->GetTabRight()->SetTab(0);
+  browser->GetTabRight()->SetTab(0);
 
   // rotate camera
   mainGLView->CurrentCamera().RotateRad(-0.5, -2.4);
@@ -3443,7 +3440,7 @@ void EventDisplay::fwd()
     printf("\nNo events loaded\n");
     int ret;
     auto b = new TGMsgBox(gClient->GetRoot(),
-                          gEve->GetBrowser(),
+                          browser,
                           "Error",
                           "No events loaded",
                           kMBIconStop,
@@ -3464,7 +3461,7 @@ void EventDisplay::fwd()
 
     int ret;
     auto b = new TGMsgBox(gClient->GetRoot(),
-                          gEve->GetBrowser(),
+                          browser,
                           "Error",
                           "Already at last event",
                           kMBIconStop,
@@ -3482,7 +3479,7 @@ void EventDisplay::bck()
     printf("\nNo events loaded\n");
     int ret;
     auto b = new TGMsgBox(gClient->GetRoot(),
-                          gEve->GetBrowser(),
+                          browser,
                           "Error",
                           "Already at last event",
                           kMBIconStop,
@@ -3503,7 +3500,7 @@ void EventDisplay::bck()
 
     int ret;
     auto b = new TGMsgBox(gClient->GetRoot(),
-                          gEve->GetBrowser(),
+                          browser,
                           "Error",
                           "Already at first event",
                           kMBIconStop,
@@ -3556,12 +3553,12 @@ void EventDisplay::takeScreenshot()
   std::cout << "DONE" << std::endl << std::endl;
 }
 
+// Create minimal GUI for event navigation.
 void EventDisplay::makeGui()
 {
-  // Create minimal GUI for event navigation.
-  TEveBrowser *browser = gEve->GetBrowser();
 
   /*
+  browser = gEve->GetBrowser();
   browser->StartEmbedding(TRootBrowser::kLeft);
 
   TGMainFrame *frmMain = new TGMainFrame(gClient->GetRoot(), 1000, 600);
@@ -3678,6 +3675,11 @@ void EventDisplay::onTabSelected(Int_t tab)
     }
   }
 }
+
+
+/******************************************************************************/
+// other helpers
+/******************************************************************************/
 
 std::vector<TEvePathMarkD> EventDisplay::getElectronBremsstrahlungMarks(
     unsigned int electronIndex,

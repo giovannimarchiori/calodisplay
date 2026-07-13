@@ -13,6 +13,7 @@
 // dependencies
 /******************************************************************************/
 #include <TEveViewer.h>
+#include <TEveBrowser.h>
 #include <TEveGeoShape.h>
 #include <TEveScene.h>
 #include <TEveProjectionManager.h>
@@ -234,6 +235,8 @@ public:
   std::vector<CaloCluster *> swclusterData;
 
   TGLViewer* activeGLViewer = nullptr;
+
+  TEveBrowser* browser = nullptr;
 
   bool initRhoPhiView = false;
   bool initRhoZView = false;
