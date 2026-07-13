@@ -646,18 +646,18 @@ void EventDisplay::drawHits()
   // - hits in vertex
   if (displayConfig.getBoolConfig("drawVertexHits"))
   {
-    std::cout << "Creating vertex hits" << std::endl;
+    std::cout << "Creating vertex barrel hits" << std::endl;
     DrawHitCollection(vtxHits, "VTX",
 		      eventReader->VertexBarrelHits_position_x,
 		      eventReader->VertexBarrelHits_position_y,
 		      eventReader->VertexBarrelHits_position_z,
 		      nullptr, -9999.);
+    std::cout << "Creating vertex endcap hits" << std::endl;
     DrawHitCollection(vtxHits, "VTX",
 		      eventReader->VertexEndcapHits_position_x,
 		      eventReader->VertexEndcapHits_position_y,
 		      eventReader->VertexEndcapHits_position_z,
-		      nullptr, -9999.,
-		      true);
+		      nullptr, -9999., true);
   }
 
   // - hits in DCH/STT
@@ -3392,10 +3392,10 @@ void EventDisplay::startDisplay(int initialEvent)
     eventReader = new EventReader(f, doHCal);
 
     // setup the branches
-    eventReader->SetBranches();
+    eventReader->setBranches();
 
     // print updated draw settings based on info found in ROOT file
-    displayConfig.Print();
+    displayConfig.print();
 
     // read the number of events in the file
     nEvents = eventReader->nEvents;

@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
   }
 
   // load default configuration
-  displayConfig.ReadFromFile(configFile);
+  displayConfig.readFromFile(configFile);
   
  
   // parse the other arguments
@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
   displayConfig.setStringConfig("configFile", configFile);
   
   // print the configuration
-  displayConfig.Print();
+  displayConfig.print();
 
   // start the application
   argc = 0;

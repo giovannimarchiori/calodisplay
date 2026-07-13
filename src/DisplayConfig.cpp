@@ -59,7 +59,7 @@ DisplayConfig::DisplayConfig() {
 }
 
 
-void DisplayConfig::Print()
+void DisplayConfig::print()
 {
   std::cout << std::endl;  
   std::cout << "******************************************************************************" << std::endl;
@@ -73,7 +73,7 @@ void DisplayConfig::Print()
   std::cout << std::endl;
 }
 
-void DisplayConfig::WriteToFile(std::string filename) {
+void DisplayConfig::writeToFile(std::string filename) {
   // to stream DisplayConfig when it uses bool/string:
   // TString json = TBufferJSON::ToJSON(this);
   // to stream the configMap when a map is used:
@@ -86,7 +86,7 @@ void DisplayConfig::WriteToFile(std::string filename) {
   out.close();
 }
 
-void DisplayConfig::ReadFromFile(std::string filename) {
+void DisplayConfig::readFromFile(std::string filename) {
   std::ifstream in(filename);
   std::stringstream buffer;
   buffer << in.rdbuf();

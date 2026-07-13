@@ -17,9 +17,9 @@ public:
   std::map<std::string, std::string> configMap;
   
   DisplayConfig();
-  void Print();
-  void ReadFromFile(std::string filename);
-  void WriteToFile(std::string filename);
+  void print();
+  void readFromFile(std::string filename);
+  void writeToFile(std::string filename);
 
   void setStringConfig(const std::string& key, const std::string& value) {
     configMap[key] = value;
