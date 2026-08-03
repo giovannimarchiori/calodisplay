@@ -366,7 +366,7 @@ void EventReader::setBranches()
     CaloClusters_position_y = makeArray<Float_t>(collection, "position.y");
     CaloClusters_position_z = makeArray<Float_t>(collection, "position.z");
     CaloClusters_theta      = makeArray<Float_t>(collection, "iTheta");
-    CaloClusters_phi        = makeArray<Float_t>(collection, "phi");
+    CaloClusters_phi        = makeArray<Float_t>(collection, "iPhi");
     CaloClusters_hits_begin = makeArray<UInt_t> (collection, "hits_begin");
     CaloClusters_hits_end   = makeArray<UInt_t> (collection, "hits_end");
   }
@@ -409,7 +409,7 @@ void EventReader::setBranches()
     CaloTopoClusters_position_y = makeArray<Float_t>(collection, "position.y");
     CaloTopoClusters_position_z = makeArray<Float_t>(collection, "position.z");
     CaloTopoClusters_theta      = makeArray<Float_t>(collection, "iTheta");
-    CaloTopoClusters_phi        = makeArray<Float_t>(collection, "phi");
+    CaloTopoClusters_phi        = makeArray<Float_t>(collection, "iPhi");
     CaloTopoClusters_hits_begin = makeArray<UInt_t> (collection, "hits_begin");
     CaloTopoClusters_hits_end   = makeArray<UInt_t> (collection, "hits_end");
   }
