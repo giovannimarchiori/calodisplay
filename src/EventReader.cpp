@@ -432,8 +432,8 @@ void EventReader::setBranches()
       displayConfig.setBoolConfig("drawTopoClusterCells", false);
       displayConfig.setStringConfig("topoClusterCells", "");
       // also disable the clusters until I fix EventDisplay.cpp
-      displayConfig.setBoolConfig("drawTopoClusters", false);
-      displayConfig.setStringConfig("topoClusters", "");
+      // displayConfig.setBoolConfig("drawTopoClusters", false);
+      // displayConfig.setStringConfig("topoClusters", "");
     }
     else {
       CaloTopoClusterCells_cellID     = makeArray<ULong_t>(collection, "cellID");

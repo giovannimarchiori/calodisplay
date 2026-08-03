@@ -12,24 +12,28 @@
 #include "CylField.h"
 #include "Units.h"
 
+// ROOT core
 #include <TMath.h>
 #include <TString.h>
 #include <TStyle.h>
 #include <TSystem.h>
-#include <TPRegexp.h>
+#include <TTimeStamp.h>
 
+// TG
 #include <TGButton.h>
 #include <TGTab.h>
 #include <TGMsgBox.h>
 
+// TGeo
 #include <TGeoTube.h>
 #include <TGeoMatrix.h>
 
-#include <TEveBrowser.h>
+// TEve
 #include <TEveManager.h>
 #include <TEveTrackPropagator.h>
 #include <TEveProjectionAxes.h>
-#include <TTimeStamp.h>
+#include <TEveGeoNode.h>
+
 
 #include <filesystem>
 #include <unordered_map>
@@ -182,241 +186,246 @@ void EventDisplay::fillClusters(std::string clusterType)
                                 (*eventReader->CaloClusters_position_z)[i] * mm);
     }
 
-    // retrieve index of first and last+1 cell in cell vectors
-    if (debug)
-    {
-      std::cout << "  Retrieving cluster cells and calculating energy per layer .." << std::endl;
-    }
-    unsigned int first_hit, last_hit;
-    unsigned int nCells;
-    if (clusterType == "topo")
-    {
-      nCells = eventReader->CaloTopoClusterCells_energy->GetSize();
-      first_hit = (*eventReader->CaloTopoClusters_hits_begin)[i];
-      last_hit = (*eventReader->CaloTopoClusters_hits_end)[i];
-    }
-    else
-    {
-      nCells = eventReader->CaloClusterCells_energy->GetSize();
-      first_hit = (*eventReader->CaloClusters_hits_begin)[i];
-      last_hit = (*eventReader->CaloClusters_hits_end)[i];
-    }
+    // set cluster barycenters layer-by-layer
 
-    // loop over cells to calculate energy per layer
-    std::vector<float> energyVsECalBarrelLayer(nECalBarrelLayers, 0.);
-    std::vector<float> energyVsECalEndCapLayer(nECalEndCapLayers, 0.);
-    std::vector<float> energyVsHCalBarrelLayer(nHCalBarrelLayers, 0.);
-    std::vector<float> energyVsHCalEndCapLayer(nHCalEndCapLayers, 0.);
-    std::vector<float> energyVsMuonLayer(nMuonLayers, 0.);
-    for (unsigned int iCell = 0; iCell < nCells; iCell++)
-    {
-      if (iCell < first_hit || iCell >= last_hit)
-        continue;
-      ULong_t cellID;
-      float energy, x_center, y_center, z_center;
+    // - recalculation from cells
+    if (displayConfig.getBoolConfig("calculateClusterBaryCenters")) {
+      // retrieve index of first and last+1 cell in cell vectors
+      if (debug)
+      {
+        std::cout << "  Retrieving cluster cells and calculating energy per layer .." << std::endl;
+      }
+      unsigned int first_hit, last_hit;
+      unsigned int nCells;
       if (clusterType == "topo")
       {
-        cellID = (*eventReader->CaloTopoClusterCells_cellID)[iCell];
-        energy = (*eventReader->CaloTopoClusterCells_energy)[iCell];
+        nCells = eventReader->CaloTopoClusterCells_energy->GetSize();
+        first_hit = (*eventReader->CaloTopoClusters_hits_begin)[i];
+        last_hit = (*eventReader->CaloTopoClusters_hits_end)[i];
       }
       else
       {
-        cellID = (*eventReader->CaloClusterCells_cellID)[iCell];
-        energy = (*eventReader->CaloClusterCells_energy)[iCell];
+        nCells = eventReader->CaloClusterCells_energy->GetSize();
+        first_hit = (*eventReader->CaloClusters_hits_begin)[i];
+        last_hit = (*eventReader->CaloClusters_hits_end)[i];
       }
-      ULong_t systemID = geomReader->SystemID(cellID);
-      ULong_t layer;
-      if (systemID == 4)
-      {
-        layer = geomReader->ECalBarrelLayer(cellID);
-        energyVsECalBarrelLayer[layer] += energy;
-      }
-      else if (systemID == 8)
-      {
-        layer = geomReader->HCalBarrelLayer(cellID);
-        energyVsHCalBarrelLayer[layer] += energy;
-      }
-      else if (systemID == 5)
-      {
-        layer = geomReader->ECalEndCapZBin(cellID);
-        energyVsECalEndCapLayer[layer] += energy;
-      }
-      else if (systemID == 9)
-      {
-        layer = geomReader->HCalEndCapLayer(cellID);
-        energyVsHCalEndCapLayer[layer] += energy;
-      }
-      else if (systemID == 12)
-      {
-        // TODO: calculate properly muon barrel layer
-        energyVsMuonLayer[0] += energy;
-      }
-      else if (systemID == 13)
-      {
-        // TODO: calculate properly muon endcap layer
-        energyVsMuonLayer[0] += energy;
-      }
-      else
-      {
-        std::cout << "Unknown system " << systemID << std::endl;
-        exit(1);
-      }
-    }
 
-    cluster->setEnergyVsECalBarrelLayers(energyVsECalBarrelLayer);
-    cluster->setEnergyVsECalEndCapLayers(energyVsECalEndCapLayer);
-    cluster->setEnergyVsHCalBarrelLayers(energyVsHCalBarrelLayer);
-    cluster->setEnergyVsHCalEndCapLayers(energyVsHCalEndCapLayer);
-    cluster->setEnergyVsMuonLayers(energyVsMuonLayer);
+      // loop over cells to calculate energy per layer
+      std::vector<float> energyVsECalBarrelLayer(nECalBarrelLayers, 0.);
+      std::vector<float> energyVsECalEndCapLayer(nECalEndCapLayers, 0.);
+      std::vector<float> energyVsHCalBarrelLayer(nHCalBarrelLayers, 0.);
+      std::vector<float> energyVsHCalEndCapLayer(nHCalEndCapLayers, 0.);
+      std::vector<float> energyVsMuonLayer(nMuonLayers, 0.);
+      for (unsigned int iCell = 0; iCell < nCells; iCell++)
+      {
+        if (iCell < first_hit || iCell >= last_hit)
+          continue;
+        ULong_t cellID;
+        float energy, x_center, y_center, z_center;
+        if (clusterType == "topo")
+        {
+          cellID = (*eventReader->CaloTopoClusterCells_cellID)[iCell];
+          energy = (*eventReader->CaloTopoClusterCells_energy)[iCell];
+        }
+        else
+        {
+          cellID = (*eventReader->CaloClusterCells_cellID)[iCell];
+          energy = (*eventReader->CaloClusterCells_energy)[iCell];
+        }
+        ULong_t systemID = geomReader->SystemID(cellID);
+        ULong_t layer;
+        if (systemID == 4)
+        {
+          layer = geomReader->ECalBarrelLayer(cellID);
+          energyVsECalBarrelLayer[layer] += energy;
+        }
+        else if (systemID == 8)
+        {
+          layer = geomReader->HCalBarrelLayer(cellID);
+          energyVsHCalBarrelLayer[layer] += energy;
+        }
+        else if (systemID == 5)
+        {
+          layer = geomReader->ECalEndCapZBin(cellID);
+          energyVsECalEndCapLayer[layer] += energy;
+        }
+        else if (systemID == 9)
+        {
+          layer = geomReader->HCalEndCapLayer(cellID);
+          energyVsHCalEndCapLayer[layer] += energy;
+        }
+        else if (systemID == 12)
+        {
+          // TODO: calculate properly muon barrel layer
+          energyVsMuonLayer[0] += energy;
+        }
+        else if (systemID == 13)
+        {
+          // TODO: calculate properly muon endcap layer
+          energyVsMuonLayer[0] += energy;
+        }
+        else
+        {
+          std::cout << "Unknown system " << systemID << std::endl;
+          exit(1);
+        }
+      }
 
-    // loop again over cells to calculate barycenter per layer
-    if (debug)
-    {
-      std::cout << "  Calculating cell barycenter per layer .." << std::endl;
-    }
-    std::vector<TVector3> barycenterVsECalBarrelLayer(nECalBarrelLayers);
-    std::vector<float> sumWeightsVsECalBarrelLayer(nECalBarrelLayers, 0.0);
+      cluster->setEnergyVsECalBarrelLayers(energyVsECalBarrelLayer);
+      cluster->setEnergyVsECalEndCapLayers(energyVsECalEndCapLayer);
+      cluster->setEnergyVsHCalBarrelLayers(energyVsHCalBarrelLayer);
+      cluster->setEnergyVsHCalEndCapLayers(energyVsHCalEndCapLayer);
+      cluster->setEnergyVsMuonLayers(energyVsMuonLayer);
 
-    std::vector<TVector3> barycenterVsECalEndCapLayer(nECalEndCapLayers);
-    std::vector<float> sumWeightsVsECalEndCapLayer(nECalEndCapLayers, 0.0);
+      // loop again over cells to calculate barycenter per layer
+      if (debug)
+      {
+        std::cout << "  Calculating cell barycenter per layer .." << std::endl;
+      }
+      std::vector<TVector3> barycenterVsECalBarrelLayer(nECalBarrelLayers);
+      std::vector<float> sumWeightsVsECalBarrelLayer(nECalBarrelLayers, 0.0);
 
-    std::vector<TVector3> barycenterVsHCalBarrelLayer(nHCalBarrelLayers);
-    std::vector<float> sumWeightsVsHCalBarrelLayer(nHCalBarrelLayers, 0.0);
+      std::vector<TVector3> barycenterVsECalEndCapLayer(nECalEndCapLayers);
+      std::vector<float> sumWeightsVsECalEndCapLayer(nECalEndCapLayers, 0.0);
 
-    std::vector<TVector3> barycenterVsHCalEndCapLayer(nHCalEndCapLayers);
-    std::vector<float> sumWeightsVsHCalEndCapLayer(nHCalEndCapLayers, 0.0);
+      std::vector<TVector3> barycenterVsHCalBarrelLayer(nHCalBarrelLayers);
+      std::vector<float> sumWeightsVsHCalBarrelLayer(nHCalBarrelLayers, 0.0);
 
-    std::vector<TVector3> barycenterVsMuonLayer(nMuonLayers);
-    std::vector<float> sumWeightsVsMuonLayer(nMuonLayers, 0.0);
+      std::vector<TVector3> barycenterVsHCalEndCapLayer(nHCalEndCapLayers);
+      std::vector<float> sumWeightsVsHCalEndCapLayer(nHCalEndCapLayers, 0.0);
+
+      std::vector<TVector3> barycenterVsMuonLayer(nMuonLayers);
+      std::vector<float> sumWeightsVsMuonLayer(nMuonLayers, 0.0);
   
-    for (unsigned int iCell = 0; iCell < nCells; iCell++)
-    {
-      if (iCell < first_hit || iCell >= last_hit)
-        continue;
-      ULong_t cellID;
-      float energy, x, y, z;
-      if (clusterType == "topo")
+      for (unsigned int iCell = 0; iCell < nCells; iCell++)
       {
-        cellID = (*eventReader->CaloTopoClusterCells_cellID)[iCell];
-        energy = (*eventReader->CaloTopoClusterCells_energy)[iCell];
-        x = (*eventReader->CaloTopoClusterCells_position_x)[iCell] * mm;
-        y = (*eventReader->CaloTopoClusterCells_position_y)[iCell] * mm;
-        z = (*eventReader->CaloTopoClusterCells_position_z)[iCell] * mm;
-      }
-      else
-      {
-        cellID = (*eventReader->CaloClusterCells_cellID)[iCell];
-        energy = (*eventReader->CaloClusterCells_energy)[iCell];
-        x = (*eventReader->CaloClusterCells_position_x)[iCell] * mm;
-        y = (*eventReader->CaloClusterCells_position_y)[iCell] * mm;
-        z = (*eventReader->CaloClusterCells_position_z)[iCell] * mm;
-      }
-      ULong_t systemID = geomReader->SystemID(cellID);
-      ULong_t layer;
-      if (systemID == 4)
-      {
-        layer = geomReader->ECalBarrelLayer(cellID);
-        if (energyVsECalBarrelLayer[layer] > 0)
+        if (iCell < first_hit || iCell >= last_hit)
+          continue;
+        ULong_t cellID;
+        float energy, x, y, z;
+        if (clusterType == "topo")
         {
-          float weight = energy / energyVsECalBarrelLayer[layer];
-          barycenterVsECalBarrelLayer[layer].SetXYZ(
-              barycenterVsECalBarrelLayer[layer].X() + x * weight,
-              barycenterVsECalBarrelLayer[layer].Y() + y * weight,
-              barycenterVsECalBarrelLayer[layer].Z() + z * weight);
-          sumWeightsVsECalBarrelLayer[layer] += weight;
+          cellID = (*eventReader->CaloTopoClusterCells_cellID)[iCell];
+          energy = (*eventReader->CaloTopoClusterCells_energy)[iCell];
+          x = (*eventReader->CaloTopoClusterCells_position_x)[iCell] * mm;
+          y = (*eventReader->CaloTopoClusterCells_position_y)[iCell] * mm;
+          z = (*eventReader->CaloTopoClusterCells_position_z)[iCell] * mm;
+        }
+        else
+        {
+          cellID = (*eventReader->CaloClusterCells_cellID)[iCell];
+          energy = (*eventReader->CaloClusterCells_energy)[iCell];
+          x = (*eventReader->CaloClusterCells_position_x)[iCell] * mm;
+          y = (*eventReader->CaloClusterCells_position_y)[iCell] * mm;
+          z = (*eventReader->CaloClusterCells_position_z)[iCell] * mm;
+        }
+        ULong_t systemID = geomReader->SystemID(cellID);
+        ULong_t layer;
+        if (systemID == 4)  // TODO: use enum instead of these hardcoded constants?
+        {
+          layer = geomReader->ECalBarrelLayer(cellID);
+          if (energyVsECalBarrelLayer[layer] > 0)
+          {
+            float weight = energy / energyVsECalBarrelLayer[layer];
+            barycenterVsECalBarrelLayer[layer].SetXYZ(
+                barycenterVsECalBarrelLayer[layer].X() + x * weight,
+                barycenterVsECalBarrelLayer[layer].Y() + y * weight,
+                barycenterVsECalBarrelLayer[layer].Z() + z * weight);
+            sumWeightsVsECalBarrelLayer[layer] += weight;
+          }
+        }
+        else if (systemID == 5)
+        {
+          layer = geomReader->ECalEndCapZBin(cellID);
+          if (energyVsECalEndCapLayer[layer] > 0)
+          {
+            float weight = energy / energyVsECalEndCapLayer[layer];
+            barycenterVsECalEndCapLayer[layer].SetXYZ(
+              barycenterVsECalEndCapLayer[layer].X() + x * weight,
+              barycenterVsECalEndCapLayer[layer].Y() + y * weight,
+              barycenterVsECalEndCapLayer[layer].Z() + z * weight);
+            sumWeightsVsECalEndCapLayer[layer] += weight;
+          }
+        }
+        else if (systemID == 8)
+        {
+          layer = geomReader->HCalBarrelLayer(cellID);
+          if (energyVsHCalBarrelLayer[layer] > 0)
+          {
+            float weight = energy / energyVsHCalBarrelLayer[layer];
+            barycenterVsHCalBarrelLayer[layer].SetXYZ(
+              barycenterVsHCalBarrelLayer[layer].X() + x * weight,
+              barycenterVsHCalBarrelLayer[layer].Y() + y * weight,
+              barycenterVsHCalBarrelLayer[layer].Z() + z * weight);
+            sumWeightsVsHCalBarrelLayer[layer] += weight;
+          }
+        }
+        else if (systemID == 9)
+        {
+          layer = geomReader->HCalEndCapLayer(cellID);
+          if (energyVsHCalEndCapLayer[layer] > 0)
+          {
+            float weight = energy / energyVsHCalEndCapLayer[layer];
+            barycenterVsHCalEndCapLayer[layer].SetXYZ(
+              barycenterVsHCalEndCapLayer[layer].X() + x * weight,
+              barycenterVsHCalEndCapLayer[layer].Y() + y * weight,
+              barycenterVsHCalEndCapLayer[layer].Z() + z * weight);
+            sumWeightsVsHCalEndCapLayer[layer] += weight;
+          }
         }
       }
-      else if (systemID == 5)
-      {
-        layer = geomReader->ECalEndCapZBin(cellID);
-        if (energyVsECalEndCapLayer[layer] > 0)
-        {
-          float weight = energy / energyVsECalEndCapLayer[layer];
-          barycenterVsECalEndCapLayer[layer].SetXYZ(
-            barycenterVsECalEndCapLayer[layer].X() + x * weight,
-            barycenterVsECalEndCapLayer[layer].Y() + y * weight,
-            barycenterVsECalEndCapLayer[layer].Z() + z * weight);
-          sumWeightsVsECalEndCapLayer[layer] += weight;
-        }
-      }
-      else if (systemID == 8)
-      {
-        layer = geomReader->HCalBarrelLayer(cellID);
-        if (energyVsHCalBarrelLayer[layer] > 0)
-        {
-          float weight = energy / energyVsHCalBarrelLayer[layer];
-          barycenterVsHCalBarrelLayer[layer].SetXYZ(
-            barycenterVsHCalBarrelLayer[layer].X() + x * weight,
-            barycenterVsHCalBarrelLayer[layer].Y() + y * weight,
-            barycenterVsHCalBarrelLayer[layer].Z() + z * weight);
-          sumWeightsVsHCalBarrelLayer[layer] += weight;
-        }
-      }
-      else if (systemID == 9)
-      {
-        layer = geomReader->HCalEndCapLayer(cellID);
-        if (energyVsHCalEndCapLayer[layer] > 0)
-        {
-          float weight = energy / energyVsHCalEndCapLayer[layer];
-          barycenterVsHCalEndCapLayer[layer].SetXYZ(
-            barycenterVsHCalEndCapLayer[layer].X() + x * weight,
-            barycenterVsHCalEndCapLayer[layer].Y() + y * weight,
-            barycenterVsHCalEndCapLayer[layer].Z() + z * weight);
-          sumWeightsVsHCalEndCapLayer[layer] += weight;
-        }
-      }
-    }
 
-    for (unsigned int iLayer = 0; iLayer < nECalBarrelLayers; iLayer++)
-    {
-      if (energyVsECalBarrelLayer[iLayer] > 0)
+      for (unsigned int iLayer = 0; iLayer < nECalBarrelLayers; iLayer++)
       {
-        barycenterVsECalBarrelLayer[iLayer].SetXYZ(
-          barycenterVsECalBarrelLayer[iLayer].X() / sumWeightsVsECalBarrelLayer[iLayer],
-          barycenterVsECalBarrelLayer[iLayer].Y() / sumWeightsVsECalBarrelLayer[iLayer],
-          barycenterVsECalBarrelLayer[iLayer].Z() / sumWeightsVsECalBarrelLayer[iLayer]);
+        if (energyVsECalBarrelLayer[iLayer] > 0)
+        {
+          barycenterVsECalBarrelLayer[iLayer].SetXYZ(
+            barycenterVsECalBarrelLayer[iLayer].X() / sumWeightsVsECalBarrelLayer[iLayer],
+            barycenterVsECalBarrelLayer[iLayer].Y() / sumWeightsVsECalBarrelLayer[iLayer],
+            barycenterVsECalBarrelLayer[iLayer].Z() / sumWeightsVsECalBarrelLayer[iLayer]);
+        }
       }
-    }
-    cluster->setBarycenterVsECalBarrelLayers(barycenterVsECalBarrelLayer);
+      cluster->setBarycenterVsECalBarrelLayers(barycenterVsECalBarrelLayer);
 
-    for (unsigned int iLayer = 0; iLayer < nECalEndCapLayers; iLayer++)
-    {
-      if (energyVsECalEndCapLayer[iLayer] > 0)
+      for (unsigned int iLayer = 0; iLayer < nECalEndCapLayers; iLayer++)
       {
-        barycenterVsECalEndCapLayer[iLayer].SetXYZ(
-          barycenterVsECalEndCapLayer[iLayer].X() / sumWeightsVsECalEndCapLayer[iLayer],
-          barycenterVsECalEndCapLayer[iLayer].Y() / sumWeightsVsECalEndCapLayer[iLayer],
-          barycenterVsECalEndCapLayer[iLayer].Z() / sumWeightsVsECalEndCapLayer[iLayer]);
+        if (energyVsECalEndCapLayer[iLayer] > 0)
+        {
+          barycenterVsECalEndCapLayer[iLayer].SetXYZ(
+            barycenterVsECalEndCapLayer[iLayer].X() / sumWeightsVsECalEndCapLayer[iLayer],
+            barycenterVsECalEndCapLayer[iLayer].Y() / sumWeightsVsECalEndCapLayer[iLayer],
+            barycenterVsECalEndCapLayer[iLayer].Z() / sumWeightsVsECalEndCapLayer[iLayer]);
+        }
       }
-    }
-    cluster->setBarycenterVsECalEndCapLayers(barycenterVsECalEndCapLayer);
+      cluster->setBarycenterVsECalEndCapLayers(barycenterVsECalEndCapLayer);
 
-    for (unsigned int iLayer = 0; iLayer < nHCalBarrelLayers; iLayer++)
-    {
-      if (energyVsHCalBarrelLayer[iLayer] > 0.)
+      for (unsigned int iLayer = 0; iLayer < nHCalBarrelLayers; iLayer++)
       {
-        barycenterVsHCalBarrelLayer[iLayer].SetXYZ(
-          barycenterVsHCalBarrelLayer[iLayer].X() / sumWeightsVsHCalBarrelLayer[iLayer],
-          barycenterVsHCalBarrelLayer[iLayer].Y() / sumWeightsVsHCalBarrelLayer[iLayer],
-          barycenterVsHCalBarrelLayer[iLayer].Z() / sumWeightsVsHCalBarrelLayer[iLayer]);
+        if (energyVsHCalBarrelLayer[iLayer] > 0.)
+        {
+          barycenterVsHCalBarrelLayer[iLayer].SetXYZ(
+            barycenterVsHCalBarrelLayer[iLayer].X() / sumWeightsVsHCalBarrelLayer[iLayer],
+            barycenterVsHCalBarrelLayer[iLayer].Y() / sumWeightsVsHCalBarrelLayer[iLayer],
+            barycenterVsHCalBarrelLayer[iLayer].Z() / sumWeightsVsHCalBarrelLayer[iLayer]);
+        }
       }
-    }
-    cluster->setBarycenterVsHCalBarrelLayers(barycenterVsHCalBarrelLayer);
+      cluster->setBarycenterVsHCalBarrelLayers(barycenterVsHCalBarrelLayer);
     
-        for (unsigned int iLayer = 0; iLayer < nHCalEndCapLayers; iLayer++)
-    {
-      if (energyVsHCalEndCapLayer[iLayer] > 0.)
+      for (unsigned int iLayer = 0; iLayer < nHCalEndCapLayers; iLayer++)
       {
-        barycenterVsHCalEndCapLayer[iLayer].SetXYZ(
-          barycenterVsHCalEndCapLayer[iLayer].X() / sumWeightsVsHCalEndCapLayer[iLayer],
-          barycenterVsHCalEndCapLayer[iLayer].Y() / sumWeightsVsHCalEndCapLayer[iLayer],
-          barycenterVsHCalEndCapLayer[iLayer].Z() / sumWeightsVsHCalEndCapLayer[iLayer]);
+        if (energyVsHCalEndCapLayer[iLayer] > 0.)
+        {
+          barycenterVsHCalEndCapLayer[iLayer].SetXYZ(
+            barycenterVsHCalEndCapLayer[iLayer].X() / sumWeightsVsHCalEndCapLayer[iLayer],
+            barycenterVsHCalEndCapLayer[iLayer].Y() / sumWeightsVsHCalEndCapLayer[iLayer],
+            barycenterVsHCalEndCapLayer[iLayer].Z() / sumWeightsVsHCalEndCapLayer[iLayer]);
+        }
       }
+      cluster->setBarycenterVsHCalEndCapLayers(barycenterVsHCalEndCapLayer);
+
+      cluster->setBarycenterVsMuonLayers(barycenterVsMuonLayer);
     }
-    cluster->setBarycenterVsHCalEndCapLayers(barycenterVsHCalEndCapLayer);
-
-    cluster->setBarycenterVsMuonLayers(barycenterVsMuonLayer);
-
+    
     if (debug) {
       cluster->print();
     }
@@ -640,59 +649,59 @@ void EventDisplay::drawParticles()
 
 void EventDisplay::drawHits()
 {
-  CreateElementList(hits, "hits");
+  createElementList(hits, "hits");
   // do we need to Reset() or DestroyElements() otherwise ?
 
   // - hits in vertex
   if (displayConfig.getBoolConfig("drawVertexHits"))
   {
     std::cout << "Creating vertex barrel hits" << std::endl;
-    DrawHitCollection(vtxHits, "VTX",
-		      eventReader->VertexBarrelHits_position_x,
-		      eventReader->VertexBarrelHits_position_y,
-		      eventReader->VertexBarrelHits_position_z,
-		      nullptr, -9999.);
+    drawHitCollection(vtxHits, "VTX",
+                      eventReader->VertexBarrelHits_position_x,
+                      eventReader->VertexBarrelHits_position_y,
+                      eventReader->VertexBarrelHits_position_z,
+                      nullptr, -9999.);
     std::cout << "Creating vertex endcap hits" << std::endl;
-    DrawHitCollection(vtxHits, "VTX",
-		      eventReader->VertexEndcapHits_position_x,
-		      eventReader->VertexEndcapHits_position_y,
-		      eventReader->VertexEndcapHits_position_z,
-		      nullptr, -9999., true);
+    drawHitCollection(vtxHits, "VTX",
+                      eventReader->VertexEndcapHits_position_x,
+                      eventReader->VertexEndcapHits_position_y,
+                      eventReader->VertexEndcapHits_position_z,
+                      nullptr, -9999., true);
   }
 
   // - hits in DCH/STT
   if (displayConfig.getBoolConfig("drawMainTrackerHits"))
   {
     std::cout << "Creating main tracker hits" << std::endl;
-    DrawHitCollection(dchHits, "DCH",  // TODO modify for STT
-		      eventReader->MainTrackerHits_position_x,
-		      eventReader->MainTrackerHits_position_y,
-		      eventReader->MainTrackerHits_position_z,
-		      nullptr, -9999.);
+    drawHitCollection(dchHits, "DCH",  // TODO modify for STT
+                      eventReader->MainTrackerHits_position_x,
+                      eventReader->MainTrackerHits_position_y,
+                      eventReader->MainTrackerHits_position_z,
+                      nullptr, -9999.);
   }
 
   // - hits in Si wrapper
   if (displayConfig.getBoolConfig("drawSiWrapperHits"))
   {
     std::cout << "Creating Si wrapper hits" << std::endl;
-    DrawHitCollection(siwrHits, "Si wrapper",
-		      eventReader->SiWrapperBarrelHits_position_x,
-		      eventReader->SiWrapperBarrelHits_position_y,
-		      eventReader->SiWrapperBarrelHits_position_z,
-		      nullptr, -9999.);
-    DrawHitCollection(siwrHits, "Si wrapper",
-		      eventReader->SiWrapperEndcapHits_position_x,
-		      eventReader->SiWrapperEndcapHits_position_y,
-		      eventReader->SiWrapperEndcapHits_position_z,
-		      nullptr, -9999.,
-		      true);
+    drawHitCollection(siwrHits, "Si wrapper",
+                      eventReader->SiWrapperBarrelHits_position_x,
+                      eventReader->SiWrapperBarrelHits_position_y,
+                      eventReader->SiWrapperBarrelHits_position_z,
+                      nullptr, -9999.);
+    drawHitCollection(siwrHits, "Si wrapper",
+                      eventReader->SiWrapperEndcapHits_position_x,
+                      eventReader->SiWrapperEndcapHits_position_y,
+                      eventReader->SiWrapperEndcapHits_position_z,
+                      nullptr, -9999.,
+                      true);
   }
 
   // - hits in ECAL
   if (displayConfig.getBoolConfig("drawECalBarrelHits"))
   {
     std::cout << "Creating ecal barrel hits" << std::endl;
-    DrawHitCollection(ecalHits, "ECAL",
+    drawHitCollection(ecalHits, "ECAL",
                       eventReader->ECalBarrelHits_position_x,
                       eventReader->ECalBarrelHits_position_y,
                       eventReader->ECalBarrelHits_position_z,
@@ -703,7 +712,7 @@ void EventDisplay::drawHits()
   if (displayConfig.getBoolConfig("drawECalEndcapHits"))
   {
     std::cout << "Creating ecal endcap hits" << std::endl;
-    DrawHitCollection(ecalHits, "ECAL",
+    drawHitCollection(ecalHits, "ECAL",
                       (eventReader->ECalEndcapHits_position_x),
                       (eventReader->ECalEndcapHits_position_y),
                       (eventReader->ECalEndcapHits_position_z),
@@ -716,7 +725,7 @@ void EventDisplay::drawHits()
   if (displayConfig.getBoolConfig("drawHCalBarrelHits"))
   {
     std::cout << "Creating hcal barrel hits" << std::endl;
-    DrawHitCollection(hcalHits, "HCAL",
+    drawHitCollection(hcalHits, "HCAL",
                       eventReader->HCalBarrelHits_position_x,
                       eventReader->HCalBarrelHits_position_y,
                       eventReader->HCalBarrelHits_position_z,
@@ -726,26 +735,26 @@ void EventDisplay::drawHits()
   if (displayConfig.getBoolConfig("drawHCalEndcapHits"))
   {
     std::cout << "Creating hcal endcap hits" << std::endl;
-    DrawHitCollection(hcalHits, "HCAL",
+    drawHitCollection(hcalHits, "HCAL",
                       eventReader->HCalEndcapHits_position_x,
                       eventReader->HCalEndcapHits_position_y,
                       eventReader->HCalEndcapHits_position_z,
                       eventReader->HCalEndcapHits_energy,
                       HitEnergyThreshold,
-		      true);
+                      true);
   }
 
   // - hits in muon detector
   if (displayConfig.getBoolConfig("drawMuonHits"))
   {
     std::cout << "Creating muon barrel hits" << std::endl;
-    DrawHitCollection(muonHits, "MUON",
+    drawHitCollection(muonHits, "MUON",
                       eventReader->MuonBarrelHits_position_x,
                       eventReader->MuonBarrelHits_position_y,
                       eventReader->MuonBarrelHits_position_z,
-		      nullptr, -9999.);
+                      nullptr, -9999.);
     std::cout << "Creating muon endcap hits" << std::endl;
-    DrawHitCollection(muonHits, "MUON",
+    drawHitCollection(muonHits, "MUON",
                       eventReader->MuonEndcapHits_position_x,
                       eventReader->MuonEndcapHits_position_y,
                       eventReader->MuonEndcapHits_position_z,
@@ -756,7 +765,7 @@ void EventDisplay::drawHits()
 
 void EventDisplay::drawDigis()
 {
-  CreateElementList(digis, "digis");
+  createElementList(digis, "digis");
 
   // digis in VTX
   if (displayConfig.getBoolConfig("drawVertexDigis"))
@@ -2260,7 +2269,8 @@ void EventDisplay::startDisplay(int initialEvent)
   browser->GetTabRight()->Connect("Selected(Int_t)", "EventDisplay", this, "onTabSelected(Int_t)");
 
   // Create the geometry and the readouts
-  TEveElementList *geom = new TEveElementList("Geometry");
+  // TEveElementList *
+    geom = new TEveElementList("Geometry");
   TEveElementList *PCBs = new TEveElementList("PCBs");
   TEveElementList *actives = new TEveElementList("Active elements");
   TEveElementList *passives = new TEveElementList("Passive elements");
@@ -2295,9 +2305,53 @@ void EventDisplay::startDisplay(int initialEvent)
 
     if (showFullDetector)
     {
-      // geom->AddElement(world);
-      // world->SetRnrSelfChildren(false, true);
+      m_subDetectors.clear();
+      m_subDetectors.reserve(20);
+      auto simple = [this](TEveElement* e, SubDetector& d)
+      {
+	addSimpleElement(e, d);
+      };
+      m_subDetectors.push_back({"MDI", nullptr, {"ScreenSol","CompSol"}, nullptr, false,
+	  simple});
+      m_subDetectors.push_back({"Beampipe", nullptr, {"BeamPipe","Beampipe"}, nullptr, false,
+	  simple});
+      m_subDetectors.push_back({"LumiCal", new TPRegexp("LumiCal_*"), {}, nullptr, false,
+	    simple});
+      m_subDetectors.push_back({"Vertex", nullptr, {"Vertex"}, nullptr, true,
+      	[this](TEveElement* e, SubDetector& d) { addVertex(e, d); }});
+      m_subDetectors.push_back({"Drift chamber", new TPRegexp("DCH_*"), {}, nullptr, true,
+	    [this](TEveElement* e, SubDetector& d) { addDCH(e, d); }});
+      m_subDetectors.push_back({"Straw tube tracker", new TPRegexp("STT_*"), {}, nullptr, true,
+	    	    [this](TEveElement* e, SubDetector& d) { addDCH(e, d); }});
+      m_subDetectors.push_back({"Si wrapper barrel", new TPRegexp("SiWrB_*"), {}, nullptr, true,
+	    [this](TEveElement* e, SubDetector& d) { addWrapper(e, d); }});
+      m_subDetectors.push_back({"Si wrapper endcap", new TPRegexp("SiWrD_*"), {}, nullptr, true,
+	    [this](TEveElement* e, SubDetector& d) { addWrapper(e, d); }});
+      m_subDetectors.push_back({"ECal barrel", new TPRegexp("ECalBarrel*"), {}, nullptr, true,
+	    [this](TEveElement* e, SubDetector& d) { addECalB(e, d); }});
+      m_subDetectors.push_back({"ECal endcap", nullptr, {"ECalEndcaps"}, nullptr, true,
+	    [this](TEveElement* e, SubDetector& d) { addECalEC(e, d); }});
+      m_subDetectors.push_back({"HCal barrel", new TPRegexp("HCalEnvelopeVolume*"), {}, nullptr, true,
+	    [this](TEveElement* e, SubDetector& d) { addHCalB(e, d); }});
+      m_subDetectors.push_back({"HCal endcap", new TPRegexp("HCal(\\w+)Endcap(\\w+)"), {}, nullptr, true,
+	    [this](TEveElement* e, SubDetector& d) { addHCalEC(e, d); }});
+      m_subDetectors.push_back({"Muon tagger barrel", new TPRegexp("MuonTaggerBarrel*"), {}, nullptr, true,
+	    [this](TEveElement* e, SubDetector& d) { addMuonB(e, d); }});
+      m_subDetectors.push_back({"Muon tagger endcap", new TPRegexp("MuonTaggerEndcap*"), {}, nullptr, true,
+	    [this](TEveElement* e, SubDetector& d) { addMuonEC(e, d); }});
 
+      for (TEveElement::List_i itr = world->BeginChildren(); itr != world->EndChildren(); itr++)
+      {
+        TEveElement *el = *itr;
+        TString elName(el->GetElementName());
+	SubDetector* det = findSubDetector(elName);
+	if (det) {
+	  if (det->handler)
+	    det->handler(el, *det);
+	}
+      }
+
+      /*
       // group together elements
       TPRegexp re_lc("LumiCal_*");
       TPRegexp re_dch("DCH_*");
@@ -2412,12 +2466,17 @@ void EventDisplay::startDisplay(int initialEvent)
                 ((TEveGeoShape *)el)->SetDrawFrame(false);
                 if (elName.Contains("VertexInnerBarrel"))
                   ((TEveGeoShape *)el)->SetNSegments(128);
-
                 // by default draw only the sensors
-                // sensors are so thin that some of them are not drawn ...
-                // TO BE INVESTIGATED
-                if (!elName.Contains("sensor"))
+                if (!elName.Contains("sensor")) {
                   el->SetRnrSelfChildren(false, false);
+                }
+                else {
+                  // sensors are so thin that some of them are not drawn.
+                  // tried this but it does not fix the problem..
+                  //((TEveGeoShape *) el)->SetMiniFrame(false);
+                  //((TEveGeoShape *) el)->SetDrawFrame(true);
+                  //el->SetRnrSelfChildren(true, false);
+                }
               }
             }
             else if (sVtx.Contains("VertexDisks")) {
@@ -2426,10 +2485,13 @@ void EventDisplay::startDisplay(int initialEvent)
               elVtx->SetMainColor(kRed);
               ((TEveGeoShape *)elVtx)->SetDrawFrame(false);
               // by default draw only the sensors
-              // sensors are so thin that some of them are not drawn ...
-              // TO BE INVESTIGATED
-              if (!sVtx.Contains("sensor")) {
+              if (!sVtx.Contains("sensor"))
                 elVtx->SetRnrSelfChildren(false, false);
+              else {
+                // sensors are so thin that some of them are not drawn.
+                // tried this but it does not fix the problem..
+                // ((TEveGeoShape *) elVtx)->SetDrawFrame(true);
+                // ((TEveGeoShape *) elVtx)->SetMiniFrame(false);
               }
             }
             else
@@ -2619,6 +2681,7 @@ void EventDisplay::startDisplay(int initialEvent)
         dch->SetTitle("Straw tube tracker");
         dch->SetName("Straw tube tracker");
       }
+      */
     }
     else
     {
@@ -3307,21 +3370,79 @@ void EventDisplay::startDisplay(int initialEvent)
             }
           }
         }
+	// HCAL barrel - do not draw the envelope, rather show the layers
+        else if (s.BeginsWith("HCal barrel"))
+        {
+	  TEveElement *envelope = *(a->BeginChildren());
+	  envelope->SetRnrSelfChildren(false, true);
+	  ((TEveGeoShape *)envelope)->SetDrawFrame(false);
+	  // loop over the children of the envelope
+	  for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
+          {
+            TEveElement *el = *itr2;
+            TString elname(el->GetElementName());
+	    // std::cout << elname << std::endl;
+            el->SetRnrSelfChildren(true, false);
+	    if (elname.Contains("HCalLayerVol")) {
+	      el->SetMainColor(kAzure-7);
+	      el->SetMainTransparency(0);
+	      // note: can do el->SetRnrSelfChildren(false, true); to see detailed row structure (tile/abs/..)
+	    }
+          }
+	}
         // HCAL endcap - do not draw the envelope
         else if (s.BeginsWith("HCal endcap"))
         {
           TPRegexp re("HCalThreePartsEndcap*");
           TEveElement *envelope = a->FindChild(re);
           envelope->SetRnrSelfChildren(false, true);
-          // envelope->SetMainColor(kAzure-7);
           ((TEveGeoShape *)envelope)->SetDrawFrame(false);
           for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
           {
             TEveElement *el = *itr2;
             TString elname(el->GetElementName());
             el->SetRnrSelfChildren(true, false);
+	    if (elname.Contains("HCalECLayerVol")) {
+	      el->SetMainColor(kAzure-7);
+	      el->SetMainTransparency(0);
+	      // note: can do el->SetRnrSelfChildren(false, true); to see detailed row structure (tile/abs/..)
+	    }
           }
         }
+	// MUON barrel - do not draw the envelopes, rather show the layers
+	else if (s.BeginsWith("Muon tagger barrel"))
+	{
+	  TEveElement *envelope = *(a->BeginChildren());
+          envelope->SetRnrSelfChildren(false, true);
+	  ((TEveGeoShape *)envelope)->SetDrawFrame(false);
+	  for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
+	  {
+	    TEveElement *el = *itr2;
+            TString elname(el->GetElementName());
+            el->SetRnrSelfChildren(true, false);
+	    el->SetMainColor(kOrange);
+	    el->SetMainTransparency(0);
+	    ((TEveGeoShape *)el)->SetDrawFrame(true);
+          }
+	}
+	// MUON endcap - do not draw the envelope, rather show the layers
+	else if (s.BeginsWith("Muon tagger endcap"))
+	{
+	  for (TEveElement::List_i itrenv = a->BeginChildren(); itrenv != a->EndChildren(); itrenv++) {
+	    TEveElement *envelope = *itrenv;
+	    envelope->SetRnrSelfChildren(false, true);
+	    ((TEveGeoShape *)envelope)->SetDrawFrame(false);
+	    for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
+	    {
+	      TEveElement *el = *itr2;
+	      TString elname(el->GetElementName());
+	      el->SetRnrSelfChildren(true, false);
+	      el->SetMainColor(kOrange);
+	      el->SetMainTransparency(0);
+	      ((TEveGeoShape *)el)->SetDrawFrame(true);
+	    }
+	  }
+	}
       }
     }
   }
@@ -3360,8 +3481,8 @@ void EventDisplay::startDisplay(int initialEvent)
     readout->AddElement(hcalRhoZReadout);
   }
 
-  // gEve->DoRedraw3D();
-  // gEve->FullRedraw3D(true);
+  gEve->DoRedraw3D();
+  gEve->FullRedraw3D(true);
 
 
   // create the gui for event navigation
@@ -3904,11 +4025,305 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
   return segments;
 }
 
-void EventDisplay::CreateElementList(TEveElementList*& list, const std::string& listName)
+void EventDisplay::createElementList(TEveElementList*& list, const std::string& listName)
 {
   if (list == nullptr)
   {
     list = new TEveElementList(listName.c_str());
     gEve->AddElement(list);
   }
+}
+
+EventDisplay::SubDetector* EventDisplay::findSubDetector(TString const& s)
+{
+  for (auto& g : m_subDetectors)
+  {
+    if (g.regex) {
+      if (g.regex->MatchB(s))
+	return &g;
+    }
+    for (auto const& c : g.contains)
+      if (s.Contains(c))
+	return &g;
+  }
+  std::cout << "Unexpected volume: " << s << std::endl;
+  return nullptr;
+}
+
+void EventDisplay::addSimpleElement(TEveElement* el, SubDetector& det)
+{
+  if (! det.list) {
+    det.list = new TEveElementList(det.name.c_str());
+    geom->AddElement(det.list);
+    if (! det.visibleByDefault)
+      det.list->SetRnrSelfChildren(false, false);
+  }
+  if (debug) {
+    cout << "Adding " << el->GetElementName() << " to " << det.name << endl;
+  }
+  det.list->AddElement(el);
+  ((TEveGeoShape *)el)->SetDrawFrame(false);
+}
+
+void EventDisplay::addVertex(TEveElement* el, SubDetector& det)
+{
+  TEveElementList* barrel = new TEveElementList("Vertex barrel");
+  geom->AddElement(barrel);
+  TEveElementList* endcap = new TEveElementList("Vertex endcap");
+  geom->AddElement(endcap);
+
+  // for vertex, loop over children to add them either to barrel or endcap
+  TString s(el->GetElementName());
+  if (debug) {
+    cout << "Found " << s << ", looping over its children" << endl;
+  }
+  for (TEveElement::List_i itr = el->BeginChildren(); itr != el->EndChildren(); ++itr)
+  {
+    TEveElement* child = *itr;
+    TString name(child->GetElementName());
+    if (name.Contains("VertexBarrel") || name.Contains("VertexInnerBarrel"))
+    {
+      if (debug) cout << "Adding " << name << " to vertex barrel" << endl;
+      // barrel->AddElement(child);
+      // child->SetMainColor(kRed);
+      // rather than the assembly we add directly the layers
+      for (TEveElement::List_i itr2 = child->BeginChildren(); itr2 != child->EndChildren(); itr2++) {
+	TEveElement *grandchild = *itr2;
+	TString gcName(grandchild->GetElementName());
+	barrel->AddElement(grandchild);
+	grandchild->SetMainColor(kRed);
+	((TEveGeoShape *)grandchild)->SetDrawFrame(false);
+	if (gcName.Contains("VertexInnerBarrel"))
+	  ((TEveGeoShape *)grandchild)->SetNSegments(128);
+	// by default draw only the sensors
+	if (!gcName.Contains("sensor")) {
+	  grandchild->SetRnrSelfChildren(false, false);
+	}
+	else {
+	  // sensors are so thin that some of them are not drawn.
+	  // tried this but it does not fix the problem..
+	  //((TEveGeoShape *) grandchild)->SetMiniFrame(false);
+	  //((TEveGeoShape *) grandchild)->SetDrawFrame(true);
+	  //grandchild->SetRnrSelfChildren(true, false);
+	}
+      }
+    }
+    else if (name.Contains("VertexDisks"))
+    {
+      if (debug) cout << "Adding " << name << " to vertex endcap" << endl;
+      endcap->AddElement(child);
+      child->SetMainColor(kRed);
+      ((TEveGeoShape *)child)->SetDrawFrame(false);
+      // by default draw only the sensors
+      if (!name.Contains("sensor"))
+	child->SetRnrSelfChildren(false, false);
+      else {
+	// sensors are so thin that some of them are not drawn.
+	// tried this but it does not fix the problem..
+	// ((TEveGeoShape *) child)->SetDrawFrame(true);
+	// ((TEveGeoShape *) child)->SetMiniFrame(false);
+      }
+    }
+  }
+}
+
+void EventDisplay::addDCH(TEveElement* el, SubDetector& det)
+{
+  addSimpleElement(el, det);
+  el->SetRnrSelfChildren(true, false);
+  el->SetMainTransparency(useTransparencies ? 60 : 0);
+  el->SetMainColor(kGreen-5);
+  ((TEveGeoShape *)el)->SetNSegments(128);
+  ((TEveGeoShape *)el)->SetDrawFrame(false);
+}
+
+void EventDisplay::addWrapper(TEveElement* el, SubDetector& det)
+{
+  // TODO
+  // cannot use SimpleElement because it will add assembly to element list so I have to duplicate code. Need to refactor
+  // addSimpleElement(el, det);
+  if (! det.list) {
+    det.list = new TEveElementList(det.name.c_str());
+    geom->AddElement(det.list);
+    if (! det.visibleByDefault)
+      det.list->SetRnrSelfChildren(false, false);
+  }
+  if (debug) {
+    cout << "Adding " << el->GetElementName() << " to " << det.name << endl;
+  }
+
+  // rather than the assembly we add directly the layers
+  for (TEveElement::List_i itr2 = el->BeginChildren(); itr2 != el->EndChildren(); itr2++) {
+    TEveElement *child = *itr2;
+    det.list->AddElement(child);
+    child->SetRnrSelfChildren(true, false);
+    child->SetMainTransparency(useTransparencies ? 60 : 0);
+    child->SetMainColor(kRed);
+    ((TEveGeoShape *)child)->SetNSegments(128);
+    ((TEveGeoShape *)child)->SetDrawFrame(false);
+  }
+}
+
+void EventDisplay::addECalB(TEveElement* el, SubDetector& det)
+{
+  addSimpleElement(el, det);
+  el->SetRnrSelfChildren(true, false);
+  el->SetMainColor(kAzure+7);
+  el->SetMainTransparency(useTransparencies ? 60 : 0);
+  ((TEveGeoShape *)el)->SetDrawFrame(false);
+
+  // daughter properties - essentially for projections...
+  for (TEveElement::List_i itr2 = el->BeginChildren(); itr2 != el->EndChildren(); itr2++)
+  {
+    TEveElement *child = *itr2;
+    child->SetMainColor(kAzure+7);
+    TString elname(child->GetElementName());
+    if (debug) std::cout << elname << std::endl;
+    child->SetRnrSelfChildren(false, false);
+    if (elname.BeginsWith("ECAL_Cryo_side"))
+      child->SetRnrSelfChildren(false, false);
+    else
+      child->SetRnrSelfChildren(true, false);
+    child->SetMainTransparency(useTransparencies ? 60 : 0);
+    ((TEveGeoShape *)child)->SetNSegments(128);
+    ((TEveGeoShape *)child)->SetDrawFrame(false);
+  }
+}
+
+
+void EventDisplay::addECalEC(TEveElement* el, SubDetector& det)
+{
+  addSimpleElement(el, det);
+  el->SetRnrSelfChildren(true, false);
+  el->SetMainTransparency(useTransparencies ? 60 : 0);
+  el->SetMainColor(kAzure+7);
+  ((TEveGeoShape *)el)->SetDrawFrame(false);
+}
+
+void EventDisplay::addHCalB(TEveElement* el, SubDetector& det)
+{
+  // for the HCal barrel, we draw the envelope in the 3d model,
+  // and the subvolumes in the 2D views
+
+  // add element to list
+  addSimpleElement(el, det);
+
+  // draw envelope but not children
+  el->SetRnrSelfChildren(true, false);
+  // this if we wanted to not draw the envelope but not the layers.. but then too many details in 3D
+  // el->SetRnrSelfChildren(false, true);
+  el->SetMainTransparency(useTransparencies ? 60 : 0);
+  el->SetMainColor(kAzure-7);
+  ((TEveGeoShape *)el)->SetNSegments(128);
+  ((TEveGeoShape *)el)->SetDrawFrame(false);
+
+  // setup the properties of the children of the envelope
+  // do not do it here, but directly in the projections..
+  /*
+  for (TEveElement::List_i itr = el->BeginChildren(); itr != el->EndChildren(); itr++)
+  {
+    TEveElement *child = *itr;
+    child->SetRnrSelfChildren(true, false); 
+    child->SetMainColor(kAzure-7);
+    child->SetMainTransparency(useTransparencies ? 60 : 0);
+    // show the radial layers
+    ((TEveGeoShape *)child)->SetDrawFrame(true);
+    // or not
+    // ((TEveGeoShape *)child)->SetDrawFrame(false);
+    ((TEveGeoShape *)child)->SetNSegments(128);
+  }
+  */
+}
+
+void EventDisplay::addHCalEC(TEveElement* el, SubDetector& det)
+{
+  // for the HCal endcap, we draw the envelope in the 3d model,
+  // and the subvolumes in the 2D views
+
+  // add element to list
+  addSimpleElement(el, det);
+
+  // draw envelope but not children
+  el->SetRnrSelfChildren(true, false);
+  // this if we wanted to not draw the envelope but not the layers.. but then too many details in 3D
+  // el->SetRnrSelfChildren(false, true);
+  el->SetMainTransparency(useTransparencies ? 60 : 0);
+  el->SetMainColor(kAzure-7);
+  ((TEveGeoShape *)el)->SetNSegments(128);
+  ((TEveGeoShape *)el)->SetDrawFrame(false);
+
+  // setup the properties of the children of the envelope
+  // do not do it here, but directly in the projections..
+  /*
+  for (TEveElement::List_i itr = el->BeginChildren(); itr != el->EndChildren(); itr++)
+  {
+    TEveElement *child = *itr;
+    // do not show the layers
+    // child->SetRnrSelfChildren(true, false);
+    // show the layers
+    child->SetRnrSelfChildren(false, true);
+    child->SetMainColor(kAzure-7);
+    child->SetMainTransparency(useTransparencies ? 60 : 0);
+    // set to false if we don't want to see the layer structure
+    ((TEveGeoShape *)child)->SetDrawFrame(true);
+    // ((TEveGeoShape *)child)->SetDrawFrame(false);
+  }
+  */
+
+  // identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(128)... maybe we can merge code...
+}
+
+void EventDisplay::addMuonB(TEveElement* el, SubDetector& det)
+{
+  // add element to list
+  addSimpleElement(el, det);
+
+  // draw envelope but not children
+  el->SetRnrSelfChildren(true, false);
+  el->SetMainTransparency(useTransparencies ? 60 : 0);
+  el->SetMainColor(kOrange);
+  ((TEveGeoShape *)el)->SetNSegments(128);
+  ((TEveGeoShape *)el)->SetDrawFrame(false);
+
+  // setup the properties of the children of the envelope
+  // do not do it here, but directly in the projections..
+  /*
+  for (TEveElement::List_i itr = el->BeginChildren(); itr != el->EndChildren(); itr++)
+  {
+    TEveElement *child = *itr;
+    // show the radial layers
+    child->SetRnrSelfChildren(false, true);
+    ((TEveGeoShape *)child)->SetNSegments(128);
+    child->SetMainColor(kOrange);
+    ((TEveGeoShape *)child)->SetDrawFrame(true);
+  }
+  */
+}
+
+void EventDisplay::addMuonEC(TEveElement* el, SubDetector& det)
+{
+  // add element to list
+  addSimpleElement(el, det);
+
+  // draw envelope but not children
+  el->SetRnrSelfChildren(true, false);
+  el->SetMainTransparency(useTransparencies ? 60 : 0);
+  el->SetMainColor(kOrange);
+  ((TEveGeoShape *)el)->SetDrawFrame(false);
+
+  // setup the properties of the children of the envelope
+  // do not do it here, but directly in the projections..
+  /*
+  for (TEveElement::List_i itr = el->BeginChildren(); itr != el->EndChildren(); itr++)
+  {
+    TEveElement *child = *itr;
+    // show the radial layers
+    child->SetRnrSelfChildren(false, true);
+    ((TEveGeoShape *)child)->SetNSegments(128);
+    child->SetMainColor(kOrange);
+    ((TEveGeoShape *)child)->SetDrawFrame(true);
+  }
+  */
+
+  // identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(128)... maybe we can merge code...
 }

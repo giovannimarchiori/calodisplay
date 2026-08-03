@@ -24,10 +24,14 @@
 #include <TEveQuadSet.h>
 #include <TEveBoxSet.h>
 #include <TEveStraightLineSet.h>
+
 #include <TGLViewer.h>
 #include <TGLAnnotation.h>
+
 #include <TGTextEntry.h>
+
 #include <TVector3.h>
+#include <TPRegexp.h>
 
 #include "DetectorGeometry.h"
 #include "EventReader.h"
@@ -223,6 +227,9 @@ public:
   TEveProjectionManager *rhoPhiProjManager = nullptr;
   TEveProjectionManager *rhoZProjManager = nullptr;
 
+  // the list of the geometry
+  TEveElementList* geom = nullptr;
+
   // the list of the readout elements
   TEveElementList *readout = nullptr;
   TGLConstAnnotation *processLabel = nullptr;
@@ -323,9 +330,9 @@ public:
     const TTreeReaderArray<UInt_t>& daughters_begin,
     const TTreeReaderArray<UInt_t>& daughters_end);
 
-  void CreateElementList(TEveElementList*& list, const std::string& listName);
+  void createElementList(TEveElementList*& list, const std::string& listName);
 
-  template <typename T> void DrawHitCollection(TEvePointSet*& hitSet, const std::string& name,
+  template <typename T> void drawHitCollection(TEvePointSet*& hitSet, const std::string& name,
                                                const TTreeReaderArray<T> *hit_position_x,
                                                const TTreeReaderArray<T> *hit_position_y,
                                                const TTreeReaderArray<T> *hit_position_z,
@@ -365,6 +372,32 @@ public:
     }
   }
 
+private:
+  struct SubDetector
+  {
+    std::string name;
+    TPRegexp* regex = nullptr;
+    std::vector<std::string> contains;
+    TEveElementList* list = nullptr;
+    bool visibleByDefault = true;
+    std::function<void(TEveElement*, SubDetector&)> handler;
+    // optionally
+    // DetectorType type;
+  };
+  std::vector<SubDetector> m_subDetectors;
+
+  SubDetector* findSubDetector(TString const& s);
+
+  void addSimpleElement(TEveElement* element, SubDetector&);
+  void addVertex(TEveElement* element, SubDetector&);
+  void addDCH(TEveElement* element, SubDetector&);
+  void addWrapper(TEveElement* element, SubDetector&);
+  void addECalB(TEveElement* element, SubDetector&);
+  void addECalEC(TEveElement* element, SubDetector&);
+  void addHCalB(TEveElement* element, SubDetector&);
+  void addHCalEC(TEveElement* element, SubDetector&);
+  void addMuonB(TEveElement* element, SubDetector&);
+  void addMuonEC(TEveElement* element, SubDetector&);
 
 };
 
