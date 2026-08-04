@@ -8,6 +8,7 @@
 
 #include "EventDisplay.h"
 #include "MathUtils.h"
+#include "ParticleUtils.h"
 #include "DetectorGeometry.h"
 #include "MagField.h"
 #include "CylField.h"
@@ -44,43 +45,10 @@ using Units::units;
 using Units::cm;
 using Units::mm;
 
-const char* partType(int pdgID) {
-  if (pdgID == 111)
-    return "pi0";
-  else if (pdgID == 211)
-    return "pi+";
-  else if (pdgID == -211)
-    return "pi-";
-  else if (pdgID == 22)
-    return "y";
-  else if (pdgID == 11)
-    return "e-";
-  else if (pdgID == -11)
-    return "e+";
-  else if (pdgID == 13)
-    return "mu-";
-  else if (pdgID == -13)
-    return "mu+";
-  else
-    return "unknown";
-}
-
 /******************************************************************************/
 // HELPER FUNCTIONS related to the graphic system
 /******************************************************************************/
 
-// derived TGLAnnotation class that overrides MouseEnter method
-// to avoid editing of annotation
-TGLConstAnnotation::TGLConstAnnotation(TGLViewerBase *parent, const char *text, Float_t posx, Float_t posy) : TGLAnnotation(parent, text, posx, posy)
-{
-  ;
-}
-
-Bool_t TGLConstAnnotation::MouseEnter(TGLOvlSelectRecord & /*rec*/)
-{
-  fActive = kFALSE;
-  return kTRUE;
-}
 
 void EventDisplay::fillClusters(std::string clusterType)
 {
@@ -2015,7 +1983,7 @@ void EventDisplay::drawEvent(int event)
 
   // add process and event label
   if (processLabel == nullptr) {
-    auto processStr = Form("%s, %.1f GeV", partType(pdgID), pmax);
+    auto processStr = Form("%s, %.1f GeV", ParticleUtils::name(pdgID), pmax);
     float x(0.05), y(0.95);
     processLabel = new TGLConstAnnotation(mainGLView, processStr, x, y);
     processLabel->SetTextSize(0.05); // % of window diagonal

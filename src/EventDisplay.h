@@ -26,7 +26,6 @@
 #include <TEveStraightLineSet.h>
 
 #include <TGLViewer.h>
-#include <TGLAnnotation.h>
 
 #include <TGTextEntry.h>
 
@@ -36,7 +35,7 @@
 #include "DetectorGeometry.h"
 #include "EventReader.h"
 #include "CaloCluster.h"
-
+#include "GraphicUtils.h"
 #include "Globals.h"
 
 using namespace std;
@@ -51,15 +50,6 @@ struct ElectronSegment
   TVector3 start;
   TVector3 end;
   TVector3 momentum;
-};
-
-// derived TGLAnnotation class that overrides MouseEnter method
-// to avoid editing of annotation
-class TGLConstAnnotation : public TGLAnnotation
-{
-public:
-  TGLConstAnnotation(TGLViewerBase *parent, const char *text, Float_t posx, Float_t posy);
-  Bool_t MouseEnter(TGLOvlSelectRecord & /*rec*/);
 };
 
 // derived TEvePointSet class that shows point info in console when selected
