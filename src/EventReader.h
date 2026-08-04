@@ -102,7 +102,7 @@ public:
   TTreeReaderArray<Double_t> *VertexEndcapHits_position_y = nullptr;
   TTreeReaderArray<Double_t> *VertexEndcapHits_position_z = nullptr;
 
-  // the hits in the DCH
+  // the hits in the DCH/STT
   TTreeReaderArray<ULong_t> *MainTrackerHits_cellID = nullptr;
   TTreeReaderArray<Float_t> *MainTrackerHits_energy = nullptr;
   TTreeReaderArray<Double_t> *MainTrackerHits_position_x = nullptr;
@@ -137,7 +137,7 @@ public:
   TTreeReaderArray<Double_t> *VertexEndcapDigis_position_y = nullptr;
   TTreeReaderArray<Double_t> *VertexEndcapDigis_position_z = nullptr;
 
-  // the digis in the DCH
+  // the digis in the DCH/STT
   TTreeReaderArray<ULong_t> *MainTrackerDigis_cellID = nullptr;
   TTreeReaderArray<Float_t> *MainTrackerDigis_energy = nullptr;
   TTreeReaderArray<Double_t> *MainTrackerDigis_position_x = nullptr;

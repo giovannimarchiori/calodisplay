@@ -45,10 +45,6 @@ using Units::units;
 using Units::cm;
 using Units::mm;
 
-/******************************************************************************/
-// HELPER FUNCTIONS related to the graphic system
-/******************************************************************************/
-
 
 void EventDisplay::fillClusters(std::string clusterType)
 {
@@ -121,9 +117,7 @@ void EventDisplay::fillClusters(std::string clusterType)
 
     // set barycenter
     if (debug)
-    {
       std::cout << "  Setting cluster barycenter position .." << std::endl;
-    }
     if (clusterType == "topo")
     {
       cluster->setBarycenterXYZ((*eventReader->CaloTopoClusters_position_x)[i] * mm,
@@ -2602,7 +2596,7 @@ void EventDisplay::startDisplay(int initialEvent)
           {
             TEveElement *el = *itr2;
             TString elname(el->GetElementName());
-            std::cout << elname << std::endl;
+            // std::cout << elname << std::endl;
             if (elname.Contains("EndPlate"))
               el->SetRnrSelfChildren(false, false);
             else {
