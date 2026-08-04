@@ -45,9 +45,6 @@ using namespace std;
 // auxiliary classes/functions
 /******************************************************************************/
 
-// helper function to return the sign of a float
-int sgn(float val);
-
 // struct to hold start/end/momentum info to calculate e- brem from MCParticles
 struct ElectronSegment
 {
@@ -71,11 +68,13 @@ public:
   std::vector<std::string> fTooltips;  // per-point info
   bool fShowTooltips;                  // flag to enable/disable tooltips
 
-  MyPointSet(const char* name = "MyPoints", bool showTooltips = true) 
+  MyPointSet(const char* name = "MyPoints", bool showTooltips = true)
     : TEvePointSet(name), fShowTooltips(showTooltips) {
+    if (showTooltips) {
         SetPickable(kTRUE);
         SetOwnIds(kTRUE);
       }
+  }
 
   void Reset(Int_t n_points = 0, Int_t n_int_ids = 0) {
     // 1. call base class Reset
@@ -168,24 +167,22 @@ public:
   TEveTrackList *particles = nullptr;
   
   // Sim hits
-  TEvePointSet *vtxHits = nullptr;
-  TEvePointSet *dchHits = nullptr;
-  TEvePointSet *siwrHits = nullptr;
-  TEvePointSet *ecalHits = nullptr;
-  TEvePointSet *hcalHits = nullptr;
-  TEvePointSet *muonHits = nullptr;
+  MyPointSet *vtxHits = nullptr;
+  MyPointSet *dchHits = nullptr;
+  MyPointSet *siwrHits = nullptr;
+  MyPointSet *ecalHits = nullptr;
+  MyPointSet *hcalHits = nullptr;
+  MyPointSet *muonHits = nullptr;
   TEveElementList *hits = nullptr;
 
   // Digitised hits
-  TEvePointSet *vtxDigis = nullptr;
-  TEvePointSet *dchDigis = nullptr;
-  TEvePointSet *siwrDigis = nullptr;
-  //TEvePointSet *ecalCells = nullptr;
+  MyPointSet *vtxDigis = nullptr;
+  MyPointSet *dchDigis = nullptr;
+  MyPointSet *siwrDigis = nullptr;
   MyPointSet *ecalCells = nullptr;
-  // TEvePointSet *hcalCells = nullptr;
   MyPointSet *hcalCells = nullptr;
-  TEvePointSet *muonCells = nullptr;
-  TEvePointSet *cells_merged = nullptr;
+  MyPointSet *muonCells = nullptr;
+  MyPointSet *cells_merged = nullptr;
   TEveElementList *digis = nullptr;
 
   // Reconstructed tracks
@@ -332,26 +329,36 @@ public:
 
   void createElementList(TEveElementList*& list, const std::string& listName);
 
-  template <typename T> void drawHitCollection(TEvePointSet*& hitSet, const std::string& name,
+  template <typename T> void drawHitCollection(MyPointSet*& hitSet, const std::string& name,
                                                const TTreeReaderArray<T> *hit_position_x,
                                                const TTreeReaderArray<T> *hit_position_y,
                                                const TTreeReaderArray<T> *hit_position_z,
                                                const TTreeReaderArray<Float_t> *hit_energy,
                                                const float Ethr,
+                                               bool digi = false,    // if true, use style for digis instead of hits
+                                               bool addTooltips = false,  // if true, add tooltips (do it only for debug!)
                                                bool append = false)  // if append is true, and the pointer is not null, the collection is not reset
   {
     if (hitSet == nullptr)
     {
-      hitSet = new TEvePointSet();
+      hitSet = new MyPointSet("MyPointSet", addTooltips && digi && debug);
       if (Ethr>=0.0)
         hitSet->SetName(Form("%s (E>%.2f GeV)", name.c_str(), Ethr));
       else
         hitSet->SetName(name.c_str());
 
-      hitSet->SetMarkerStyle(hitsMarkerStyle);
-      hitSet->SetMarkerSize(hitsMarkerSize);
-      hitSet->SetMarkerColor(hitsMarkerColor);
-      hits->AddElement(hitSet);
+      if (digi) {
+        hitSet->SetMarkerStyle(digiMarkerStyle);
+        hitSet->SetMarkerSize(digiMarkerSize);
+        hitSet->SetMarkerColor(digiMarkerColor);
+        digis->AddElement(hitSet);
+      }
+      else {
+        hitSet->SetMarkerStyle(hitsMarkerStyle);
+        hitSet->SetMarkerSize(hitsMarkerSize);
+        hitSet->SetMarkerColor(hitsMarkerColor);
+        hits->AddElement(hitSet);
+      }
     }
     else {
       if (!append)

@@ -17,3 +17,8 @@ extern Float_t hitsMarkerSize;
 extern Style_t hitsMarkerStyle;
 extern Color_t hitsMarkerColor;
 
+extern Float_t digiMarkerSize;
+extern Style_t digiMarkerStyle;
+extern Color_t digiMarkerColor;
+
+extern bool overrideDetectorColors;

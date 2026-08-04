@@ -7,6 +7,7 @@
 /******************************************************************************/
 
 #include "EventDisplay.h"
+#include "MathUtils.h"
 #include "DetectorGeometry.h"
 #include "MagField.h"
 #include "CylField.h"
@@ -42,24 +43,6 @@
 using Units::units;
 using Units::cm;
 using Units::mm;
-
-// return the sign of a float
-int sgn(float val)
-{
-  return (val > 0.) - (val < 0.);
-}
-
-// return solution of 2nd order poly (ax^2+bx+c = 0)
-double solve_poly2(double a, double b, double c, int sol) {
-  if (a==0.) return -c/b;
-  double d = b*b-4*a*c;
-  if (d<0) return -9999999999.;
-  d = std::sqrt(d);
-  if (sol>0)
-    return (-b + d)/(2*a);
-  else
-    return (-b - d)/(2*a);
-}
 
 const char* partType(int pdgID) {
   if (pdgID == 111)
@@ -652,7 +635,7 @@ void EventDisplay::drawHits()
   createElementList(hits, "hits");
   // do we need to Reset() or DestroyElements() otherwise ?
 
-  // - hits in vertex
+  // hits in vertex
   if (displayConfig.getBoolConfig("drawVertexHits"))
   {
     std::cout << "Creating vertex barrel hits" << std::endl;
@@ -666,10 +649,10 @@ void EventDisplay::drawHits()
                       eventReader->VertexEndcapHits_position_x,
                       eventReader->VertexEndcapHits_position_y,
                       eventReader->VertexEndcapHits_position_z,
-                      nullptr, -9999., true);
+                      nullptr, -9999., false, false, true);
   }
 
-  // - hits in DCH/STT
+  // hits in DCH/STT
   if (displayConfig.getBoolConfig("drawMainTrackerHits"))
   {
     std::cout << "Creating main tracker hits" << std::endl;
@@ -680,7 +663,7 @@ void EventDisplay::drawHits()
                       nullptr, -9999.);
   }
 
-  // - hits in Si wrapper
+  // hits in Si wrapper
   if (displayConfig.getBoolConfig("drawSiWrapperHits"))
   {
     std::cout << "Creating Si wrapper hits" << std::endl;
@@ -693,11 +676,10 @@ void EventDisplay::drawHits()
                       eventReader->SiWrapperEndcapHits_position_x,
                       eventReader->SiWrapperEndcapHits_position_y,
                       eventReader->SiWrapperEndcapHits_position_z,
-                      nullptr, -9999.,
-                      true);
+                      nullptr, -9999., false, false, true);
   }
 
-  // - hits in ECAL
+  // hits in ECAL
   if (displayConfig.getBoolConfig("drawECalBarrelHits"))
   {
     std::cout << "Creating ecal barrel hits" << std::endl;
@@ -717,11 +699,10 @@ void EventDisplay::drawHits()
                       (eventReader->ECalEndcapHits_position_y),
                       (eventReader->ECalEndcapHits_position_z),
                       (eventReader->ECalEndcapHits_energy),
-                      HitEnergyThreshold,
-                      true);
+                      HitEnergyThreshold, false, false, true);
   }
 
-  // - hits in HCAL
+  // hits in HCAL
   if (displayConfig.getBoolConfig("drawHCalBarrelHits"))
   {
     std::cout << "Creating hcal barrel hits" << std::endl;
@@ -740,11 +721,10 @@ void EventDisplay::drawHits()
                       eventReader->HCalEndcapHits_position_y,
                       eventReader->HCalEndcapHits_position_z,
                       eventReader->HCalEndcapHits_energy,
-                      HitEnergyThreshold,
-                      true);
+                      HitEnergyThreshold, false, false, true);
   }
 
-  // - hits in muon detector
+  // hits in muon detector
   if (displayConfig.getBoolConfig("drawMuonHits"))
   {
     std::cout << "Creating muon barrel hits" << std::endl;
@@ -758,8 +738,7 @@ void EventDisplay::drawHits()
                       eventReader->MuonEndcapHits_position_x,
                       eventReader->MuonEndcapHits_position_y,
                       eventReader->MuonEndcapHits_position_z,
-                      nullptr, -9999.,
-                      true);
+                      nullptr, -9999., false, false, true);
   }
 }
 
@@ -770,134 +749,63 @@ void EventDisplay::drawDigis()
   // digis in VTX
   if (displayConfig.getBoolConfig("drawVertexDigis"))
   {
-    std::cout << "Creating vertex digis" << std::endl;
-    if (vtxDigis == nullptr)
-    {
-      vtxDigis = new TEvePointSet();
-      // vtxDigis->SetName(Form("VTX digis (E>%.2f GeV)", HitEnergyThreshold));
-      vtxDigis->SetName("VTX digis");
-      vtxDigis->SetMarkerStyle(4);
-      vtxDigis->SetMarkerSize(2);
-      vtxDigis->SetMarkerColor(kYellow);
-      digis->AddElement(vtxDigis);
-    }
-    else
-      vtxDigis->Reset();
-    for (unsigned int i = 0; i < eventReader->VertexBarrelDigis_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->VertexBarrelDigis_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->VertexBarrelDigis_cellID)[i];
-      vtxDigis->SetNextPoint(
-           (*eventReader->VertexBarrelDigis_position_x)[i] * mm,
-           (*eventReader->VertexBarrelDigis_position_y)[i] * mm,
-           (*eventReader->VertexBarrelDigis_position_z)[i] * mm);
-    }
-    for (unsigned int i = 0; i < eventReader->VertexEndcapDigis_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->VertexEndcapDigis_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->VertexEndcapDigis_cellID)[i];
-      vtxDigis->SetNextPoint(
-           (*eventReader->VertexEndcapDigis_position_x)[i] * mm,
-           (*eventReader->VertexEndcapDigis_position_y)[i] * mm,
-           (*eventReader->VertexEndcapDigis_position_z)[i] * mm);
-    }
+    std::cout << "Creating vertex barrel digis" << std::endl;
+    drawHitCollection(vtxDigis, "VTX", 
+                      eventReader->VertexBarrelDigis_position_x,
+                      eventReader->VertexBarrelDigis_position_y,
+                      eventReader->VertexBarrelDigis_position_z,
+                      nullptr, -9999., true);
+    std::cout << "Creating vertex endcap digis" << std::endl;
+    drawHitCollection(vtxDigis, "VTX", 
+                      eventReader->VertexEndcapDigis_position_x,
+                      eventReader->VertexEndcapDigis_position_y,
+                      eventReader->VertexEndcapDigis_position_z,
+                      nullptr, -9999., true, false, true);
   }
 
-  // - digis in DCH/STT
+  // digis in DCH/STT
   if (displayConfig.getBoolConfig("drawMainTrackerDigis"))
   {
     std::cout << "Creating main tracker digis" << std::endl;
-    if (dchDigis == nullptr)
-    {
-      dchDigis = new TEvePointSet();
-      // dchDigis->SetName(Form("DCH digis (E>%.2f GeV)", HitEnergyThreshold));
-      dchDigis->SetName("DCH digis");
-      dchDigis->SetMarkerStyle(4);
-      dchDigis->SetMarkerSize(2);
-      dchDigis->SetMarkerColor(kYellow);
-      digis->AddElement(dchDigis);
-    }
-    else
-      dchDigis->Reset();
-    for (unsigned int i = 0; i < eventReader->MainTrackerDigis_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->MainTrackerDigis_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->MainTrackerDigis_cellID)[i];
-      dchDigis->SetNextPoint(
-                            (*eventReader->MainTrackerDigis_position_x)[i] * mm,
-                            (*eventReader->MainTrackerDigis_position_y)[i] * mm,
-                            (*eventReader->MainTrackerDigis_position_z)[i] * mm);
-    }
-  }
+    drawHitCollection(dchDigis, "DCH",  // TODO modify for STT
+                      eventReader->MainTrackerDigis_position_x,
+                      eventReader->MainTrackerDigis_position_y,
+                      eventReader->MainTrackerDigis_position_z,
+                      nullptr, -9999., true);
 
-  // - digis in Si wrapper
+  // digis in Si wrapper
   if (displayConfig.getBoolConfig("drawSiWrapperDigis"))
   {
-    std::cout << "Creating wrapper digis" << std::endl;
-    if (siwrDigis == nullptr)
-    {
-      siwrDigis = new TEvePointSet();
-      // siwrDigis->SetName(Form("VTX digis (E>%.2f GeV)", HitEnergyThreshold));
-      siwrDigis->SetName("SiWr digis");
-      siwrDigis->SetMarkerStyle(4);
-      siwrDigis->SetMarkerSize(2);
-      siwrDigis->SetMarkerColor(kYellow);
-      digis->AddElement(siwrDigis);
-    }
-    else
-      siwrDigis->Reset();
-    for (unsigned int i = 0; i < eventReader->SiWrapperBarrelDigis_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->SiWrapperBarrelDigis_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->SiWrapperBarrelDigis_cellID)[i];
-      siwrDigis->SetNextPoint(
-                             (*eventReader->SiWrapperBarrelDigis_position_x)[i] * mm,
-                             (*eventReader->SiWrapperBarrelDigis_position_y)[i] * mm,
-                             (*eventReader->SiWrapperBarrelDigis_position_z)[i] * mm);
-    }
-    for (unsigned int i = 0; i < eventReader->SiWrapperEndcapDigis_position_x->GetSize(); i++)
-    {
-      // float E = (*eventReader->SiWrapperEndcapDigis_energy)[i];
-      // if (E < HitEnergyThreshold) continue;
-      // ULong_t cellID = (*eventReader->SiWrapperEndcapDigis_cellID)[i];
-      siwrDigis->SetNextPoint(
-                             (*eventReader->SiWrapperEndcapDigis_position_x)[i] * mm,
-                             (*eventReader->SiWrapperEndcapDigis_position_y)[i] * mm,
-                             (*eventReader->SiWrapperEndcapDigis_position_z)[i] * mm);
-    }
+    std::cout << "Creating Si wrapper digis" << std::endl;
+    drawHitCollection(siwrDigis, "Si wrapper",
+                      eventReader->SiWrapperBarrelDigis_position_x,
+                      eventReader->SiWrapperBarrelDigis_position_y,
+                      eventReader->SiWrapperBarrelDigis_position_z,
+                      nullptr, -9999., true);
+    drawHitCollection(siwrHits, "Si wrapper",
+                      eventReader->SiWrapperEndcapDigis_position_x,
+                      eventReader->SiWrapperEndcapDigis_position_y,
+                      eventReader->SiWrapperEndcapDigis_position_z,
+                      nullptr, -9999., true, false, true);
   }
 
-  // - digis (cells) in ECAL/HCAL/muon
+  // digis (cells) in ECAL
   if (displayConfig.getBoolConfig("drawECalBarrelCells"))
   {
     std::cout << "Creating ecal barrel cells" << std::endl;
-    if (ecalCells == nullptr)
-    {
-      // ecalCells = new TEvePointSet();
-      ecalCells = new MyPointSet("ECalCells", debug);
-      ecalCells->SetName(Form("ECAL cells (E>%.2f GeV)", CellEnergyThreshold));
-      ecalCells->SetMarkerStyle(4);
-      ecalCells->SetMarkerSize(2);
-      ecalCells->SetMarkerColor(kYellow);
-      //ecalCells->SetPickable(kTRUE);
-      //ecalCells->SetOwnIds(kTRUE);
-      digis->AddElement(ecalCells);
-    }
-    else
-      ecalCells->Reset();
-    for (unsigned int i = 0; i < eventReader->ECalBarrelCells_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->ECalBarrelCells_energy)[i];
-      if (E < CellEnergyThreshold)
-        continue;
-      ecalCells->SetNextPoint((*eventReader->ECalBarrelCells_position_x)[i] * mm,
-                              (*eventReader->ECalBarrelCells_position_y)[i] * mm,
-                              (*eventReader->ECalBarrelCells_position_z)[i] * mm);
-      if (debug) {
+    drawHitCollection(ecalCells, "ECAL",
+                      eventReader->ECalBarrelCells_position_x,
+                      eventReader->ECalBarrelCells_position_y,
+                      eventReader->ECalBarrelCells_position_z,
+                      eventReader->ECalBarrelCells_energy,
+                      CellEnergyThreshold,
+                      true, debug, false);
+    // add tool tips
+    if (debug) {
+      for (unsigned int i = 0; i < eventReader->ECalBarrelCells_position_x->GetSize(); i++) {
+        float E = (*eventReader->ECalBarrelCells_energy)[i];
+        if (E < CellEnergyThreshold)
+          continue;
         ULong_t cellID = (*eventReader->ECalBarrelCells_cellID)[i];
         ULong_t system = geomReader->SystemID(cellID);
         ULong_t layer = geomReader->ECalBarrelLayer(cellID);
@@ -911,30 +819,20 @@ void EventDisplay::drawDigis()
   if (displayConfig.getBoolConfig("drawECalEndcapCells"))
   {
     std::cout << "Creating ecal endcap cells" << std::endl;
-    if (ecalCells == nullptr)
-    {
-      // ecalCells = new TEvePointSet();
-      ecalCells = new MyPointSet("ECalCells", debug);
-      ecalCells->SetName(Form("ECAL cells (E>%.2f GeV)", CellEnergyThreshold));
-      ecalCells->SetMarkerStyle(4);
-      ecalCells->SetMarkerSize(2);
-      ecalCells->SetMarkerColor(kYellow);
-      digis->AddElement(ecalCells);
-    }
-    else {
-      // dont do it if ecal barrel cells are drawn - this was already done before
-      if (not displayConfig.getBoolConfig("drawECalBarrelCells"))
-        ecalCells->Reset();
-    }
-    for (unsigned int i = 0; i < eventReader->ECalEndcapCells_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->ECalEndcapCells_energy)[i];
-      if (E < CellEnergyThreshold)
-        continue;
-      ecalCells->SetNextPoint((*eventReader->ECalEndcapCells_position_x)[i] * mm,
-                              (*eventReader->ECalEndcapCells_position_y)[i] * mm,
-                              (*eventReader->ECalEndcapCells_position_z)[i] * mm);
-      if (debug) {
+    drawHitCollection(ecalCells, "ECAL",
+                      eventReader->ECalEndcapCells_position_x,
+                      eventReader->ECalEndcapCells_position_y,
+                      eventReader->ECalEndcapCells_position_z,
+                      eventReader->ECalEndcapCells_energy,
+                      CellEnergyThreshold,
+                      true, debug, true);
+    // add tool tips
+    if (debug) {
+      for (unsigned int i = 0; i < eventReader->ECalEndcapCells_position_x->GetSize(); i++)
+      {
+        float E = (*eventReader->ECalEndcapCells_energy)[i];
+        if (E < CellEnergyThreshold)
+          continue;
         ULong_t cellID = (*eventReader->ECalEndcapCells_cellID)[i];
         ULong_t system = geomReader->SystemID(cellID);
         Long_t side = geomReader->ECalEndCapSide(cellID);
@@ -948,31 +846,24 @@ void EventDisplay::drawDigis()
     }
   }
 
+  // digis (cells) in HCAL
   if (displayConfig.getBoolConfig("drawHCalBarrelCells"))
   {
     std::cout << "Creating hcal barrel cells" << std::endl;
-    if (hcalCells == nullptr)
-    {
-      // hcalCells = new TEvePointSet();
-      hcalCells = new MyPointSet("HCalCells", debug);
-      hcalCells->SetName(Form("HCAL cells (E>%.2f GeV)", CellEnergyThreshold));
-      hcalCells->SetMarkerStyle(4);
-      hcalCells->SetMarkerSize(2);
-      hcalCells->SetMarkerColor(kYellow);
-      digis->AddElement(hcalCells);
-    }
-    else
-      hcalCells->Reset();
-    for (unsigned int i = 0; i < eventReader->HCalBarrelCells_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->HCalBarrelCells_energy)[i];
-      if (E < CellEnergyThreshold)
-        continue;
-      hcalCells->SetNextPoint((*eventReader->HCalBarrelCells_position_x)[i] * mm,
-                              (*eventReader->HCalBarrelCells_position_y)[i] * mm,
-                              (*eventReader->HCalBarrelCells_position_z)[i] * mm);
-
-      if (debug) {
+    drawHitCollection(hcalCells, "HCAL",
+                      eventReader->HCalBarrelCells_position_x,
+                      eventReader->HCalBarrelCells_position_y,
+                      eventReader->HCalBarrelCells_position_z,
+                      eventReader->HCalBarrelCells_energy,
+                      CellEnergyThreshold,
+                      true, debug, false);
+    // add tool tips
+    if (debug) {
+      for (unsigned int i = 0; i < eventReader->HCalBarrelCells_position_x->GetSize(); i++)
+      {
+        float E = (*eventReader->HCalBarrelCells_energy)[i];
+        if (E < CellEnergyThreshold)
+          continue;
         ULong_t cellID = (*eventReader->HCalBarrelCells_cellID)[i];
         ULong_t system = geomReader->SystemID(cellID);
         ULong_t layer = geomReader->HCalBarrelLayer(cellID);
@@ -986,30 +877,20 @@ void EventDisplay::drawDigis()
   if (displayConfig.getBoolConfig("drawHCalEndcapCells"))
   {
     std::cout << "Creating hcal endcap cells" << std::endl;
-    if (hcalCells == nullptr)
-    {
-      // hcalCells = new TEvePointSet();
-      hcalCells = new MyPointSet("HCalCells", debug);
-      hcalCells->SetName(Form("HCAL cells (E>%.2f GeV)", CellEnergyThreshold));
-      hcalCells->SetMarkerStyle(4);
-      hcalCells->SetMarkerSize(2);
-      hcalCells->SetMarkerColor(kYellow);
-      digis->AddElement(hcalCells);
-    }
-    else {
-      // dont do it if hcal barrel cells are drawn - this was already done before
-      if (not displayConfig.getBoolConfig("drawHCalBarrelCells"))
-        hcalCells->Reset();
-    }
-    for (unsigned int i = 0; i < eventReader->HCalEndcapCells_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->HCalEndcapCells_energy)[i];
-      if (E < CellEnergyThreshold)
-        continue;
-      hcalCells->SetNextPoint((*eventReader->HCalEndcapCells_position_x)[i] * mm,
-                              (*eventReader->HCalEndcapCells_position_y)[i] * mm,
-                              (*eventReader->HCalEndcapCells_position_z)[i] * mm);
-      if (debug) {
+    drawHitCollection(hcalCells, "HCAL",
+                      eventReader->HCalEndcapCells_position_x,
+                      eventReader->HCalEndcapCells_position_y,
+                      eventReader->HCalEndcapCells_position_z,
+                      eventReader->HCalEndcapCells_energy,
+                      CellEnergyThreshold,
+                      true, debug, true);
+    // add tool tips
+    if (debug) {
+      for (unsigned int i = 0; i < eventReader->HCalEndcapCells_position_x->GetSize(); i++)
+      {
+        float E = (*eventReader->HCalEndcapCells_energy)[i];
+        if (E < CellEnergyThreshold)
+          continue;
         ULong_t cellID = (*eventReader->HCalEndcapCells_cellID)[i];
         ULong_t system = geomReader->SystemID(cellID);
         ULong_t layer = geomReader->HCalEndCapLayer(cellID);
@@ -1020,68 +901,41 @@ void EventDisplay::drawDigis()
     }
   }
 
+  // digis in muon detector
   if (displayConfig.getBoolConfig("drawMuonCells"))
   {
     std::cout << "Creating muon barrel cells" << std::endl;
-    if (muonCells == nullptr)
-    {
-      muonCells = new TEvePointSet();
-      muonCells->SetName(Form("MUON cells (E>%.2f GeV)", CellEnergyThreshold));
-      muonCells->SetMarkerStyle(4);
-      muonCells->SetMarkerSize(2);
-      muonCells->SetMarkerColor(kYellow);
-      digis->AddElement(muonCells);
-    }
-    else
-      muonCells->Reset();
-    for (unsigned int i = 0; i < eventReader->MuonBarrelCells_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->MuonBarrelCells_energy)[i];
-      if (E < CellEnergyThreshold)
-        continue;
-      muonCells->SetNextPoint((*eventReader->MuonBarrelCells_position_x)[i] * mm,
-                              (*eventReader->MuonBarrelCells_position_y)[i] * mm,
-                              (*eventReader->MuonBarrelCells_position_z)[i] * mm);
+    drawHitCollection(muonCells, "MUON",
+                      eventReader->MuonBarrelCells_position_x,
+                      eventReader->MuonBarrelCells_position_y,
+                      eventReader->MuonBarrelCells_position_z,
+                      eventReader->MuonBarrelCells_energy,
+                      CellEnergyThreshold,
+                      true, false);
+                      
     }
     std::cout << "Creating muon endcap cells" << std::endl;
-    for (unsigned int i = 0; i < eventReader->MuonEndcapCells_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->MuonEndcapCells_energy)[i];
-      if (E < CellEnergyThreshold)
-        continue;
-      muonCells->SetNextPoint((*eventReader->MuonEndcapCells_position_x)[i] * mm,
-                              (*eventReader->MuonEndcapCells_position_y)[i] * mm,
-                              (*eventReader->MuonEndcapCells_position_z)[i] * mm);
-    }
+    drawHitCollection(muonCells, "MUON",
+                      eventReader->MuonEndcapCells_position_x,
+                      eventReader->MuonEndcapCells_position_y,
+                      eventReader->MuonEndcapCells_position_z,
+                      eventReader->MuonEndcapCells_energy,
+                      CellEnergyThreshold,
+                      true, false, true);
   }
 
-  //
-  // cells merged (ECAL)
-  //
+  // cells merged in ECAL barrel
   if (displayConfig.getBoolConfig("drawECalBarrelMergedCells"))
   {
     std::cout << "Creating merged ecal barrel cells" << std::endl;
-    if (cells_merged == nullptr)
-    {
-      cells_merged = new TEvePointSet();
-      cells_merged->SetName("cells_merged");
-      cells_merged->SetMarkerStyle(4);
-      cells_merged->SetMarkerSize(3);
-      cells_merged->SetMarkerColor(kBlue);
-      digis->AddElement(cells_merged);
-    }
-    else
-      cells_merged->Reset();
-    for (unsigned int i = 0; i < eventReader->ECalBarrelCells2_position_x->GetSize(); i++)
-    {
-      float E = (*eventReader->ECalBarrelCells2_energy)[i];
-      // if (E<minCellE) continue;
-      // ULong_t cellID = (*eventReader->ECalBarrelCells_cellID)[i];
-      // ULong_t layer = DetectorGeometry::Layer(cellID);
-      cells_merged->SetNextPoint((*eventReader->ECalBarrelCells2_position_x)[i] * mm,
-                                 (*eventReader->ECalBarrelCells2_position_y)[i] * mm,
-                                 (*eventReader->ECalBarrelCells2_position_z)[i] * mm);
-    }
+    drawHitCollection(cells_merged, "ECAL merged",
+                      eventReader->ECalBarrelCells2_position_x,
+                      eventReader->ECalBarrelCells2_position_y,
+                      eventReader->ECalBarrelCells2_position_z,
+                      nullptr, -9999.);
+    // override default size and color
+    cells_merged->SetMarkerSize(3);
+    cells_merged->SetMarkerColor(kBlue);
   }
 }
 
@@ -1170,7 +1024,7 @@ void EventDisplay::drawTracks()
         float z1 = z[tsOrig]*mm;
         const float FCT = 2.99792458E-4f;
         const float bField = 2.0;
-        int charge = sgn(omega[tsOrig]);
+        int charge = MathUtils::sign(omega[tsOrig]);
         float radius = 1.f / std::fabs(omega[tsOrig]);
         float pxy = FCT * bField * radius;
         float px = pxy * std::cos(phi[tsOrig]);
@@ -1462,10 +1316,10 @@ void EventDisplay::drawClusters(std::string clusterType)
         float a = std::sin(theta)*std::sin(theta);
         float b = 2*std::sin(theta)*(x0*std::cos(phi) + y0*std::sin(phi));
         float c = x0*x0 + y0*y0 - rMin*rMin;
-        t1 = solve_poly2(a,b,c,1);
+        t1 = MathUtils::solveQuadratic(a,b,c,1);
         double rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
         c = x0*x0 + y0*y0 - rMax*rMax;
-        t2 = solve_poly2(a,b,c,1);
+        t2 = MathUtils::solveQuadratic(a,b,c,1);
       }
       else if (geomReader->isInECalEndCap(std::sqrt(x0*x0 + y0*y0), z0)) {
         // for cluster in endcap
@@ -1921,13 +1775,13 @@ void EventDisplay::drawClusters(std::string clusterType)
 
     float verts[12];
     verts[0] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-    verts[1] = r_in * sgn(y_center);
+    verts[1] = r_in * MathUtils::sign(y_center);
     verts[3] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-    verts[4] = r_in * sgn(y_center);
+    verts[4] = r_in * MathUtils::sign(y_center);
     verts[6] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-    verts[7] = r_out * sgn(y_center);
+    verts[7] = r_out * MathUtils::sign(y_center);
     verts[9] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-    verts[10] = r_out * sgn(y_center);
+    verts[10] = r_out * MathUtils::sign(y_center);
     verts[2] = verts[5] = verts[8] = verts[11] = 0.;
     //if (qs_rhoz[icl]!=nullptr) {
     qs_rhoz[icl]->AddQuad(verts);
@@ -2028,13 +1882,13 @@ void EventDisplay::drawClusters(std::string clusterType)
       continue;
 
     verts[0] = r_in / tan(thetaMin);
-    verts[1] = r_in * sgn(y_center);
+    verts[1] = r_in * MathUtils::sign(y_center);
     verts[3] = r_in / tan(thetaMax);
-    verts[4] = r_in * sgn(y_center);
+    verts[4] = r_in * MathUtils::sign(y_center);
     verts[6] = r_out / tan(thetaMax);
-    verts[7] = r_out * sgn(y_center);
+    verts[7] = r_out * MathUtils::sign(y_center);
     verts[9] = r_out / tan(thetaMin);
-    verts[10] = r_out * sgn(y_center);
+    verts[10] = r_out * MathUtils::sign(y_center);
     verts[2] = verts[5] = verts[8] = verts[11] = 0.;
     qs_rhoz[icl]->AddQuad(verts);
     qs_rhoz[icl]->QuadValue((int)(1000 * energy));
@@ -2112,8 +1966,6 @@ void EventDisplay::drawEvent(int event)
     eventId = event;
 
   printf("Loading event %d ...\n", eventId);
-  // textEntry->SetTextColor(0xff0000);
-  // textEntry->SetText(Form("Loading event %d ...", eventId));
 
   // write event number in status bar
   browser->SetStatusText(Form("Loading event %d ...", eventId),0);
@@ -2201,8 +2053,6 @@ void EventDisplay::drawEvent(int event)
   std::cout << "Done" << std::endl
             << std::endl;
 
-  // textEntry->SetTextColor((Pixel_t)0x000000);
-  // textEntry->SetText(Form("Event %d loaded", eventId));
   browser->SetStatusText(Form("Event %d loaded", eventId),0);
 }
 
@@ -2309,379 +2159,47 @@ void EventDisplay::startDisplay(int initialEvent)
       m_subDetectors.reserve(20);
       auto simple = [this](TEveElement* e, SubDetector& d)
       {
-	addSimpleElement(e, d);
+        addSimpleElement(e, d);
       };
       m_subDetectors.push_back({"MDI", nullptr, {"ScreenSol","CompSol"}, nullptr, false,
-	  simple});
+          simple});
       m_subDetectors.push_back({"Beampipe", nullptr, {"BeamPipe","Beampipe"}, nullptr, false,
-	  simple});
+          simple});
       m_subDetectors.push_back({"LumiCal", new TPRegexp("LumiCal_*"), {}, nullptr, false,
-	    simple});
+            simple});
       m_subDetectors.push_back({"Vertex", nullptr, {"Vertex"}, nullptr, true,
-      	[this](TEveElement* e, SubDetector& d) { addVertex(e, d); }});
+        [this](TEveElement* e, SubDetector& d) { addVertex(e, d); }});
       m_subDetectors.push_back({"Drift chamber", new TPRegexp("DCH_*"), {}, nullptr, true,
-	    [this](TEveElement* e, SubDetector& d) { addDCH(e, d); }});
+            [this](TEveElement* e, SubDetector& d) { addDCH(e, d); }});
       m_subDetectors.push_back({"Straw tube tracker", new TPRegexp("STT_*"), {}, nullptr, true,
-	    	    [this](TEveElement* e, SubDetector& d) { addDCH(e, d); }});
+                    [this](TEveElement* e, SubDetector& d) { addDCH(e, d); }});
       m_subDetectors.push_back({"Si wrapper barrel", new TPRegexp("SiWrB_*"), {}, nullptr, true,
-	    [this](TEveElement* e, SubDetector& d) { addWrapper(e, d); }});
+            [this](TEveElement* e, SubDetector& d) { addWrapper(e, d); }});
       m_subDetectors.push_back({"Si wrapper endcap", new TPRegexp("SiWrD_*"), {}, nullptr, true,
-	    [this](TEveElement* e, SubDetector& d) { addWrapper(e, d); }});
+            [this](TEveElement* e, SubDetector& d) { addWrapper(e, d); }});
       m_subDetectors.push_back({"ECal barrel", new TPRegexp("ECalBarrel*"), {}, nullptr, true,
-	    [this](TEveElement* e, SubDetector& d) { addECalB(e, d); }});
+            [this](TEveElement* e, SubDetector& d) { addECalB(e, d); }});
       m_subDetectors.push_back({"ECal endcap", nullptr, {"ECalEndcaps"}, nullptr, true,
-	    [this](TEveElement* e, SubDetector& d) { addECalEC(e, d); }});
+            [this](TEveElement* e, SubDetector& d) { addECalEC(e, d); }});
       m_subDetectors.push_back({"HCal barrel", new TPRegexp("HCalEnvelopeVolume*"), {}, nullptr, true,
-	    [this](TEveElement* e, SubDetector& d) { addHCalB(e, d); }});
+            [this](TEveElement* e, SubDetector& d) { addHCalB(e, d); }});
       m_subDetectors.push_back({"HCal endcap", new TPRegexp("HCal(\\w+)Endcap(\\w+)"), {}, nullptr, true,
-	    [this](TEveElement* e, SubDetector& d) { addHCalEC(e, d); }});
+            [this](TEveElement* e, SubDetector& d) { addHCalEC(e, d); }});
       m_subDetectors.push_back({"Muon tagger barrel", new TPRegexp("MuonTaggerBarrel*"), {}, nullptr, true,
-	    [this](TEveElement* e, SubDetector& d) { addMuonB(e, d); }});
+            [this](TEveElement* e, SubDetector& d) { addMuonB(e, d); }});
       m_subDetectors.push_back({"Muon tagger endcap", new TPRegexp("MuonTaggerEndcap*"), {}, nullptr, true,
-	    [this](TEveElement* e, SubDetector& d) { addMuonEC(e, d); }});
+            [this](TEveElement* e, SubDetector& d) { addMuonEC(e, d); }});
 
       for (TEveElement::List_i itr = world->BeginChildren(); itr != world->EndChildren(); itr++)
       {
         TEveElement *el = *itr;
         TString elName(el->GetElementName());
-	SubDetector* det = findSubDetector(elName);
-	if (det) {
-	  if (det->handler)
-	    det->handler(el, *det);
-	}
-      }
-
-      /*
-      // group together elements
-      TPRegexp re_lc("LumiCal_*");
-      TPRegexp re_dch("DCH_*");
-      TPRegexp re_stt("STT_*");
-      TPRegexp re_siwrapb("SiWrB_*");
-      TPRegexp re_siwrapec("SiWrD_*");
-      TPRegexp re_ecalb("ECalBarrel*");
-      TPRegexp re_hcalb("HCalEnvelopeVolume*");
-      TPRegexp re_hcalec("HCal(\\w+)Endcap(\\w+)");
-      TPRegexp re_muonb("MuonTaggerBarrel*");
-      TPRegexp re_muonec("MuonTaggerEndcap*");
-
-      bool has_STT = false;
-
-      TEveElementList *mdi = new TEveElementList("MDI");
-      geom->AddElement(mdi);
-      // disable MDI rendering by default
-      mdi->SetRnrSelfChildren(false, false);
-
-      TEveElementList *beampipe = new TEveElementList("Beampipe");
-      geom->AddElement(beampipe);
-      // disable beampipe rendering by default
-      beampipe->SetRnrSelfChildren(false, false);
-
-      TEveElementList *lumical = new TEveElementList("LumiCal");
-      geom->AddElement(lumical);
-      // disable lumical rendering by default
-      lumical->SetRnrSelfChildren(false, false);
-
-      TEveElementList *vertexBarrel = new TEveElementList("Vertex barrel");
-      geom->AddElement(vertexBarrel);
-
-      TEveElementList *vertexEndcap = new TEveElementList("Vertex endcaps");
-      geom->AddElement(vertexEndcap);
-
-      TEveElementList *dch = new TEveElementList("Drift chamber");
-      geom->AddElement(dch);
-
-      //TEveElementList *stt = new TEveElementList("Straw tube tracker");
-      //geom->AddElement(stt);
-
-      TEveElementList *siwrapb = new TEveElementList("Si wrapper barrel");
-      geom->AddElement(siwrapb);
-
-      TEveElementList *siwrapec = new TEveElementList("Si wrapper endcap");
-      geom->AddElement(siwrapec);
-
-      TEveElementList *ecalb = new TEveElementList("ECal barrel");
-      geom->AddElement(ecalb);
-
-      TEveElementList *ecalec = new TEveElementList("ECal endcaps");
-      geom->AddElement(ecalec);
-
-      TEveElementList *hcalb = new TEveElementList("HCal barrel");
-      geom->AddElement(hcalb);
-
-      TEveElementList *hcalec = new TEveElementList("HCal endcaps");
-      geom->AddElement(hcalec);
-
-      TEveElementList *muontaggerb = new TEveElementList("Muon tagger barrel");
-      geom->AddElement(muontaggerb);
-
-      TEveElementList *muontaggerec = new TEveElementList("Muon tagger endcaps");
-      geom->AddElement(muontaggerec);
-
-      for (TEveElement::List_i itr = world->BeginChildren(); itr != world->EndChildren(); itr++)
-      {
-        TEveElement *a = *itr;
-        TString s(a->GetElementName());
-
-        if (s.Contains("ScreenSol") || s.Contains("CompSol")) {
-          if (debug) {
-            cout << "Adding " << s << " to MDI" << endl;
-          }
-          mdi->AddElement(a);
-          ((TEveGeoShape *)a)->SetDrawFrame(false);
-        }
-        else if (s.Contains("BeamPipe") || s.Contains("Beampipe")) {
-          if (debug) {
-            cout << "Adding " << s << " to beampipe" << endl;
-          }
-          beampipe->AddElement(a);
-          ((TEveGeoShape *)a)->SetDrawFrame(false);
-        }
-        else if (re_lc.MatchB(s)) {
-          if (debug) {
-            cout << "Adding " << s << " to lumical" << endl;
-          }
-          lumical->AddElement(a);
-          ((TEveGeoShape *)a)->SetDrawFrame(false);
-        }
-        else if (s.Contains("Vertex"))
-        {
-          if (debug) {
-            cout << "Found " << s << ", looping over its children" << endl;
-          }
-          // for vertex, loop over children to add them either to barrel or endcap
-          for (TEveElement::List_i itrVtx = a->BeginChildren(); itrVtx != a->EndChildren(); itrVtx++)
-          {
-            TEveElement *elVtx = *itrVtx;
-            TString sVtx(elVtx->GetElementName());
-            if (sVtx.Contains("VertexBarrel") or sVtx.Contains("VertexInnerBarrel")) {
-              if (debug) cout << "Adding " << sVtx << " to vertex barrel" << endl;
-              // vertexBarrel->AddElement(elVtx);
-              // elVtx->SetMainColor(kRed);
-              // rather than the assembly we add directly the layers
-              for (TEveElement::List_i itr2 = elVtx->BeginChildren(); itr2 != elVtx->EndChildren(); itr2++) {
-                TEveElement *el = *itr2;
-                TString elName(el->GetElementName());
-                vertexBarrel->AddElement(el);
-                el->SetMainColor(kRed);
-                ((TEveGeoShape *)el)->SetDrawFrame(false);
-                if (elName.Contains("VertexInnerBarrel"))
-                  ((TEveGeoShape *)el)->SetNSegments(128);
-                // by default draw only the sensors
-                if (!elName.Contains("sensor")) {
-                  el->SetRnrSelfChildren(false, false);
-                }
-                else {
-                  // sensors are so thin that some of them are not drawn.
-                  // tried this but it does not fix the problem..
-                  //((TEveGeoShape *) el)->SetMiniFrame(false);
-                  //((TEveGeoShape *) el)->SetDrawFrame(true);
-                  //el->SetRnrSelfChildren(true, false);
-                }
-              }
-            }
-            else if (sVtx.Contains("VertexDisks")) {
-              if (debug) cout << "Adding " << sVtx << " to vertex endcap" << endl;
-              vertexEndcap->AddElement(elVtx);
-              elVtx->SetMainColor(kRed);
-              ((TEveGeoShape *)elVtx)->SetDrawFrame(false);
-              // by default draw only the sensors
-              if (!sVtx.Contains("sensor"))
-                elVtx->SetRnrSelfChildren(false, false);
-              else {
-                // sensors are so thin that some of them are not drawn.
-                // tried this but it does not fix the problem..
-                // ((TEveGeoShape *) elVtx)->SetDrawFrame(true);
-                // ((TEveGeoShape *) elVtx)->SetMiniFrame(false);
-              }
-            }
-            else
-              std::cout << "Unexpected volume: " << sVtx << std::endl;
-          }
-        }
-        else if (re_dch.MatchB(s))
-        {
-          if (debug) {
-            cout << "Adding " << s << " to drift chamber" << endl;
-          }
-          dch->AddElement(a);
-          a->SetRnrSelfChildren(true, false);
-          a->SetMainTransparency(useTransparencies ? 60 : 0);
-          //a->SetMainTransparency(0);
-          a->SetMainColor(kGreen-5);
-          ((TEveGeoShape *)a)->SetNSegments(128);
-          ((TEveGeoShape *)a)->SetDrawFrame(false);
-        }
-        else if (re_stt.MatchB(s))
-        {
-          if (debug) {
-            cout << "Adding " << s << " to straw tube tracker" << endl;
-          }
-          dch->AddElement(a);
-          has_STT = true;
-          a->SetRnrSelfChildren(true, false);
-          a->SetMainTransparency(useTransparencies ? 60 : 0);
-          //a->SetMainTransparency(0);
-          a->SetMainColor(kGreen-5);
-          ((TEveGeoShape *)a)->SetNSegments(128);
-          ((TEveGeoShape *)a)->SetDrawFrame(false);
-        }
-        else if (re_siwrapb.MatchB(s))
-        {
-          if (debug) {
-            cout << "Adding " << s << " to Si-wrapper barrel" << endl;
-          }
-          // rather than the assembly we add directly the layers
-          for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++) {
-            TEveElement *el = *itr2;
-            siwrapb->AddElement(el);
-            el->SetRnrSelfChildren(true, false);
-            el->SetMainTransparency(useTransparencies ? 60 : 0);
-            el->SetMainColor(kRed);
-            ((TEveGeoShape *)el)->SetNSegments(128);
-            ((TEveGeoShape *)el)->SetDrawFrame(false);
-          }
-        }
-        else if (re_siwrapec.MatchB(s))
-        {
-          if (debug) {
-            cout << "Adding " << s << " to Si-wrapper endcap" << endl;
-          }
-          // rather than the appendix we add directly the layers
-          for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++) {
-            TEveElement *el = *itr2;
-            siwrapec->AddElement(el);
-            el->SetRnrSelfChildren(true, false);
-            el->SetMainTransparency(useTransparencies ? 60 : 0);
-            el->SetMainColor(kRed);
-            ((TEveGeoShape *)el)->SetNSegments(128);
-            ((TEveGeoShape *)el)->SetDrawFrame(false);
-          }
-        }
-        else if (re_ecalb.MatchB(s))
-        {
-          if (debug) {
-            cout << "Adding " << s << " to ECal barrel" << endl;
-          }
-          // add the overall envelope
-          // we draw the envelope in the 3d model,
-          // and the volumes in the 2D views
-          ecalb->AddElement(a);
-          //a->SetRnrSelfChildren(false, true);
-          a->SetRnrSelfChildren(true, false);
-          a->SetMainColor(kAzure+7);
-          a->SetMainTransparency(useTransparencies ? 60 : 0);
-          ((TEveGeoShape *)a)->SetDrawFrame(false);
-          for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
-          {
-            TEveElement *el = *itr2;
-            el->SetMainColor(kAzure+7);
-            TString elname(el->GetElementName());
-            if (debug) std::cout << elname << std::endl;
-            el->SetRnrSelfChildren(false, false);
-            if (elname.BeginsWith("ECAL_Cryo_side"))
-              el->SetRnrSelfChildren(false, false);
-            else
-              el->SetRnrSelfChildren(true, false);
-            el->SetMainTransparency(useTransparencies ? 60 : 0);
-            ((TEveGeoShape *)el)->SetNSegments(128);
-            ((TEveGeoShape *)el)->SetDrawFrame(false);
-          }
-        }
-        else if (s.Contains("ECalEndcaps"))
-        {
-          if (debug) {
-            cout << "Adding " << s << " to ECal endcap" << endl;
-          }
-          // add the two envelopes in the two sides
-          ecalec->AddElement(a);
-          a->SetRnrSelfChildren(true, false);
-          a->SetMainColor(kAzure+7);
-          a->SetMainTransparency(useTransparencies ? 60 : 0);
-          ((TEveGeoShape *)a)->SetDrawFrame(false);
-        }
-        else if (re_hcalb.MatchB(s))
-        {
-          if (debug) {
-            cout << "Adding " << s << " to HCal barrel" << endl;
-          }
-          hcalb->AddElement(a);
-          // for the HCal barrel, we draw the envelope in the 3d model,
-          // and the subvolumes in the 2D views
-          a->SetRnrSelfChildren(true, false);
-          a->SetMainTransparency(useTransparencies ? 60 : 0);
-          a->SetMainColor(kAzure-7);
-          ((TEveGeoShape *)a)->SetNSegments(128);
-          ((TEveGeoShape *)a)->SetDrawFrame(false);
-
-          //a->SetRnrSelfChildren(false, true);
-          for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
-          {
-            TEveElement *el = *itr2;
-            TString elname(el->GetElementName());
-            //el->SetRnrSelfChildren(true, false);
-            el->SetMainColor(kAzure-7);
-            el->SetMainTransparency(useTransparencies ? 60 : 0);
-            ((TEveGeoShape *)el)->SetNSegments(128);
-            ((TEveGeoShape *)el)->SetDrawFrame(false);
-          }
-        }
-        else if (re_hcalec.MatchB(s))
-        {
-          if (debug) {
-            cout << "Adding " << s << " to HCal endcap" << endl;
-          }
-          hcalec->AddElement(a);
-          // for the HCal endcap, we draw the envelope in the 3d model,
-          // and the volumes in the 2D views
-          a->SetRnrSelfChildren(true, false);
-          //a->SetRnrSelfChildren(false, true);
-          a->SetMainColor(kAzure-7);
-          a->SetMainTransparency(useTransparencies ? 60 : 0);
-          ((TEveGeoShape *)a)->SetDrawFrame(false);
-          for (TEveElement::List_i itr2 = a->BeginChildren(); itr2 != a->EndChildren(); itr2++)
-          {
-            TEveElement *el = *itr2;
-            TString elname(el->GetElementName());
-            // el->SetRnrSelfChildren(true, false);
-            el->SetMainColor(kAzure-7);
-            el->SetMainTransparency(useTransparencies ? 60 : 0);
-            ((TEveGeoShape *)el)->SetDrawFrame(false);
-          }
-        }
-        else if (re_muonb.MatchB(s))
-        {
-          if (debug) {
-            cout << "Adding " << s << " to Muon tagger barrel" << endl;
-          }
-          muontaggerb->AddElement(a);
-          a->SetRnrSelfChildren(true, false);
-          a->SetMainTransparency(useTransparencies ? 60 : 0);
-          a->SetMainColor(kOrange);
-          ((TEveGeoShape *)a)->SetNSegments(128);
-          ((TEveGeoShape *)a)->SetDrawFrame(false);
-        }
-        else if (re_muonec.MatchB(s))
-        {
-          if (debug) {
-            cout << "Adding " << s << " to Muon tagger endcap" << endl;
-          }
-          muontaggerec->AddElement(a);
-          a->SetRnrSelfChildren(true, false);
-          a->SetMainColor(kOrange);
-          a->SetMainTransparency(useTransparencies ? 60 : 0);
-          ((TEveGeoShape *)a)->SetDrawFrame(false);
-        }
-        else
-        {
-          std::cout << "Unexpected volume: " << s << std::endl;
-          geom->AddElement(a);
+        SubDetector* det = findSubDetector(elName);
+        if (det) {
+          if (det->handler)
+            det->handler(el, *det);
         }
       }
-      if (has_STT) {
-        dch->SetTitle("Straw tube tracker");
-        dch->SetName("Straw tube tracker");
-      }
-      */
     }
     else
     {
@@ -3105,25 +2623,43 @@ void EventDisplay::startDisplay(int initialEvent)
             }
           }
         }
+
         // show layers in HCAL barrel
         else if (s.BeginsWith("HCal barrel"))
         {
-          TPRegexp re("HCalEnvelopeVolume*");
-          TEveElement *envelope = a->FindChild(re);
+          TEveElement *envelope = *(a->BeginChildren());
           envelope->SetRnrSelfChildren(false, true);
-          // envelope->SetMainColor(kAzure-7);
+          ((TEveGeoShape *)envelope)->SetDrawFrame(false);
+          for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
+          {
+            TEveElement *el = *itr2;
+            TString elname(el->GetElementName());
+            std::cout << elname << std::endl;
+            if (elname.Contains("EndPlate"))
+              el->SetRnrSelfChildren(false, false);
+            else {
+              el->SetRnrSelfChildren(true, false);
+              if (elname.Contains("LayerVol"))
+                el->SetMainColor(kAzure-7);
+              el->SetMainTransparency(0); // check if this does not hide the hits
+            }
+          }
+        }
+
+        // show layers in MUON barrel
+        else if (s.BeginsWith("Muon tagger barrel"))
+        {
+          TEveElement *envelope = *(a->BeginChildren());
+          envelope->SetRnrSelfChildren(false, true);
           ((TEveGeoShape *)envelope)->SetDrawFrame(false);
           for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
           {
             TEveElement *el = *itr2;
             TString elname(el->GetElementName());
             el->SetRnrSelfChildren(true, false);
-            // el->SetMainColor(kAzure-7);
-            // el->SetMainTransparency(useTransparencies ? 60 : 0);
-            // TEveGeoShape* gs = (TEveGeoShape *)el;
-            // if (gs) {
-            //   gs->SetDrawFrame(false);
-            // }
+            if (overrideDetectorColors) el->SetMainColor(kOrange);
+            el->SetMainTransparency(0);
+            ((TEveGeoShape *)el)->SetDrawFrame(true);
           }
         }
       }
@@ -3333,7 +2869,7 @@ void EventDisplay::startDisplay(int initialEvent)
           for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
             TEveElement *b = *itr;
             b->SetRnrSelfChildren(true, false);
-            b->SetMainColor(kGreen-5);
+            if (overrideDetectorColors) b->SetMainColor(kGreen-5);
             ((TEveGeoShape *)b)->SetDrawFrame(false);
           }
         }
@@ -3370,26 +2906,26 @@ void EventDisplay::startDisplay(int initialEvent)
             }
           }
         }
-	// HCAL barrel - do not draw the envelope, rather show the layers
+        // HCAL barrel - do not draw the envelope, rather show the layers
         else if (s.BeginsWith("HCal barrel"))
         {
-	  TEveElement *envelope = *(a->BeginChildren());
-	  envelope->SetRnrSelfChildren(false, true);
-	  ((TEveGeoShape *)envelope)->SetDrawFrame(false);
-	  // loop over the children of the envelope
-	  for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
+          TEveElement *envelope = *(a->BeginChildren());
+          envelope->SetRnrSelfChildren(false, true);
+          ((TEveGeoShape *)envelope)->SetDrawFrame(false);
+          // loop over the children of the envelope
+          for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
           {
             TEveElement *el = *itr2;
             TString elname(el->GetElementName());
-	    // std::cout << elname << std::endl;
+            // std::cout << elname << std::endl;
             el->SetRnrSelfChildren(true, false);
-	    if (elname.Contains("HCalLayerVol")) {
-	      el->SetMainColor(kAzure-7);
-	      el->SetMainTransparency(0);
-	      // note: can do el->SetRnrSelfChildren(false, true); to see detailed row structure (tile/abs/..)
-	    }
+            if (elname.Contains("HCalLayerVol")) {
+              if (overrideDetectorColors) el->SetMainColor(kAzure-7);
+              el->SetMainTransparency(0);
+              // note: can do el->SetRnrSelfChildren(false, true); to see detailed row structure (tile/abs/..)
+            }
           }
-	}
+        }
         // HCAL endcap - do not draw the envelope
         else if (s.BeginsWith("HCal endcap"))
         {
@@ -3402,47 +2938,47 @@ void EventDisplay::startDisplay(int initialEvent)
             TEveElement *el = *itr2;
             TString elname(el->GetElementName());
             el->SetRnrSelfChildren(true, false);
-	    if (elname.Contains("HCalECLayerVol")) {
-	      el->SetMainColor(kAzure-7);
-	      el->SetMainTransparency(0);
-	      // note: can do el->SetRnrSelfChildren(false, true); to see detailed row structure (tile/abs/..)
-	    }
+            if (elname.Contains("HCalECLayerVol")) {
+              if (overrideDetectorColors) el->SetMainColor(kAzure-7);
+              el->SetMainTransparency(0);
+              // note: can do el->SetRnrSelfChildren(false, true); to see detailed row structure (tile/abs/..)
+            }
           }
         }
-	// MUON barrel - do not draw the envelopes, rather show the layers
-	else if (s.BeginsWith("Muon tagger barrel"))
-	{
-	  TEveElement *envelope = *(a->BeginChildren());
+        // MUON barrel - do not draw the envelopes, rather show the layers
+        else if (s.BeginsWith("Muon tagger barrel"))
+        {
+          TEveElement *envelope = *(a->BeginChildren());
           envelope->SetRnrSelfChildren(false, true);
-	  ((TEveGeoShape *)envelope)->SetDrawFrame(false);
-	  for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
-	  {
-	    TEveElement *el = *itr2;
+          ((TEveGeoShape *)envelope)->SetDrawFrame(false);
+          for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
+          {
+            TEveElement *el = *itr2;
             TString elname(el->GetElementName());
             el->SetRnrSelfChildren(true, false);
-	    el->SetMainColor(kOrange);
-	    el->SetMainTransparency(0);
-	    ((TEveGeoShape *)el)->SetDrawFrame(true);
+            if (overrideDetectorColors) el->SetMainColor(kOrange);
+            el->SetMainTransparency(0);
+            ((TEveGeoShape *)el)->SetDrawFrame(true);
           }
-	}
-	// MUON endcap - do not draw the envelope, rather show the layers
-	else if (s.BeginsWith("Muon tagger endcap"))
-	{
-	  for (TEveElement::List_i itrenv = a->BeginChildren(); itrenv != a->EndChildren(); itrenv++) {
-	    TEveElement *envelope = *itrenv;
-	    envelope->SetRnrSelfChildren(false, true);
-	    ((TEveGeoShape *)envelope)->SetDrawFrame(false);
-	    for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
-	    {
-	      TEveElement *el = *itr2;
-	      TString elname(el->GetElementName());
-	      el->SetRnrSelfChildren(true, false);
-	      el->SetMainColor(kOrange);
-	      el->SetMainTransparency(0);
-	      ((TEveGeoShape *)el)->SetDrawFrame(true);
-	    }
-	  }
-	}
+        }
+        // MUON endcap - do not draw the envelope, rather show the layers
+        else if (s.BeginsWith("Muon tagger endcap"))
+        {
+          for (TEveElement::List_i itrenv = a->BeginChildren(); itrenv != a->EndChildren(); itrenv++) {
+            TEveElement *envelope = *itrenv;
+            envelope->SetRnrSelfChildren(false, true);
+            ((TEveGeoShape *)envelope)->SetDrawFrame(false);
+            for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
+            {
+              TEveElement *el = *itr2;
+              TString elname(el->GetElementName());
+              el->SetRnrSelfChildren(true, false);
+              if (overrideDetectorColors) el->SetMainColor(kOrange);
+              el->SetMainTransparency(0);
+              ((TEveGeoShape *)el)->SetDrawFrame(true);
+            }
+          }
+        }
       }
     }
   }
@@ -3556,18 +3092,11 @@ void EventDisplay::fwd()
 {
   if (evtFile == "")
   {
-    //textEntry->SetTextColor(0xff0000);
-    //textEntry->SetText("No events loaded");
     printf("\nNo events loaded\n");
     int ret;
-    auto b = new TGMsgBox(gClient->GetRoot(),
-                          browser,
-                          "Error",
-                          "No events loaded",
-                          kMBIconStop,
-                          kMBOk,
-                          &ret);
-
+    auto b = new TGMsgBox(gClient->GetRoot(), browser,
+                          "Error", "No events loaded",
+                          kMBIconStop, kMBOk, &ret);
   }
   else if (eventId < nEvents - 1)
   {
@@ -3576,18 +3105,12 @@ void EventDisplay::fwd()
   }
   else
   {
-    //textEntry->SetTextColor(0xff0000);
-    //textEntry->SetText("Already at last event");
     printf("\nAlready at last event\n");
 
     int ret;
-    auto b = new TGMsgBox(gClient->GetRoot(),
-                          browser,
-                          "Error",
-                          "Already at last event",
-                          kMBIconStop,
-                          kMBOk,
-                          &ret);
+    auto b = new TGMsgBox(gClient->GetRoot(), browser,
+                          "Error", "Already at last event",
+                          kMBIconStop, kMBOk, &ret);
   }
 }
 
@@ -3595,18 +3118,11 @@ void EventDisplay::bck()
 {
   if (evtFile == "")
   {
-    //textEntry->SetTextColor(0xff0000);
-    //textEntry->SetText("No events loaded");
     printf("\nNo events loaded\n");
     int ret;
-    auto b = new TGMsgBox(gClient->GetRoot(),
-                          browser,
-                          "Error",
-                          "Already at last event",
-                          kMBIconStop,
-                          kMBOk,
-                          &ret);
-
+    auto b = new TGMsgBox(gClient->GetRoot(), browser,
+                          "Error", "Already at last event",
+                          kMBIconStop, kMBOk, &ret);
   }
   else if (eventId > 0)
   {
@@ -3615,19 +3131,12 @@ void EventDisplay::bck()
   }
   else
   {
-    //textEntry->SetTextColor(0xff0000);
-    //textEntry->SetText("Already at first event");
     printf("\nAlready at first event\n");
 
     int ret;
-    auto b = new TGMsgBox(gClient->GetRoot(),
-                          browser,
-                          "Error",
-                          "Already at first event",
-                          kMBIconStop,
-                          kMBOk,
-                          &ret);
-
+    auto b = new TGMsgBox(gClient->GetRoot(), browser,
+                          "Error", "Already at first event",
+                          kMBIconStop, kMBOk, &ret);
   }
 }
 
@@ -3676,58 +3185,7 @@ void EventDisplay::takeScreenshot()
 
 // Create minimal GUI for event navigation.
 void EventDisplay::makeGui()
-{
-
-  /*
-  browser = gEve->GetBrowser();
-  browser->StartEmbedding(TRootBrowser::kLeft);
-
-  TGMainFrame *frmMain = new TGMainFrame(gClient->GetRoot(), 1000, 600);
-  frmMain->SetWindowName("GUI");
-  frmMain->SetCleanup(kDeepCleanup);
-
-  {
-    TGHorizontalFrame *hf = new TGHorizontalFrame(frmMain);
-    TGPictureButton *b = 0;
-
-    b = new TGPictureButton(hf, gClient->GetPicture("icons/TakeScreenshot.png"));
-    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
-    b->Connect("Clicked()", "EventDisplay", this, "takeScreenshot()");
-    b->SetToolTipText("Take a screenshot of the selected view");
-
-    b = new TGPictureButton(hf, gClient->GetPicture("icons/GoBack.gif"));
-    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
-    b->Connect("Clicked()", "EventDisplay", this, "bck()");
-    b->SetToolTipText("Go to previous event");
-
-    b = new TGPictureButton(hf, gClient->GetPicture("icons/GoForward.gif"));
-    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
-    b->Connect("Clicked()", "EventDisplay", this, "fwd()");
-    b->SetToolTipText("Go to next event");
-
-    b = new TGPictureButton(hf, gClient->GetPicture("icons/grid_icon.png"));
-    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
-    b->Connect("Clicked()", "EventDisplay", this, "toggleReadout()");
-    b->SetToolTipText("Hide/Show readouts");
-    frmMain->AddFrame(hf);
-
-    TGHorizontalFrame *hf2 = new TGHorizontalFrame(frmMain);
-    textEntry = new TGTextEntry(hf2);
-    textEntry->SetEnabled(kFALSE);
-    hf2->AddFrame(textEntry, new TGLayoutHints(kLHintsLeft | kLHintsCenterY |
-                                              kLHintsExpandX,
-                                              2, 10, 10, 10));
-    frmMain->AddFrame(hf);
-  }
-
-  frmMain->MapSubwindows();
-  frmMain->Resize();
-  frmMain->MapWindow();
-
-  browser->StopEmbedding();
-  browser->SetTabTitle("Controls", 0);
-  */
-  
+{ 
   // add buttons to go through events
   TGTab* tab = browser->GetTabRight();
   Int_t nTabs = tab->GetNumberOfTabs();
@@ -3757,15 +3215,6 @@ void EventDisplay::makeGui()
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "toggleReadout()");
     b->SetToolTipText("Hide/Show readouts");
-
-    /*
-    if (textEntry == nullptr) {
-      textEntry = new TGTextEntry(hf);
-      textEntry->SetEnabled(kFALSE);
-      hf->AddFrame(textEntry, new TGLayoutHints(kLHintsRight | kLHintsCenterY |
-       kLHintsExpandX, 10, 10, 10, 10));
-    }
-    */
 
     frm->AddFrame(hf);
     frm->Layout();
@@ -3975,7 +3424,7 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
  
   TVector3 currentMomentum = electronMomentum;
   TVector3 currentVertex(el_vx, el_vy, el_vz);
-  int charge = -sgn(pdg[electronIndex]);
+  int charge = - MathUtils::sign(pdg[electronIndex]);
 
   // Create propagator
   TEveTrackPropagator* propagator = new TEveTrackPropagator();
@@ -4040,11 +3489,11 @@ EventDisplay::SubDetector* EventDisplay::findSubDetector(TString const& s)
   {
     if (g.regex) {
       if (g.regex->MatchB(s))
-	return &g;
+        return &g;
     }
     for (auto const& c : g.contains)
       if (s.Contains(c))
-	return &g;
+        return &g;
   }
   std::cout << "Unexpected volume: " << s << std::endl;
   return nullptr;
@@ -4088,40 +3537,40 @@ void EventDisplay::addVertex(TEveElement* el, SubDetector& det)
       // child->SetMainColor(kRed);
       // rather than the assembly we add directly the layers
       for (TEveElement::List_i itr2 = child->BeginChildren(); itr2 != child->EndChildren(); itr2++) {
-	TEveElement *grandchild = *itr2;
-	TString gcName(grandchild->GetElementName());
-	barrel->AddElement(grandchild);
-	grandchild->SetMainColor(kRed);
-	((TEveGeoShape *)grandchild)->SetDrawFrame(false);
-	if (gcName.Contains("VertexInnerBarrel"))
-	  ((TEveGeoShape *)grandchild)->SetNSegments(128);
-	// by default draw only the sensors
-	if (!gcName.Contains("sensor")) {
-	  grandchild->SetRnrSelfChildren(false, false);
-	}
-	else {
-	  // sensors are so thin that some of them are not drawn.
-	  // tried this but it does not fix the problem..
-	  //((TEveGeoShape *) grandchild)->SetMiniFrame(false);
-	  //((TEveGeoShape *) grandchild)->SetDrawFrame(true);
-	  //grandchild->SetRnrSelfChildren(true, false);
-	}
+        TEveElement *grandchild = *itr2;
+        TString gcName(grandchild->GetElementName());
+        barrel->AddElement(grandchild);
+        if (overrideDetectorColors) grandchild->SetMainColor(kRed);
+        ((TEveGeoShape *)grandchild)->SetDrawFrame(false);
+        if (gcName.Contains("VertexInnerBarrel"))
+          ((TEveGeoShape *)grandchild)->SetNSegments(128);
+        // by default draw only the sensors
+        if (!gcName.Contains("sensor")) {
+          grandchild->SetRnrSelfChildren(false, false);
+        }
+        else {
+          // sensors are so thin that some of them are not drawn.
+          // tried this but it does not fix the problem..
+          //((TEveGeoShape *) grandchild)->SetMiniFrame(false);
+          //((TEveGeoShape *) grandchild)->SetDrawFrame(true);
+          //grandchild->SetRnrSelfChildren(true, false);
+        }
       }
     }
     else if (name.Contains("VertexDisks"))
     {
       if (debug) cout << "Adding " << name << " to vertex endcap" << endl;
       endcap->AddElement(child);
-      child->SetMainColor(kRed);
+      if (overrideDetectorColors) child->SetMainColor(kRed);
       ((TEveGeoShape *)child)->SetDrawFrame(false);
       // by default draw only the sensors
       if (!name.Contains("sensor"))
-	child->SetRnrSelfChildren(false, false);
+        child->SetRnrSelfChildren(false, false);
       else {
-	// sensors are so thin that some of them are not drawn.
-	// tried this but it does not fix the problem..
-	// ((TEveGeoShape *) child)->SetDrawFrame(true);
-	// ((TEveGeoShape *) child)->SetMiniFrame(false);
+        // sensors are so thin that some of them are not drawn.
+        // tried this but it does not fix the problem..
+        // ((TEveGeoShape *) child)->SetDrawFrame(true);
+        // ((TEveGeoShape *) child)->SetMiniFrame(false);
       }
     }
   }
@@ -4132,7 +3581,7 @@ void EventDisplay::addDCH(TEveElement* el, SubDetector& det)
   addSimpleElement(el, det);
   el->SetRnrSelfChildren(true, false);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
-  el->SetMainColor(kGreen-5);
+  if (overrideDetectorColors) el->SetMainColor(kGreen-5);
   ((TEveGeoShape *)el)->SetNSegments(128);
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 }
@@ -4158,7 +3607,7 @@ void EventDisplay::addWrapper(TEveElement* el, SubDetector& det)
     det.list->AddElement(child);
     child->SetRnrSelfChildren(true, false);
     child->SetMainTransparency(useTransparencies ? 60 : 0);
-    child->SetMainColor(kRed);
+    if (overrideDetectorColors) child->SetMainColor(kRed);
     ((TEveGeoShape *)child)->SetNSegments(128);
     ((TEveGeoShape *)child)->SetDrawFrame(false);
   }
@@ -4168,7 +3617,7 @@ void EventDisplay::addECalB(TEveElement* el, SubDetector& det)
 {
   addSimpleElement(el, det);
   el->SetRnrSelfChildren(true, false);
-  el->SetMainColor(kAzure+7);
+  if (overrideDetectorColors) el->SetMainColor(kAzure+7);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 
@@ -4176,7 +3625,7 @@ void EventDisplay::addECalB(TEveElement* el, SubDetector& det)
   for (TEveElement::List_i itr2 = el->BeginChildren(); itr2 != el->EndChildren(); itr2++)
   {
     TEveElement *child = *itr2;
-    child->SetMainColor(kAzure+7);
+    if (overrideDetectorColors) child->SetMainColor(kAzure+7);
     TString elname(child->GetElementName());
     if (debug) std::cout << elname << std::endl;
     child->SetRnrSelfChildren(false, false);
@@ -4196,7 +3645,7 @@ void EventDisplay::addECalEC(TEveElement* el, SubDetector& det)
   addSimpleElement(el, det);
   el->SetRnrSelfChildren(true, false);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
-  el->SetMainColor(kAzure+7);
+  if (overrideDetectorColors) el->SetMainColor(kAzure+7);
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 }
 
@@ -4208,31 +3657,31 @@ void EventDisplay::addHCalB(TEveElement* el, SubDetector& det)
   // add element to list
   addSimpleElement(el, det);
 
-  // draw envelope but not children
+  // for 3D view, draw envelope but not children
+  // for projections will be overridden later
   el->SetRnrSelfChildren(true, false);
   // this if we wanted to not draw the envelope but not the layers.. but then too many details in 3D
   // el->SetRnrSelfChildren(false, true);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
-  el->SetMainColor(kAzure-7);
+  if (overrideDetectorColors) el->SetMainColor(kAzure-7);
   ((TEveGeoShape *)el)->SetNSegments(128);
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 
-  // setup the properties of the children of the envelope
-  // do not do it here, but directly in the projections..
-  /*
+  // setup the properties of the children of the envelope (for the projection)
+  // for NSegments I do it here since it does not seem to work in the projection
   for (TEveElement::List_i itr = el->BeginChildren(); itr != el->EndChildren(); itr++)
   {
     TEveElement *child = *itr;
-    child->SetRnrSelfChildren(true, false); 
-    child->SetMainColor(kAzure-7);
-    child->SetMainTransparency(useTransparencies ? 60 : 0);
+    TString elname(child->GetElementName());
+    if (overrideDetectorColors and elname.Contains("LayerVol")) {
+      child->SetMainColor(kAzure-7);
+    }
     // show the radial layers
     ((TEveGeoShape *)child)->SetDrawFrame(true);
     // or not
     // ((TEveGeoShape *)child)->SetDrawFrame(false);
     ((TEveGeoShape *)child)->SetNSegments(128);
   }
-  */
 }
 
 void EventDisplay::addHCalEC(TEveElement* el, SubDetector& det)
@@ -4243,34 +3692,36 @@ void EventDisplay::addHCalEC(TEveElement* el, SubDetector& det)
   // add element to list
   addSimpleElement(el, det);
 
-  // draw envelope but not children
+  // for 3D view, draw envelope but not children
+  // for projections will be overridden later
   el->SetRnrSelfChildren(true, false);
   // this if we wanted to not draw the envelope but not the layers.. but then too many details in 3D
   // el->SetRnrSelfChildren(false, true);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
-  el->SetMainColor(kAzure-7);
+  if (overrideDetectorColors) el->SetMainColor(kAzure-7);
   ((TEveGeoShape *)el)->SetNSegments(128);
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 
   // setup the properties of the children of the envelope
-  // do not do it here, but directly in the projections..
-  /*
   for (TEveElement::List_i itr = el->BeginChildren(); itr != el->EndChildren(); itr++)
   {
     TEveElement *child = *itr;
-    // do not show the layers
-    // child->SetRnrSelfChildren(true, false);
-    // show the layers
-    child->SetRnrSelfChildren(false, true);
-    child->SetMainColor(kAzure-7);
-    child->SetMainTransparency(useTransparencies ? 60 : 0);
-    // set to false if we don't want to see the layer structure
-    ((TEveGeoShape *)child)->SetDrawFrame(true);
-    // ((TEveGeoShape *)child)->SetDrawFrame(false);
+    TString elname(child->GetElementName());
+    if (elname.Contains("ECLayer")) {
+      // do not show the layers
+      // child->SetRnrSelfChildren(true, false);
+      // show the layers
+      child->SetRnrSelfChildren(false, true);
+      child->SetMainColor(kAzure-7);
+      // child->SetMainTransparency(useTransparencies ? 60 : 0);
+      child->SetMainTransparency(0);
+      // set to false if we don't want to see the layer structure
+      ((TEveGeoShape *)child)->SetDrawFrame(true);
+      // ((TEveGeoShape *)child)->SetDrawFrame(false);
+    }
   }
-  */
 
-  // identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(128)... maybe we can merge code...
+  // quite identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(128)... maybe we can merge code...
 }
 
 void EventDisplay::addMuonB(TEveElement* el, SubDetector& det)
@@ -4281,23 +3732,21 @@ void EventDisplay::addMuonB(TEveElement* el, SubDetector& det)
   // draw envelope but not children
   el->SetRnrSelfChildren(true, false);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
-  el->SetMainColor(kOrange);
+  if (overrideDetectorColors) el->SetMainColor(kOrange);
   ((TEveGeoShape *)el)->SetNSegments(128);
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 
   // setup the properties of the children of the envelope
-  // do not do it here, but directly in the projections..
-  /*
+  // for the projections (number of segments for rho-phi view)
   for (TEveElement::List_i itr = el->BeginChildren(); itr != el->EndChildren(); itr++)
   {
     TEveElement *child = *itr;
     // show the radial layers
-    child->SetRnrSelfChildren(false, true);
+    // child->SetRnrSelfChildren(false, true);
     ((TEveGeoShape *)child)->SetNSegments(128);
-    child->SetMainColor(kOrange);
+    // child->SetMainColor(kOrange);
     ((TEveGeoShape *)child)->SetDrawFrame(true);
   }
-  */
 }
 
 void EventDisplay::addMuonEC(TEveElement* el, SubDetector& det)
@@ -4308,7 +3757,7 @@ void EventDisplay::addMuonEC(TEveElement* el, SubDetector& det)
   // draw envelope but not children
   el->SetRnrSelfChildren(true, false);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
-  el->SetMainColor(kOrange);
+  if (overrideDetectorColors) el->SetMainColor(kOrange);
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 
   // setup the properties of the children of the envelope
