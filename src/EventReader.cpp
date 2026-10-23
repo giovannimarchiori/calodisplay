@@ -809,6 +809,43 @@ std::map<std::string, std::string> EventReader::readCellIDEncodings()
   return encodings;
 }
 
+std::map<std::string, std::string> EventReader::readGaudiOptions()
+{
+  // k4FWCore stores the options in the "configuration_metadata" tree, under the
+  // key gaudiConfigOptions, as strings <name>.<property> = <value>, with the
+  // value between double quotes
+  std::map<std::string, std::string> options;
+  TFile* file = fReader->GetTree()->GetCurrentFile();
+  TTree* tree = file ? dynamic_cast<TTree*>(file->Get("configuration_metadata")) : nullptr;
+  if (!tree || !tree->GetBranch("GPStringKeys") || !tree->GetBranch("GPStringValues"))
+    return options;
+
+  TTreeReader reader(tree);
+  TTreeReaderValue<std::vector<std::string>> keys(reader, "GPStringKeys");
+  TTreeReaderValue<std::vector<std::vector<std::string>>> values(reader, "GPStringValues");
+  if (!reader.Next())
+    return options;
+
+  for (size_t i = 0; i < keys->size() && i < values->size(); i++) {
+    if ((*keys)[i] != "gaudiConfigOptions")
+      continue;
+    for (std::string option : (*values)[i]) {
+      // each option ends with a newline
+      option.erase(option.find_last_not_of(" \n\r") + 1);
+      const size_t eq = option.find(" = ");
+      if (eq == std::string::npos)
+        continue;
+      std::string name = option.substr(0, eq);
+      std::string value = option.substr(eq + 3);
+      name.erase(0, name.find_first_not_of(' '));
+      if (value.size() >= 2 && value.front() == '"' && value.back() == '"')
+        value = value.substr(1, value.size() - 2);
+      options[name] = value;
+    }
+  }
+  return options;
+}
+
 void EventReader::loadEvent(int event) {
   if (event<0 || event>=nEvents) {
     std::cout << "Event number " << event << " out of range : [0, " << nEvents-1 << "]" << std::endl;

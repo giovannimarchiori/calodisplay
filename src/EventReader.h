@@ -377,6 +377,9 @@ public:
                         TTreeReaderArray<UInt_t>* linkCollectionID);
   // the CellIDEncoding strings stored in the metadata of the file, by collection name
   std::map<std::string, std::string> readCellIDEncodings();
+  // the options of the Gaudi job that produced the file, stored in the
+  // configuration metadata, as "<algorithm or tool>.<property>" -> value
+  std::map<std::string, std::string> readGaudiOptions();
   void loadEvent(int event);
   bool m_doHCal;
   bool m_doSW;

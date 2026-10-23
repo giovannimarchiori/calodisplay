@@ -49,11 +49,14 @@
 
 
 #include <algorithm>
+#include <cctype>
+#include <cmath>
 #include <filesystem>
 #include <map>
 #include <tuple>
 #include <unordered_map>
 #include <iostream>
+#include <sstream>
 
 using Units::units;
 using Units::cm;
@@ -1569,6 +1572,11 @@ void EventDisplay::drawClusters(std::string clusterType)
       clusters_rhophi->AddElement(aqs2);
       //}
 
+      // window of the sliding-window clusters
+      if (clusterType == "sw")
+        drawSlidingWindow(xcl, ycl, zcl, Form("%s cluster %d window", clusterType.c_str(), (int)i),
+                          clusters_rhoz, clusters_rhophi);
+
       TEveBoxSet *_bs = new TEveBoxSet(Form("%s cluster %d", clusterType.c_str(), (int)i), "");
       _bs->Reset(TEveBoxSet::kBT_FreeBox, false, 32);
       _bs->SetMainTransparency(80);
@@ -1663,6 +1671,34 @@ void EventDisplay::drawClusters(std::string clusterType)
     for (unsigned int i = first_hit; i < std::min(last_hit, nCells); i++)
       if (cellCluster[i] == -1)
         cellCluster[i] = j;
+  }
+
+  // check that the cells of the sliding-window clusters are inside their window
+  if (debug && clusterType == "sw" && swWindow.nTheta > 0)
+  {
+    std::vector<int> nOutside(nClusters, 0);
+    for (unsigned int i = 0; i < nCells; i++)
+    {
+      int icl = cellCluster[i];
+      if (icl == -1)
+        continue;
+      double thetaLow, thetaHigh, phiLow, phiHigh;
+      getSlidingWindowRange((*eventReader->CaloClusters_position_x)[icl],
+                            (*eventReader->CaloClusters_position_y)[icl],
+                            (*eventReader->CaloClusters_position_z)[icl],
+                            thetaLow, thetaHigh, phiLow, phiHigh);
+      const double theta = std::atan2(std::sqrt(cells.x[i] * cells.x[i] + cells.y[i] * cells.y[i]), cells.z[i]);
+      // phi of the cell in the range of the window
+      double phi = std::atan2(cells.y[i], cells.x[i]);
+      while (phi < phiLow)
+        phi += 2 * TMath::Pi();
+      while (phi > phiHigh)
+        phi -= 2 * TMath::Pi();
+      if (theta < thetaLow || theta > thetaHigh || phi < phiLow)
+        nOutside[icl]++;
+    }
+    for (unsigned int j = 0; j < nClusters; j++)
+      std::cout << "  sw cluster " << j << ": " << nOutside[j] << " cells outside the window" << std::endl;
   }
 
   for (unsigned int i = 0; i < nCells; i++)
@@ -3221,6 +3257,9 @@ void EventDisplay::startDisplay(int initialEvent)
     // decode the cellIDs with the CellIDEncoding stored in the file
     setCellIDEncodings();
 
+    // size of the window of the sliding-window clusters
+    setSlidingWindow();
+
     // print updated draw settings based on info found in ROOT file
     displayConfig.print();
 
@@ -3770,6 +3809,160 @@ void EventDisplay::createElementList(TEveElementList*& list, const std::string& 
     list = new TEveElementList(listName.c_str());
     gEve->AddElement(list);
   }
+}
+
+void EventDisplay::setSlidingWindow()
+{
+  swWindow = SlidingWindow();
+  if (!displayConfig.getBoolConfig("drawCaloClusters"))
+    return;
+  const std::string collection = displayConfig.getStringConfig("caloClusters");
+  std::map<std::string, std::string> options = eventReader->readGaudiOptions();
+  if (options.empty())
+  {
+    std::cout << "WARNING: no job options in the event file, cannot draw the windows of the sliding-window clusters" << std::endl;
+    return;
+  }
+
+  // name of the algorithm (or tool) with a property <property> = <value>
+  auto findOwner = [&options](const std::string &property, const std::string &value) -> std::string {
+    const std::string suffix = "." + property;
+    for (const auto &[key, val] : options)
+      if (val == value && key.size() > suffix.size() &&
+          key.compare(key.size() - suffix.size(), suffix.size(), suffix) == 0)
+        return key.substr(0, key.size() - suffix.size());
+    return "";
+  };
+  auto getOption = [&options](const std::string &key) -> std::string {
+    auto it = options.find(key);
+    return it == options.end() ? "" : it->second;
+  };
+
+  // go back from the clusters in the event file (e.g. after calibration) to
+  // the ones created by the sliding-window algorithm
+  std::string clusters = collection;
+  std::string algorithm = findOwner("clusters", clusters);
+  for (int i = 0; i < 10 && (algorithm == "" || getOption(algorithm + ".nThetaFinal") == ""); i++)
+  {
+    std::string previous = findOwner("outClusters", clusters);
+    if (previous == "")
+      break;
+    clusters = getOption(previous + ".inClusters");
+    algorithm = findOwner("clusters", clusters);
+  }
+  std::string towerTool = getOption(algorithm + ".towerTool");
+  // the tool is given as type/name
+  towerTool = towerTool.substr(towerTool.find('/') + 1);
+  const std::string tool = "ToolSvc." + towerTool + ".";
+  try
+  {
+    swWindow.nTheta = std::stoi(getOption(algorithm + ".nThetaFinal"));
+    swWindow.nPhi = std::stoi(getOption(algorithm + ".nPhiFinal"));
+    swWindow.deltaTheta = std::stod(getOption(tool + "deltaThetaTower"));
+    swWindow.deltaPhi = std::stod(getOption(tool + "deltaPhiTower"));
+    swWindow.thetaMax = std::stod(getOption(tool + "thetaMax"));
+    swWindow.phiMin = std::stod(getOption(tool + "phiMin"));
+  }
+  catch (const std::exception &)
+  {
+    std::cout << "WARNING: cannot find the window size of the sliding-window clusters " << collection
+              << " in the job options of the event file, not drawing the windows" << std::endl;
+    swWindow = SlidingWindow();
+    return;
+  }
+
+  // radial range of the barrel calorimeters used for the towers
+  // (the calorimeterIDs are listed as [ 4 , 8 ])
+  std::string ids = getOption(tool + "calorimeterIDs");
+  std::replace_if(ids.begin(), ids.end(), [](char c) { return !std::isdigit(static_cast<unsigned char>(c)); }, ' ');
+  std::istringstream idStream(ids);
+  int id;
+  while (idStream >> id)
+  {
+    double rMin = 0., rMax = 0.;
+    if (id == DetectorGeometry::kECalBarrel)
+    {
+      rMin = geomReader->rMin;
+      rMax = geomReader->rMax;
+    }
+    else if (id == DetectorGeometry::kHCalBarrel)
+    {
+      rMin = geomReader->rMinHCal;
+      rMax = geomReader->rMaxHCal;
+    }
+    else
+      continue;
+    swWindow.rMin = (swWindow.rMin == 0.) ? rMin : std::min(swWindow.rMin, rMin);
+    swWindow.rMax = std::max(swWindow.rMax, rMax);
+  }
+  if (swWindow.rMax == 0.)
+  {
+    std::cout << "WARNING: the sliding-window clusters " << collection
+              << " do not use barrel calorimeters, not drawing their windows" << std::endl;
+    swWindow = SlidingWindow();
+    return;
+  }
+  std::cout << "Window of the sliding-window clusters " << collection << " (from " << algorithm << "): "
+            << swWindow.nTheta << " x " << swWindow.nPhi << " towers of "
+            << swWindow.deltaTheta << " x " << swWindow.deltaPhi << " rad in theta x phi" << std::endl;
+}
+
+void EventDisplay::getSlidingWindowRange(float xcl, float ycl, float zcl,
+                                         double &thetaLow, double &thetaHigh,
+                                         double &phiLow, double &phiHigh) const
+{
+  const double theta = std::atan2(std::sqrt(xcl * xcl + ycl * ycl), zcl);
+  const double phi = std::atan2(ycl, xcl);
+  // towers are numbered from thetaMax down, and from phiMin up
+  const int idTheta = (int)std::floor((swWindow.thetaMax - theta) / swWindow.deltaTheta);
+  const int idPhi = (int)std::floor((phi - swWindow.phiMin) / swWindow.deltaPhi);
+  thetaHigh = swWindow.thetaMax - (idTheta - swWindow.nTheta / 2) * swWindow.deltaTheta;
+  thetaLow = swWindow.thetaMax - (idTheta + swWindow.nTheta / 2 + 1) * swWindow.deltaTheta;
+  phiLow = swWindow.phiMin + (idPhi - swWindow.nPhi / 2) * swWindow.deltaPhi;
+  phiHigh = swWindow.phiMin + (idPhi + swWindow.nPhi / 2 + 1) * swWindow.deltaPhi;
+}
+
+void EventDisplay::drawSlidingWindow(float xcl, float ycl, float zcl, const char *name,
+                                     TEveElement *rhoz, TEveElement *rhophi)
+{
+  // only for clusters in the barrel
+  if (swWindow.nTheta == 0 || std::fabs(zcl * mm) > geomReader->zMax)
+    return;
+  double thetaLow, thetaHigh, phiLow, phiHigh;
+  getSlidingWindowRange(xcl, ycl, zcl, thetaLow, thetaHigh, phiLow, phiHigh);
+  const double rIn = swWindow.rMin;
+  const double rOut = swWindow.rMax;
+
+  // rho-z: between the lines at constant theta, on the side of the cluster
+  const double sign = MathUtils::sign(ycl);
+  TEveStraightLineSet *lines = new TEveStraightLineSet(name);
+  lines->SetLineColor(kYellow);
+  lines->SetLineWidth(2);
+  // on top of the projected detector, which is in the same plane
+  lines->SetDepthTest(kFALSE);
+  lines->AddLine(rIn / std::tan(thetaLow), sign * rIn, 0., rOut / std::tan(thetaLow), sign * rOut, 0.);
+  lines->AddLine(rOut / std::tan(thetaLow), sign * rOut, 0., rOut / std::tan(thetaHigh), sign * rOut, 0.);
+  lines->AddLine(rOut / std::tan(thetaHigh), sign * rOut, 0., rIn / std::tan(thetaHigh), sign * rIn, 0.);
+  lines->AddLine(rIn / std::tan(thetaHigh), sign * rIn, 0., rIn / std::tan(thetaLow), sign * rIn, 0.);
+  rhoz->AddElement(lines);
+
+  // rho-phi: sector of the ring between the inner and outer radius
+  lines = new TEveStraightLineSet(name);
+  lines->SetLineColor(kYellow);
+  lines->SetLineWidth(2);
+  // on top of the projected detector, which is in the same plane
+  lines->SetDepthTest(kFALSE);
+  const int nSegments = 16;
+  for (int i = 0; i < nSegments; i++)
+  {
+    const double phi1 = phiLow + (phiHigh - phiLow) * i / nSegments;
+    const double phi2 = phiLow + (phiHigh - phiLow) * (i + 1) / nSegments;
+    lines->AddLine(rIn * std::cos(phi1), rIn * std::sin(phi1), 0., rIn * std::cos(phi2), rIn * std::sin(phi2), 0.);
+    lines->AddLine(rOut * std::cos(phi1), rOut * std::sin(phi1), 0., rOut * std::cos(phi2), rOut * std::sin(phi2), 0.);
+  }
+  for (double phi : {phiLow, phiHigh})
+    lines->AddLine(rIn * std::cos(phi), rIn * std::sin(phi), 0., rOut * std::cos(phi), rOut * std::sin(phi), 0.);
+  rhophi->AddElement(lines);
 }
 
 void EventDisplay::setCellIDEncodings()

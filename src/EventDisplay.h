@@ -421,6 +421,33 @@ private:
   // decode the cellIDs with the CellIDEncoding stored in the event file
   void setCellIDEncodings();
 
+  // final window of the sliding-window clusters: nTheta x nPhi towers of size
+  // deltaTheta x deltaPhi, centred on the tower containing the cluster
+  // position, with tower indices (thetaMax - theta)/deltaTheta and
+  // (phi - phiMin)/deltaPhi; read from the options of the job that produced
+  // the clusters, stored in the event file (nTheta = 0 if not found)
+  struct SlidingWindow
+  {
+    int nTheta = 0;
+    int nPhi = 0;
+    double deltaTheta = 0.;
+    double deltaPhi = 0.;
+    double thetaMax = 0.;
+    double phiMin = 0.;
+    // radial range of the barrel calorimeters used for the towers
+    double rMin = 0.;
+    double rMax = 0.;
+  };
+  SlidingWindow swWindow;
+  void setSlidingWindow();
+  // theta and phi range of the final window of a cluster
+  void getSlidingWindowRange(float xcl, float ycl, float zcl,
+                             double &thetaLow, double &thetaHigh,
+                             double &phiLow, double &phiHigh) const;
+  // draw the final window of a sliding-window cluster in the projections
+  void drawSlidingWindow(float xcl, float ycl, float zcl, const char *name,
+                         TEveElement *rhoz, TEveElement *rhophi);
+
   void addSimpleElement(TEveElement* element, SubDetector&);
   void addVertex(TEveElement* element, SubDetector&);
   void addDCH(TEveElement* element, SubDetector&);
