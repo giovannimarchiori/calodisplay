@@ -1,7 +1,7 @@
 {
     "_typename": "map<string,string>",
     "bkgColor3D" : "1",
-    "bField" : "GlobalSolenoid",
+    "bField" : "GlobalSolenoid_2T",
     "caloClusterCells": "EMBCaloClusterCells",
     "caloClusters": "AugmentedEMBCaloClusters",
     "drawVertexHits": "true",

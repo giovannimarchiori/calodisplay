@@ -59,21 +59,34 @@ using Units::mm;
 
 namespace
 {
-// legend of a palette: the palette overlay drawn on a semi-transparent dark
-// background, so that it can be read on top of the detector (the background
-// also covers the title, drawn separately above the palette)
+// vertical legend of a palette, with the axis on the right of the colour bar,
+// on a semi-transparent dark background so that it can be read on top of the
+// detector (the background also covers the title, drawn separately above it).
+// The palette values are integers, shown on the axis multiplied by scale.
 class PaletteLegend : public TEveRGBAPaletteOverlay
 {
 public:
-  using TEveRGBAPaletteOverlay::TEveRGBAPaletteOverlay;
+  PaletteLegend(TEveRGBAPalette *p, Float_t posx, Float_t posy, Float_t width, Float_t height, Double_t scale)
+      : TEveRGBAPaletteOverlay(p, posx, posy, width, height), fScale(scale)
+  {
+    fAxis.SetNdivisions(505);
+    fAxisPainter.SetLabelAlign(TGLFont::kLeft, TGLFont::kCenterV);
+  }
 
   void Render(TGLRnrCtx &rnrCtx) override
   {
-    glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    const Int_t vMin = fPalette->GetMinVal();
+    const Int_t vMax = fPalette->GetMaxVal();
+    if (vMin >= vMax)
+      return;
+
+    glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT | GL_CURRENT_BIT);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDisable(GL_CULL_FACE);
     glDisable(GL_LIGHTING);
     glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // [0,1] window units
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -82,22 +95,100 @@ public:
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
+
+    // background, including the axis labels and the title
     glColor4f(0.f, 0.f, 0.f, 0.7f);
     glBegin(GL_QUADS);
-    glVertex2f(fPosX - 0.02f, fPosY - 0.04f);
-    glVertex2f(fPosX + fWidth + 0.02f, fPosY - 0.04f);
-    glVertex2f(fPosX + fWidth + 0.02f, fPosY + fHeight + 0.07f);
-    glVertex2f(fPosX - 0.02f, fPosY + fHeight + 0.07f);
+    glVertex2f(fPosX - 0.015f, fPosY - 0.03f);
+    glVertex2f(fPosX + fWidth + 0.07f, fPosY - 0.03f);
+    glVertex2f(fPosX + fWidth + 0.07f, fPosY + fHeight + 0.06f);
+    glVertex2f(fPosX - 0.015f, fPosY + fHeight + 0.06f);
     glEnd();
+
+    // colour bar, from the minimum (bottom) to the maximum (top)
+    const Int_t step = std::max(1, (vMax - vMin) / 256);
+    glBegin(GL_QUAD_STRIP);
+    for (Int_t v = vMin;; v += step)
+    {
+      v = std::min(v, vMax);
+      const Float_t y = fPosY + fHeight * (v - vMin) / (vMax - vMin);
+      glColor4ubv(fPalette->ColorFromValue(v));
+      glVertex2f(fPosX, y);
+      glVertex2f(fPosX + fWidth, y);
+      if (v == vMax)
+        break;
+    }
+    glEnd();
+
+    // frame and axis
+    glColor4f(1.f, 1.f, 1.f, 1.f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(fPosX, fPosY);
+    glVertex2f(fPosX + fWidth, fPosY);
+    glVertex2f(fPosX + fWidth, fPosY + fHeight);
+    glVertex2f(fPosX, fPosY + fHeight);
+    glEnd();
+    // the axis painter draws along x, with the ticks towards -y: rotate it by
+    // 90 degrees, so that it is vertical with the ticks and labels on the right
+    const Double_t low = vMin * fScale;
+    const Double_t high = vMax * fScale;
+    fAxis.SetLimits(low, high);
+    fAxis.SetTickLength(0.3 * fWidth);
+    glTranslatef(fPosX + fWidth, fPosY, 0);
+    glRotatef(90, 0, 0, 1);
+    glScalef(fHeight / (high - low), 1, 1);
+    glTranslatef(-low, 0, 0);
+    fAxisPainter.RefTMOff(0).Set(0, -1, 0);
+    fAxisPainter.PaintAxis(rnrCtx, &fAxis);
+
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
     glPopAttrib();
-
-    TEveRGBAPaletteOverlay::Render(rnrCtx);
   }
+
+private:
+  Double_t fScale;
 };
+
+// palette for the energies of cells, with values in MeV
+TEveRGBAPalette *makeCellPalette()
+{
+  TEveRGBAPalette *palette = new TEveRGBAPalette(0, 1000);
+  // ref-counted by the digit sets that use it: keep a reference so that it
+  // is not deleted when the clusters of an event are destroyed
+  palette->IncRefCount();
+  return palette;
+}
+
+// set the range of a cell palette from 0 to the maximum value, rounded up to
+// 1, 2 or 5 times a power of 10 (default range if there are no values)
+void setCellPaletteRange(TEveRGBAPalette *palette, int maxValue)
+{
+  int high = 1000;
+  if (maxValue > 0)
+  {
+    int power = 1;
+    while (power * 10 <= maxValue)
+      power *= 10;
+    high = (maxValue <= power) ? power : (maxValue <= 2 * power) ? 2 * power : (maxValue <= 5 * power) ? 5 * power : 10 * power;
+  }
+  palette->SetLimits(0, high);
+  palette->SetMinMax(0, high);
+  // the legend is drawn only if the colour array is set up
+  palette->SetupColorArray();
+}
+
+// largest value of the digits of a digit set
+int maxDigitValue(TEveDigitSet *digits)
+{
+  int maxValue = 0;
+  if (digits)
+    for (int i = 0; i < digits->GetPlex()->Size(); i++)
+      maxValue = std::max(maxValue, digits->GetDigit(i)->fValue);
+  return maxValue;
+}
 
 // identifies a cell of a cluster in a 2D projection: the system, the index of
 // the cluster, the layer, and the bin in the projected view (theta bin for
@@ -1161,8 +1252,6 @@ void EventDisplay::drawClusters(std::string clusterType)
   const double phiMinHCal = geomReader->phiMinHCal;
 
   // create the graphic containers
-  TEveRGBAPalette *pal = cellPalette;
-
   // first, create the containers
   // clusters in 3D
   if (debug)
@@ -1455,7 +1544,7 @@ void EventDisplay::drawClusters(std::string clusterType)
       // the owner of the assigned objects and deletes
       // them on destruction.
       aqs->SetOwnIds(kTRUE);
-      aqs->SetPalette(pal);
+      aqs->SetPalette(cellPaletteRhoZ);
       aqs->SetTitle(Form("E = %f GeV\nR = %f mm\ntheta = %f\nphi = %f",
                          energy,
                          rcl,
@@ -1468,7 +1557,7 @@ void EventDisplay::drawClusters(std::string clusterType)
                                           Form("%s cluster %d", clusterType.c_str(), (int)i));
       aqs2->SetMainTransparency(80);
       aqs2->SetOwnIds(kTRUE);
-      aqs2->SetPalette(pal);
+      aqs2->SetPalette(cellPaletteRhoPhi);
       aqs2->SetTitle(Form("E = %f GeV\nR = %f cm\ntheta = %f\nphi = %f",
                           energy,
                           rcl,
@@ -1482,7 +1571,7 @@ void EventDisplay::drawClusters(std::string clusterType)
       _bs->Reset(TEveBoxSet::kBT_FreeBox, false, 32);
       _bs->SetMainTransparency(80);
       _bs->SetOwnIds(kTRUE);
-      _bs->SetPalette(pal);
+      _bs->SetPalette(cellPalette3D);
       _bs->SetTitle(Form("E = %f GeV\nR = %f cm\ntheta = %f\nphi = %f",
                          energy,
                          rcl,
@@ -1945,6 +2034,14 @@ void EventDisplay::drawClusters(std::string clusterType)
       qs_rhophi[icl]->QuadId(new TNamed(Form("%s %d cell L%d P%d", clusterType.c_str(), icl, layer, phiID), "Dong!"));
     }
   }
+
+  // largest cell energy in each view, for the range of the palettes
+  for (TEveBoxSet *b : bs)
+    maxCellValue3D = std::max(maxCellValue3D, maxDigitValue(b));
+  for (TEveQuadSet *q : qs_rhophi)
+    maxCellValueRhoPhi = std::max(maxCellValueRhoPhi, maxDigitValue(q));
+  for (TEveQuadSet *q : qs_rhoz)
+    maxCellValueRhoZ = std::max(maxCellValueRhoZ, maxDigitValue(q));
 }
 
 void EventDisplay::drawEvent(int event)
@@ -1993,6 +2090,7 @@ void EventDisplay::drawEvent(int event)
   drawHits();
   drawDigis();
   drawTracks();
+  maxCellValue3D = maxCellValueRhoPhi = maxCellValueRhoZ = 0;
   if (displayConfig.getBoolConfig("drawTopoClusters"))
   {
     fillClusters("topo");
@@ -2003,6 +2101,10 @@ void EventDisplay::drawEvent(int event)
     fillClusters("sw");
     drawClusters("sw");
   }
+  // adapt the range of the cell palettes to the event
+  setCellPaletteRange(cellPalette3D, maxCellValue3D);
+  setCellPaletteRange(cellPaletteRhoPhi, maxCellValueRhoPhi);
+  setCellPaletteRange(cellPaletteRhoZ, maxCellValueRhoZ);
 
   // add process and event label
   auto processStr = (ipmax >= 0) ? Form("%s, %.1f GeV", ParticleUtils::name(pdgID), pmax) : "no primary particle";
@@ -2135,12 +2237,11 @@ void EventDisplay::startDisplay(int initialEvent)
   // gStyle->SetPalette(kAvocado);
   gStyle->SetPalette(kSienna);
 
-  // palette for the cluster cells, with values in MeV (shown in GeV in the
-  // legends); ref-counted by the digit sets that use it, keep a reference so
-  // that it is not deleted when the clusters of an event are destroyed
-  cellPalette = new TEveRGBAPalette(0, 1000);
-  cellPalette->SetUIDoubleRep(kTRUE, 0.001);
-  cellPalette->IncRefCount();
+  // palettes for the cluster cells in each view (the energies summed in the
+  // projected cells are larger than those of the cells in 3D)
+  cellPalette3D = makeCellPalette();
+  cellPaletteRhoPhi = makeCellPalette();
+  cellPaletteRhoZ = makeCellPalette();
 
   // first tab
   mainGLView = gEve->GetDefaultGLViewer();
@@ -3134,14 +3235,16 @@ void EventDisplay::startDisplay(int initialEvent)
     drawEvent(initialEvent);
   }
 
-  // legend of the cluster cell energies in each view, in the bottom right
-  // corner, above the axis labels of the projections
-  for (TGLViewer *viewer : {mainGLView, rhoPhiGLView, rhoZGLView})
+  // vertical legend of the cluster cell energies in each view, on the right,
+  // inside the axis labels of the projections (palette values in MeV, shown in GeV)
+  const std::vector<std::pair<TGLViewer *, TEveRGBAPalette *>> legends = {
+      {mainGLView, cellPalette3D}, {rhoPhiGLView, cellPaletteRhoPhi}, {rhoZGLView, cellPaletteRhoZ}};
+  for (const auto &[viewer, palette] : legends)
   {
     if (!viewer)
       continue;
-    viewer->AddOverlayElement(new PaletteLegend(cellPalette, 0.60, 0.12, 0.28, 0.03));
-    TGLConstAnnotation *title = new TGLConstAnnotation(viewer, "Cluster cell energy [GeV]", 0.60, 0.21);
+    viewer->AddOverlayElement(new PaletteLegend(palette, 0.82, 0.30, 0.02, 0.45, 0.001));
+    TGLConstAnnotation *title = new TGLConstAnnotation(viewer, "E [GeV]", 0.81, 0.80);
     title->SetTextSize(0.03);
     title->SetAllowClose(false);
   }

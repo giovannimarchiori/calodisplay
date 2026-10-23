@@ -223,9 +223,15 @@ public:
   // the list of the readout elements
   TEveElementList *readout = nullptr;
   TGLConstAnnotation *processLabel = nullptr;
-  // palette for the energy of the cells in the clusters (values in MeV),
-  // shared by all events, with its legend in each view
-  TEveRGBAPalette *cellPalette = nullptr;
+  // palettes for the energy of the cells in the clusters (values in MeV) in
+  // each view, shared by all events, with a legend in each view; their range
+  // is set from the largest cell energy of the event in the view
+  TEveRGBAPalette *cellPalette3D = nullptr;
+  TEveRGBAPalette *cellPaletteRhoPhi = nullptr;
+  TEveRGBAPalette *cellPaletteRhoZ = nullptr;
+  int maxCellValue3D = 0;
+  int maxCellValueRhoPhi = 0;
+  int maxCellValueRhoZ = 0;
   TGLConstAnnotation *eventLabel = nullptr;
   // the event number entries and the labels with the range of the event
   // numbers in the navigation bar (one per tab)
