@@ -595,7 +595,12 @@ void EventDisplay::drawParticles()
 void EventDisplay::drawHits()
 {
   createElementList(hits, "hits");
-  // do we need to Reset() or DestroyElements() otherwise ?
+
+  // clear the hits of the previous event: the endcap collections are appended
+  // to the barrel ones, so they would accumulate if the barrel is not drawn
+  for (MyPointSet *hitSet : {vtxHits, dchHits, siwrHits, ecalHits, hcalHits, muonHits})
+    if (hitSet)
+      hitSet->Reset();
 
   // hits in vertex
   if (displayConfig.getBoolConfig("drawVertexHits"))
@@ -707,6 +712,12 @@ void EventDisplay::drawHits()
 void EventDisplay::drawDigis()
 {
   createElementList(digis, "digis");
+
+  // clear the digis of the previous event: the endcap collections are appended
+  // to the barrel ones, so they would accumulate if the barrel is not drawn
+  for (MyPointSet *digiSet : {vtxDigis, dchDigis, siwrDigis, ecalCells, hcalCells, muonCells, cells_merged})
+    if (digiSet)
+      digiSet->Reset();
 
   // digis in VTX
   if (displayConfig.getBoolConfig("drawVertexDigis"))
