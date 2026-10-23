@@ -1979,12 +1979,15 @@ void EventDisplay::drawEvent(int event)
   }
 
   // add process and event label
+  auto processStr = (ipmax >= 0) ? Form("%s, %.1f GeV", ParticleUtils::name(pdgID), pmax) : "no primary particle";
   if (processLabel == nullptr) {
-    auto processStr = (ipmax >= 0) ? Form("%s, %.1f GeV", ParticleUtils::name(pdgID), pmax) : "no primary particle";
     float x(0.05), y(0.95);
     processLabel = new TGLConstAnnotation(mainGLView, processStr, x, y);
     processLabel->SetTextSize(0.05); // % of window diagonal
     processLabel->SetAllowClose(false);
+  }
+  else {
+    processLabel->SetText(processStr);
   }
   if (eventLabel == nullptr) {
     auto eventStr = Form("Event %d", eventId);
