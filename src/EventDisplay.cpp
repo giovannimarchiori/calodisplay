@@ -37,6 +37,7 @@
 #include <TEveGeoNode.h>
 
 
+#include <algorithm>
 #include <filesystem>
 #include <unordered_map>
 #include <iostream>
@@ -82,6 +83,9 @@ int countECalBarrelLayers(TEveElement *world)
 
 void EventDisplay::fillClusters(std::string clusterType)
 {
+  // read once, not in the loop over the clusters
+  const bool calculateBaryCenters = displayConfig.getBoolConfig("calculateClusterBaryCenters");
+
   std::vector<std::unique_ptr<CaloCluster>> *clusterData = nullptr;
   unsigned int nClusters = 0;
 
@@ -164,7 +168,7 @@ void EventDisplay::fillClusters(std::string clusterType)
     // set cluster barycenters layer-by-layer
 
     // - recalculation from cells
-    if (displayConfig.getBoolConfig("calculateClusterBaryCenters")) {
+    if (calculateBaryCenters) {
       // retrieve index of first and last+1 cell in cell vectors
       if (debug)
       {
@@ -191,10 +195,8 @@ void EventDisplay::fillClusters(std::string clusterType)
       std::vector<float> energyVsHCalBarrelLayer(nHCalBarrelLayers, 0.);
       std::vector<float> energyVsHCalEndCapLayer(nHCalEndCapLayers, 0.);
       std::vector<float> energyVsMuonLayer(nMuonLayers, 0.);
-      for (unsigned int iCell = 0; iCell < nCells; iCell++)
+      for (unsigned int iCell = first_hit; iCell < std::min(last_hit, nCells); iCell++)
       {
-        if (iCell < first_hit || iCell >= last_hit)
-          continue;
         ULong_t cellID;
         float energy, x_center, y_center, z_center;
         if (clusterType == "topo")
@@ -275,10 +277,8 @@ void EventDisplay::fillClusters(std::string clusterType)
       std::vector<TVector3> barycenterVsMuonLayer(nMuonLayers);
       std::vector<float> sumWeightsVsMuonLayer(nMuonLayers, 0.0);
 
-      for (unsigned int iCell = 0; iCell < nCells; iCell++)
+      for (unsigned int iCell = first_hit; iCell < std::min(last_hit, nCells); iCell++)
       {
-        if (iCell < first_hit || iCell >= last_hit)
-          continue;
         ULong_t cellID;
         float energy, x, y, z;
         if (clusterType == "topo")
@@ -1072,6 +1072,9 @@ void EventDisplay::drawTracks()
 
 void EventDisplay::drawClusters(std::string clusterType)
 {
+  // read once, not in the loop over the clusters
+  const bool drawDirection = displayConfig.getBoolConfig("drawClusterDirection");
+
   std::vector<std::unique_ptr<CaloCluster>> *clusterData = nullptr;
   if (clusterType == "topo")
   {
@@ -1241,7 +1244,7 @@ void EventDisplay::drawClusters(std::string clusterType)
       topoclustersCenter->Reset();
     clustersCenter = topoclustersCenter;
 
-    if (displayConfig.getBoolConfig("drawClusterDirection")) {
+    if (drawDirection) {
       if (topoclustersDirection == nullptr) {
         topoclustersDirection = new TEveStraightLineSet("cluster directions");
         topoclusters_3D->AddElement(topoclustersDirection);
@@ -1264,7 +1267,7 @@ void EventDisplay::drawClusters(std::string clusterType)
       swclustersCenter->Reset();
     clustersCenter = swclustersCenter;
 
-    if (displayConfig.getBoolConfig("drawClusterDirection")) {
+    if (drawDirection) {
       if (swclustersDirection == nullptr) {
         swclustersDirection = new TEveStraightLineSet("cluster directions");
         swclusters_3D->AddElement(swclustersDirection);
@@ -1275,7 +1278,7 @@ void EventDisplay::drawClusters(std::string clusterType)
     clustersDirection = swclustersDirection;
 
   }
-  if (displayConfig.getBoolConfig("drawClusterDirection")) {
+  if (drawDirection) {
     clustersCenter->SetMarkerStyle(4);
     clustersCenter->SetMarkerSize(5);
     clustersDirection->SetLineColor(kWhite);
@@ -1294,7 +1297,7 @@ void EventDisplay::drawClusters(std::string clusterType)
       x0 = (*eventReader->CaloTopoClusters_position_x)[i] * mm;
       y0 = (*eventReader->CaloTopoClusters_position_y)[i] * mm;
       z0 = (*eventReader->CaloTopoClusters_position_z)[i] * mm;
-      if (displayConfig.getBoolConfig("drawClusterDirection")) {
+      if (drawDirection) {
         theta = (*eventReader->CaloTopoClusters_theta)[i];
         phi = (*eventReader->CaloTopoClusters_phi)[i];
       }
@@ -1303,7 +1306,7 @@ void EventDisplay::drawClusters(std::string clusterType)
       x0 = (*eventReader->CaloClusters_position_x)[i] * mm;
       y0 = (*eventReader->CaloClusters_position_y)[i] * mm;
       z0 = (*eventReader->CaloClusters_position_z)[i] * mm;
-      if (displayConfig.getBoolConfig("drawClusterDirection")) {
+      if (drawDirection) {
         theta = (*eventReader->CaloClusters_theta)[i];
         phi = (*eventReader->CaloClusters_phi)[i];
       }
@@ -1498,29 +1501,32 @@ void EventDisplay::drawClusters(std::string clusterType)
   std::unordered_map<ULong64_t, double> cellEnergies_rhoz;
   std::unordered_map<ULong64_t, double> cellEnergies_rhophi;
   unsigned int nCells = (clusterType == "topo") ? eventReader->CaloTopoClusterCells_energy->GetSize() : eventReader->CaloClusterCells_energy->GetSize();
+
+  // index of the cluster each cell belongs to (-1 if none), built once:
+  // the cells of cluster j are [hits_begin[j], hits_end[j])
+  std::vector<int> cellCluster(nCells, -1);
+  for (unsigned int j = 0; j < nClusters; j++)
+  {
+    unsigned int first_hit, last_hit;
+    if (clusterType == "topo")
+    {
+      first_hit = (*eventReader->CaloTopoClusters_hits_begin)[j];
+      last_hit = (*eventReader->CaloTopoClusters_hits_end)[j];
+    }
+    else
+    {
+      first_hit = (*eventReader->CaloClusters_hits_begin)[j];
+      last_hit = (*eventReader->CaloClusters_hits_end)[j];
+    }
+    // in case of overlapping ranges, keep the first cluster
+    for (unsigned int i = first_hit; i < std::min(last_hit, nCells); i++)
+      if (cellCluster[i] == -1)
+        cellCluster[i] = j;
+  }
+
   for (unsigned int i = 0; i < nCells; i++)
   {
-    int icl = -1;
-    for (unsigned int j = 0; j < nClusters; j++)
-    {
-      unsigned int first_hit, last_hit;
-      if (clusterType == "topo")
-      {
-        first_hit = (*eventReader->CaloTopoClusters_hits_begin)[j];
-        last_hit = (*eventReader->CaloTopoClusters_hits_end)[j];
-      }
-      else
-      {
-        first_hit = (*eventReader->CaloClusters_hits_begin)[j];
-        last_hit = (*eventReader->CaloClusters_hits_end)[j];
-      }
-      // TODO check again if < or <=
-      if (i >= first_hit && i < last_hit)
-      {
-        icl = j;
-        break;
-      }
-    }
+    int icl = cellCluster[i];
     if (icl == -1)
       continue; // should never happen..
     ULong_t cellID;
@@ -1781,27 +1787,7 @@ void EventDisplay::drawClusters(std::string clusterType)
     std::cout << "  Draw rho-z view of clustered cells" << std::endl;
   for (unsigned int i = 0; i < nCells; i++)
   {
-    int icl = -1;
-    for (unsigned int j = 0; j < nClusters; j++)
-    {
-      unsigned int first_hit, last_hit;
-      if (clusterType == "topo")
-      {
-        first_hit = (*eventReader->CaloTopoClusters_hits_begin)[j];
-        last_hit = (*eventReader->CaloTopoClusters_hits_end)[j];
-      }
-      else
-      {
-        first_hit = (*eventReader->CaloClusters_hits_begin)[j];
-        last_hit = (*eventReader->CaloClusters_hits_end)[j];
-      }
-      // TODO check again if < or <=
-      if (i >= first_hit && i < last_hit)
-      {
-        icl = j;
-        break;
-      }
-    }
+    int icl = cellCluster[i];
     if (icl == -1)
       continue; // should never happen..
     ULong_t cellID;
