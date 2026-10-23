@@ -186,20 +186,28 @@ public:
   // Reconstructed tracks
   TEveTrackList *tracks = nullptr;
 
-  // clusters
-  // - calorimeter cluster barycenters
-  TEvePointSet *topoclustersCenter = nullptr;
-  TEvePointSet *swclustersCenter = nullptr;
-  // - cluster directions
-  TEveStraightLineSet *swclustersDirection = nullptr;
-  TEveStraightLineSet *topoclustersDirection = nullptr;
-  // - clusters (only works for ecal barrel, needs calculation of geometry for other detectors)
-  TEveElementList *topoclusters_rhoz = nullptr;
-  TEveElementList *topoclusters_rhophi = nullptr;
-  TEveElementList *swclusters_rhoz = nullptr;
-  TEveElementList *swclusters_rhophi = nullptr;
-  TEveElementList *topoclusters_3D = nullptr;
-  TEveElementList *swclusters_3D = nullptr;
+  // clusters: the graphic elements of the clusters of a type (topo or
+  // sliding window); the cells are drawn only for the ECAL and HCAL barrel
+  struct ClusterSet
+  {
+    std::string type;    // used in the names of the elements
+    std::string label;   // used in the printouts
+    Color_t centerColor; // colour of the barycenters
+    bool drawWindow;     // draw the window of the sliding-window clusters
+    // the clusters in the event reader (set when the event file is opened)
+    const EventReader::Clusters *clusters = nullptr;
+    // the clusters above threshold, with their energy and barycenter per layer
+    std::vector<std::unique_ptr<CaloCluster>> data;
+    // the lists of the clusters in 3D and in the projections
+    TEveElementList *list3D = nullptr;
+    TEveElementList *listRhoZ = nullptr;
+    TEveElementList *listRhoPhi = nullptr;
+    // the barycenters and directions of the clusters in 3D
+    TEvePointSet *center = nullptr;
+    TEveStraightLineSet *direction = nullptr;
+  };
+  ClusterSet topoClusterSet{"topo", "topo", kWhite, false};
+  ClusterSet swClusterSet{"sw", "SW", kGray, true};
 
   //
   TEveGeoShape *ecalbarrel = nullptr;
@@ -256,8 +264,6 @@ public:
   // the file must be declared before the reader, so that the reader is destroyed first
   std::unique_ptr<TFile> eventFile;
   std::unique_ptr<EventReader> eventReader;
-  std::vector<std::unique_ptr<CaloCluster>> topoclusterData;
-  std::vector<std::unique_ptr<CaloCluster>> swclusterData;
 
   TGLViewer* activeGLViewer = nullptr;
 
@@ -280,7 +286,7 @@ public:
 
   // fill cluster objects for given collection (sw or topo) and loaded event
   // invoked by drawEvent
-  void fillClusters(std::string clusterType);
+  void fillClusters(ClusterSet &set);
 
   // draw the MC particles
   void drawParticles();
@@ -295,7 +301,7 @@ public:
   void drawTracks();
   
   // draw the clusters created by fillClusters
-  void drawClusters(std::string clusterType);
+  void drawClusters(ClusterSet &set);
 
   // draw the event
   void drawEvent(int event);

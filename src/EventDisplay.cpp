@@ -248,34 +248,17 @@ int countECalBarrelLayers(TEveElement *world)
 }
 
 
-void EventDisplay::fillClusters(std::string clusterType)
+void EventDisplay::fillClusters(ClusterSet &set)
 {
   // the clusters and their cells in the current event
-  const EventReader::Clusters &clusters = (clusterType == "topo") ? eventReader->topoClusters : eventReader->swClusters;
+  const EventReader::Clusters &clusters = *set.clusters;
   const EventReader::ClusterCells &cells = clusters.cells;
   // read once, not in the loop over the clusters
   const bool calculateBaryCenters = displayConfig.getBoolConfig("calculateClusterBaryCenters");
 
-  std::vector<std::unique_ptr<CaloCluster>> *clusterData = nullptr;
-  unsigned int nClusters = 0;
-
-  if (clusterType == "topo")
-  {
-    std::cout << "Creating topo clusters" << std::endl;
-    clusterData = &topoclusterData;
-    nClusters = clusters.size();
-  }
-  else if (clusterType == "sw")
-  {
-    std::cout << "Creating SW clusters" << std::endl;
-    clusterData = &swclusterData;
-    nClusters = clusters.size();
-  }
-  else
-  {
-    std::cout << "Unknown cluster type " << clusterType << std::endl;
-    return;
-  }
+  std::cout << "Creating " << set.label << " clusters" << std::endl;
+  std::vector<std::unique_ptr<CaloCluster>> *clusterData = &set.data;
+  unsigned int nClusters = clusters.size();
 
   if (debug)
   {
@@ -1086,36 +1069,17 @@ void EventDisplay::drawTracks()
   }
 }
 
-void EventDisplay::drawClusters(std::string clusterType)
+void EventDisplay::drawClusters(ClusterSet &set)
 {
+  const std::string &clusterType = set.type;
   // the clusters and their cells in the current event
-  const EventReader::Clusters &clusters = (clusterType == "topo") ? eventReader->topoClusters : eventReader->swClusters;
+  const EventReader::Clusters &clusters = *set.clusters;
   const EventReader::ClusterCells &cells = clusters.cells;
   // read once, not in the loop over the clusters
   const bool drawDirection = displayConfig.getBoolConfig("drawClusterDirection");
 
-  std::vector<std::unique_ptr<CaloCluster>> *clusterData = nullptr;
-  if (clusterType == "topo")
-  {
-    std::cout << "Drawing topo clusters" << std::endl;
-    clusterData = &topoclusterData;
-  }
-  else if (clusterType == "sw")
-  {
-    std::cout << "Drawing SW clusters" << std::endl;
-    clusterData = &swclusterData;
-  }
-  else
-  {
-    std::cout << "Unknown cluster type " << clusterType << std::endl;
-    return;
-  }
-
-  TEvePointSet *clustersCenter = nullptr;
-  TEveStraightLineSet *clustersDirection = nullptr;
-  TEveElementList *clusters_3D = nullptr;
-  TEveElementList *clusters_rhoz = nullptr;
-  TEveElementList *clusters_rhophi = nullptr;
+  std::cout << "Drawing " << set.label << " clusters" << std::endl;
+  std::vector<std::unique_ptr<CaloCluster>> *clusterData = &set.data;
 
   const double rMin = geomReader->rMin;
   const double zMinEC = geomReader->zMinEndCap;
@@ -1128,46 +1092,24 @@ void EventDisplay::drawClusters(std::string clusterType)
   const double gridPhiHCal = geomReader->gridPhiHCal;
   const double phiMinHCal = geomReader->phiMinHCal;
 
-  // create the graphic containers
-  // first, create the containers
+  // create the graphic containers, or empty them
   // clusters in 3D
   if (debug)
   {
     std::cout << "  Creating the containers to hold the 3D clusters" << std::endl;
   }
-  if (clusterType == "topo")
+  if (set.list3D == nullptr)
   {
-    if (topoclusters_3D == nullptr)
-    {
-      topoclusters_3D = new TEveElementList(Form("%sclusters (E>%.2f GeV)",
-                                                 clusterType.c_str(),
-                                                 ClusterEnergyThreshold));
-      gEve->AddElement(topoclusters_3D);
-    }
-    else
-    {
-      topoclusters_3D->DestroyElements();
-      topoclustersCenter = nullptr;
-      topoclustersDirection = nullptr;
-    }
-    clusters_3D = topoclusters_3D;
+    set.list3D = new TEveElementList(Form("%sclusters (E>%.2f GeV)",
+                                          clusterType.c_str(),
+                                          ClusterEnergyThreshold));
+    gEve->AddElement(set.list3D);
   }
   else
   {
-    if (swclusters_3D == nullptr)
-    {
-      swclusters_3D = new TEveElementList(Form("%sclusters (E>%.1f GeV)",
-                                               clusterType.c_str(),
-                                               ClusterEnergyThreshold));
-      gEve->AddElement(swclusters_3D);
-    }
-    else
-    {
-      swclusters_3D->DestroyElements();
-      swclustersCenter = nullptr;
-      swclustersDirection = nullptr;
-    }
-    clusters_3D = swclusters_3D;
+    set.list3D->DestroyElements();
+    set.center = nullptr;
+    set.direction = nullptr;
   }
 
   // clusters in 2D
@@ -1175,64 +1117,33 @@ void EventDisplay::drawClusters(std::string clusterType)
   {
     std::cout << "  Creating the containers to hold the 2D projections of the clusters" << std::endl;
   }
-  if (clusterType == "topo")
+  if (set.listRhoZ == nullptr)
   {
-    if (topoclusters_rhoz == nullptr)
-    {
-      topoclusters_rhoz = new TEveElementList(Form("%s clusters in rho-z (E>%.2f GeV)",
-                                                   clusterType.c_str(),
-                                                   ClusterEnergyThreshold));
-      // add to scene (that is not auto-projected!)
-      rhoZEventSceneManual->AddElement(topoclusters_rhoz);
-      gEve->AddToListTree(topoclusters_rhoz, false);
-    }
-    else
-      topoclusters_rhoz->DestroyElements();
-
-    if (topoclusters_rhophi == nullptr)
-    {
-      topoclusters_rhophi = new TEveElementList(Form("%s clusters in rho-phi (E>%.2f GeV)",
-                                                     clusterType.c_str(),
-                                                     ClusterEnergyThreshold));
-      // add to scene (that is not auto-projected!)
-      rhoPhiEventSceneManual->AddElement(topoclusters_rhophi);
-      gEve->AddToListTree(topoclusters_rhophi, false);
-    }
-    else
-      topoclusters_rhophi->DestroyElements();
-
-    clusters_rhoz = topoclusters_rhoz;
-    clusters_rhophi = topoclusters_rhophi;
+    set.listRhoZ = new TEveElementList(Form("%s clusters in rho-z (E>%.2f GeV)",
+                                            clusterType.c_str(),
+                                            ClusterEnergyThreshold));
+    // add to scene (that is not auto-projected!)
+    rhoZEventSceneManual->AddElement(set.listRhoZ);
+    gEve->AddToListTree(set.listRhoZ, false);
   }
   else
+    set.listRhoZ->DestroyElements();
+
+  if (set.listRhoPhi == nullptr)
   {
-    if (swclusters_rhoz == nullptr)
-    {
-      swclusters_rhoz = new TEveElementList(Form("%s clusters in rho-z (E>%.2f GeV)",
-                                                 clusterType.c_str(),
-                                                 ClusterEnergyThreshold));
-      // add to scene (that is not auto-projected!)
-      rhoZEventSceneManual->AddElement(swclusters_rhoz);
-      gEve->AddToListTree(swclusters_rhoz, false);
-    }
-    else
-      swclusters_rhoz->DestroyElements();
-
-    if (swclusters_rhophi == nullptr)
-    {
-      swclusters_rhophi = new TEveElementList(Form("%s clusters in rho-phi (E>%.2f GeV)",
-                                                   clusterType.c_str(),
-                                                   ClusterEnergyThreshold));
-      // add to scene (that is not auto-projected!)
-      rhoPhiEventSceneManual->AddElement(swclusters_rhophi);
-      gEve->AddToListTree(swclusters_rhophi, false);
-    }
-    else
-      swclusters_rhophi->DestroyElements();
-
-    clusters_rhoz = swclusters_rhoz;
-    clusters_rhophi = swclusters_rhophi;
+    set.listRhoPhi = new TEveElementList(Form("%s clusters in rho-phi (E>%.2f GeV)",
+                                              clusterType.c_str(),
+                                              ClusterEnergyThreshold));
+    // add to scene (that is not auto-projected!)
+    rhoPhiEventSceneManual->AddElement(set.listRhoPhi);
+    gEve->AddToListTree(set.listRhoPhi, false);
   }
+  else
+    set.listRhoPhi->DestroyElements();
+
+  TEveElementList *clusters_3D = set.list3D;
+  TEveElementList *clusters_rhoz = set.listRhoZ;
+  TEveElementList *clusters_rhophi = set.listRhoPhi;
 
   if (debug)
   {
@@ -1245,53 +1156,28 @@ void EventDisplay::drawClusters(std::string clusterType)
     std::cout << "  Looping over clusters to retrieve barycenter" << std::endl;
   }
 
-  if (clusterType == "topo")
+  // the barycenters and directions of the clusters
+  if (set.center == nullptr)
   {
-    if (topoclustersCenter == nullptr)
-    {
-      topoclustersCenter = new TEvePointSet();
-      topoclustersCenter->SetName("cluster barycenters");
-      topoclustersCenter->SetMarkerColor(kWhite);
-      topoclusters_3D->AddElement(topoclustersCenter);
-    }
-    else
-      topoclustersCenter->Reset();
-    clustersCenter = topoclustersCenter;
-
-    if (drawDirection) {
-      if (topoclustersDirection == nullptr) {
-        topoclustersDirection = new TEveStraightLineSet("cluster directions");
-        topoclusters_3D->AddElement(topoclustersDirection);
-      }
-      else
-        topoclustersDirection->DestroyElements();
-    }
-    clustersDirection = topoclustersDirection;
+    set.center = new TEvePointSet();
+    set.center->SetName("cluster barycenters");
+    set.center->SetMarkerColor(set.centerColor);
+    set.list3D->AddElement(set.center);
   }
   else
-  {
-    if (swclustersCenter == nullptr)
-    {
-      swclustersCenter = new TEvePointSet();
-      swclustersCenter->SetName("cluster barycenters");
-      swclustersCenter->SetMarkerColor(kGray);
-      swclusters_3D->AddElement(swclustersCenter);
+    set.center->Reset();
+
+  if (drawDirection) {
+    if (set.direction == nullptr) {
+      set.direction = new TEveStraightLineSet("cluster directions");
+      set.list3D->AddElement(set.direction);
     }
     else
-      swclustersCenter->Reset();
-    clustersCenter = swclustersCenter;
-
-    if (drawDirection) {
-      if (swclustersDirection == nullptr) {
-        swclustersDirection = new TEveStraightLineSet("cluster directions");
-        swclusters_3D->AddElement(swclustersDirection);
-      }
-      else
-        swclustersDirection->DestroyElements();
-    }
-    clustersDirection = swclustersDirection;
-
+      set.direction->DestroyElements();
   }
+  TEvePointSet *clustersCenter = set.center;
+  TEveStraightLineSet *clustersDirection = set.direction;
+
   if (drawDirection) {
     clustersCenter->SetMarkerStyle(4);
     clustersCenter->SetMarkerSize(5);
@@ -1423,7 +1309,7 @@ void EventDisplay::drawClusters(std::string clusterType)
       //}
 
       // window of the sliding-window clusters
-      if (clusterType == "sw")
+      if (set.drawWindow)
         drawSlidingWindow(xcl, ycl, zcl, Form("%s cluster %d window", clusterType.c_str(), (int)i),
                           clusters_rhoz, clusters_rhophi);
 
@@ -1488,7 +1374,7 @@ void EventDisplay::drawClusters(std::string clusterType)
   }
 
   // check that the cells of the sliding-window clusters are inside their window
-  if (debug && clusterType == "sw" && swWindow.nTheta > 0)
+  if (debug && set.drawWindow && swWindow.nTheta > 0)
   {
     std::vector<int> nOutside(nClusters, 0);
     for (unsigned int i = 0; i < nCells; i++)
@@ -1711,48 +1597,6 @@ void EventDisplay::drawClusters(std::string clusterType)
   // I cannot just loop over the map of the energies :(
   // in alternative I should add methods to determine the
   // center of the cells from theta bin, layer, and alpha...
-  /*
-  for (auto& [key, energy]: cellEnergies_rhoz) {
-    int ikey = (int) key;
-    int icl = ikey % (512*16);
-    int layer = (ikey / 512) % 16;
-    int thetaID = ikey / (512*16) ;
-
-    float r_in = geomReader->r[layer];
-    float r_out = geomReader->r[layer+1];
-    float x_center, y_center, z_center;
-    if (clusterType=="topo") {
-      x_center = cells.x[i] * mm;
-      y_center = cells.y[i] * mm;
-      z_center = cells.z[i] * mm;
-    }
-    else {
-      x_center = cells.x[i] * mm;
-      y_center = cells.y[i] * mm;
-      z_center = cells.z[i] * mm;
-    }
-    float r_center = sqrt(x_center*x_center + y_center*y_center);
-
-    float theta_center = atan2(r_center, z_center);
-    //float phi_center = atan2(y_center, x_center);
-
-    float verts[12];
-    verts[0] = r_in / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-    verts[1] = r_in * MathUtils::sign(y_center);
-    verts[3] = r_in / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-    verts[4] = r_in * MathUtils::sign(y_center);
-    verts[6] = r_out / tan(theta_center + thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-    verts[7] = r_out * MathUtils::sign(y_center);
-    verts[9] = r_out / tan(theta_center - thetaGrid * geomReader->mergedCells_Theta[layer]/2.);
-    verts[10] = r_out * MathUtils::sign(y_center);
-    verts[2] = verts[5] = verts[8] = verts[11] = 0.;
-    //if (qs_rhoz[icl]!=nullptr) {
-    qs_rhoz[icl]->AddQuad(verts);
-    qs_rhoz[icl]->QuadValue( (int) (1000 * energy) );
-    qs_rhoz[icl]->QuadId( new TNamed(Form("%s %d cell L%d Th%d", clusterType.c_str(), icl, layer, thetaID), "Dong!") );
-    //}
-  }
-  */
 
   if (debug)
     std::cout << "  Draw rho-z view of clustered cells" << std::endl;
@@ -1945,13 +1789,13 @@ void EventDisplay::drawEvent(int event)
   maxCellValue3D = maxCellValueRhoPhi = maxCellValueRhoZ = 0;
   if (displayConfig.getBoolConfig("drawTopoClusters"))
   {
-    fillClusters("topo");
-    drawClusters("topo");
+    fillClusters(topoClusterSet);
+    drawClusters(topoClusterSet);
   }
   if (displayConfig.getBoolConfig("drawCaloClusters"))
   {
-    fillClusters("sw");
-    drawClusters("sw");
+    fillClusters(swClusterSet);
+    drawClusters(swClusterSet);
   }
   // adapt the range of the cell palettes to the event
   setCellPaletteRange(cellPalette3D, maxCellValue3D);
@@ -3191,6 +3035,8 @@ void EventDisplay::openEventFile()
 
   // setup the branches
   eventReader->setBranches();
+  topoClusterSet.clusters = &eventReader->topoClusters;
+  swClusterSet.clusters = &eventReader->swClusters;
 
   // decode the cellIDs with the CellIDEncoding stored in the file
   setCellIDEncodings();
