@@ -59,7 +59,7 @@ float CaloCluster::getEnergyMuon() const
 
 float CaloCluster::getEnergyInECalBarrelLayer(unsigned int layer) const
 {
-  if (layer > m_energyVsECalBarrelLayer.size())
+  if (layer >= m_energyVsECalBarrelLayer.size())
   {
     cout << "CaloCluster::getEnergyInECalBarrelLayer : layer outside of range, returning 0.0" << endl;
     return 0;
@@ -72,7 +72,7 @@ float CaloCluster::getEnergyInECalBarrelLayer(unsigned int layer) const
 
 float CaloCluster::getEnergyInECalEndCapLayer(unsigned int layer) const
 {
-  if (layer > m_energyVsECalEndCapLayer.size())
+  if (layer >= m_energyVsECalEndCapLayer.size())
   {
     cout << "CaloCluster::getEnergyInECalEndCapLayer : layer outside of range, returning 0.0" << endl;
     return 0;
@@ -85,7 +85,7 @@ float CaloCluster::getEnergyInECalEndCapLayer(unsigned int layer) const
 
 float CaloCluster::getEnergyInHCalBarrelLayer(unsigned int layer) const
 {
-  if (layer > m_energyVsHCalBarrelLayer.size())
+  if (layer >= m_energyVsHCalBarrelLayer.size())
   {
     cout << "CaloCluster::getEnergyInHCalBarrelLayer : layer outside of range, returning 0.0" << endl;
     return 0;
@@ -98,7 +98,7 @@ float CaloCluster::getEnergyInHCalBarrelLayer(unsigned int layer) const
 
 float CaloCluster::getEnergyInHCalEndCapLayer(unsigned int layer) const
 {
-  if (layer > m_energyVsHCalEndCapLayer.size())
+  if (layer >= m_energyVsHCalEndCapLayer.size())
   {
     cout << "CaloCluster::getEnergyInHCalEndCapLayer : layer outside of range, returning 0.0" << endl;
     return 0;
@@ -111,7 +111,7 @@ float CaloCluster::getEnergyInHCalEndCapLayer(unsigned int layer) const
 
 float CaloCluster::getEnergyInMuonLayer(unsigned int layer) const
 {
-  if (layer > m_energyVsMuonLayer.size())
+  if (layer >= m_energyVsMuonLayer.size())
   {
     cout << "CaloCluster::getEnergyInMuonLayer : layer outside of range, returning 0.0" << endl;
     return 0;
@@ -149,7 +149,7 @@ void CaloCluster::setEnergyVsMuonLayers(const std::vector<float> &energyVsMuonLa
 
 TVector3 CaloCluster::getBarycenterInECalBarrelLayer(unsigned int layer) const
 {
-  if (layer > m_barycenterVsECalBarrelLayer.size())
+  if (layer >= m_barycenterVsECalBarrelLayer.size())
   {
     cout << "CaloCluster::getBarycenterInECalBarrelLayer : layer outside of range, returning origin" << endl;
     return TVector3(0.0, 0.0, 0.0);
@@ -162,7 +162,7 @@ TVector3 CaloCluster::getBarycenterInECalBarrelLayer(unsigned int layer) const
 
 TVector3 CaloCluster::getBarycenterInECalEndCapLayer(unsigned int layer) const
 {
-  if (layer > m_barycenterVsECalEndCapLayer.size())
+  if (layer >= m_barycenterVsECalEndCapLayer.size())
   {
     cout << "CaloCluster::getBarycenterInECalEndCapLayer : layer outside of range, returning origin" << endl;
     return TVector3(0.0, 0.0, 0.0);
@@ -175,7 +175,7 @@ TVector3 CaloCluster::getBarycenterInECalEndCapLayer(unsigned int layer) const
 
 TVector3 CaloCluster::getBarycenterInHCalBarrelLayer(unsigned int layer) const
 {
-  if (layer > m_barycenterVsHCalBarrelLayer.size())
+  if (layer >= m_barycenterVsHCalBarrelLayer.size())
   {
     cout << "CaloCluster::getBarycenterInHCalBarrelLayer : layer outside of range, returning origin" << endl;
     return TVector3(0.0, 0.0, 0.0);
@@ -188,7 +188,7 @@ TVector3 CaloCluster::getBarycenterInHCalBarrelLayer(unsigned int layer) const
 
 TVector3 CaloCluster::getBarycenterInHCalEndCapLayer(unsigned int layer) const
 {
-  if (layer > m_barycenterVsHCalEndCapLayer.size())
+  if (layer >= m_barycenterVsHCalEndCapLayer.size())
   {
     cout << "CaloCluster::getBarycenterInHCalEndCapLayer : layer outside of range, returning origin" << endl;
     return TVector3(0.0, 0.0, 0.0);
@@ -201,9 +201,9 @@ TVector3 CaloCluster::getBarycenterInHCalEndCapLayer(unsigned int layer) const
 
 TVector3 CaloCluster::getBarycenterInMuonLayer(unsigned int layer) const
 {
-  if (layer > m_barycenterVsMuonLayer.size())
+  if (layer >= m_barycenterVsMuonLayer.size())
   {
-    cout << "CaloCluster::getEnergyInMuonLayer : layer outside of range, returning origin" << endl;
+    cout << "CaloCluster::getBarycenterInMuonLayer : layer outside of range, returning origin" << endl;
     return TVector3(0.0, 0.0, 0.0);
   }
   else
