@@ -27,6 +27,8 @@ DisplayConfig::DisplayConfig() {
   setBoolConfig("drawCaloClusters", false);
 
   setStringConfig("bField", "GlobalSolenoid");
+  // field map used if bField is not GlobalSolenoid
+  setStringConfig("bFieldMap", "data/ALLEGRO_fieldmap_2T_20260424.root");
   setStringConfig("genParticles", "genParticles");
   setStringConfig("simParticles", "SimParticlesSecondaries");
   setStringConfig("vertexInnerBarrelHits", "VertexInnerBarrelCollection");

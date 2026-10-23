@@ -10,6 +10,7 @@
 
 #include "EventDisplay.h"
 #include "Globals.h"
+#include "PathUtils.h"
 
 #include <filesystem>
 #include <string>
@@ -55,6 +56,9 @@ int main(int argc, char *argv[])
   EventDisplay display;
   int skipEvents = 0;
 
+  // to find the files distributed with calodisplay (icons, field map, ..)
+  PathUtils::setInstallDir(argv[0]);
+
   const std::vector<std::string_view> args(argv + 1, argv + argc);
 
   // check if -h option, in that case print usage and exit
@@ -85,7 +89,8 @@ int main(int argc, char *argv[])
     }
   }
 
-  // check that config file exists
+  // check that config file exists (also in the installation directory)
+  configFile = PathUtils::findFile(configFile);
   if (configFile != "" && !std::filesystem::exists(configFile))
   {
     std::cerr << "Config file " << configFile << " does not exist!!!" << std::endl;
@@ -215,7 +220,8 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  // check if the files exist
+  // check if the files exist (the geometry also in the installation directory)
+  display.geomFile = PathUtils::findFile(display.geomFile);
   if (display.useG4geom && !std::filesystem::exists(display.geomFile))
   {
     std::cerr << "G4 geometry file " << display.geomFile << " does not exist!!!" << std::endl;

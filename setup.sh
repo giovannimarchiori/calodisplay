@@ -12,7 +12,7 @@ else
 fi
 
 # directory containing this script, so that it can be sourced from anywhere
-CALODISPLAY_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+export CALODISPLAY_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # append a directory to a path variable, unless it is already there
 # (and without an empty entry if the variable was not set)
