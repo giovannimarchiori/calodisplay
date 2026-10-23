@@ -223,9 +223,10 @@ public:
   TEveElementList *readout = nullptr;
   TGLConstAnnotation *processLabel = nullptr;
   TGLConstAnnotation *eventLabel = nullptr;
-  // the event number entries and the "of N" labels in the navigation bar (one per tab)
+  // the event number entries and the labels with the range of the event
+  // numbers in the navigation bar (one per tab)
   std::vector<TGNumberEntry *> eventEntries;
-  std::vector<TGLabel *> eventCountLabels;
+  std::vector<TGLabel *> eventRangeLabels;
 
   std::unique_ptr<DetectorGeometry> geomReader;
   // the file must be declared before the reader, so that the reader is destroyed first
@@ -284,7 +285,11 @@ public:
   // move to the event typed in the event number entry
   void goToEvent();
 
-  // show the current event and the number of events in the navigation bar
+  // move to the next/previous event with the up/down arrows of the event
+  // number entry (val: the argument of TGNumberEntry::ValueChanged)
+  void stepEvent(Long_t val);
+
+  // show the current event and the range of the event numbers in the navigation bar
   void updateEventEntries();
 
   // show/hide the readouts

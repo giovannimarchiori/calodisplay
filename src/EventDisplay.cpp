@@ -3147,8 +3147,9 @@ void EventDisplay::goToEvent()
   if (evtFile == "" || eventEntries.empty())
     return;
 
-  // the entry that emitted the signal (one per tab)
-  auto it = std::find(eventEntries.begin(), eventEntries.end(), static_cast<TGNumberEntry *>(gTQSender));
+  // the entry whose text field emitted the signal (one per tab)
+  auto it = std::find_if(eventEntries.begin(), eventEntries.end(),
+                         [](TGNumberEntry *e) { return e->GetNumberEntry() == gTQSender; });
   TGNumberEntry *entry = (it != eventEntries.end()) ? *it : eventEntries.front();
   Long_t event = entry->GetIntNumber();
 
@@ -3167,23 +3168,26 @@ void EventDisplay::goToEvent()
   drawEvent(event);
 }
 
+void EventDisplay::stepEvent(Long_t val)
+{
+  // TGNumberEntry::ValueChanged: val / 10000 != 0 for the down arrow
+  if (val / 10000 == 0)
+    fwd();
+  else
+    bck();
+}
+
 void EventDisplay::updateEventEntries()
 {
   for (TGNumberEntry *entry : eventEntries)
-  {
-    if (nEvents > 0)
-      entry->SetLimits(TGNumberFormat::kNELLimitMinMax, 0, nEvents - 1);
-    // do not emit ValueSet, which would reload the event
     entry->SetIntNumber(eventId, kFALSE);
-  }
-  for (TGLabel *label : eventCountLabels)
+  for (TGLabel *label : eventRangeLabels)
   {
-    label->SetText(Form("of %d", nEvents));
+    label->SetText(nEvents > 0 ? Form("(0-%d)", nEvents - 1) : "(no events)");
     label->Resize(label->GetDefaultSize());
-  }
-  for (TGLabel *label : eventCountLabels)
     if (label->GetParent())
       ((TGCompositeFrame *) label->GetParent())->Layout();
+  }
 }
 
 void EventDisplay::toggleReadout()
@@ -3255,27 +3259,24 @@ void EventDisplay::makeGui()
     b->Connect("Clicked()", "EventDisplay", this, "takeScreenshot()");
     b->SetToolTipText("Take a screenshot of the selected view");
 
-    b = makeButton("GoBack.gif", "<");
-    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
-    b->Connect("Clicked()", "EventDisplay", this, "bck()");
-    b->SetToolTipText("Go to previous event");
-
-    // event number entry: type the number and press Enter, or use its arrows
+    // event number entry: type the number and press Enter to go to that
+    // event, or use its up/down arrows to go to the next/previous event
+    // (no limits, so that out-of-range numbers can be reported)
     TGNumberEntry *entry = new TGNumberEntry(hf, 0, 6, -1, TGNumberFormat::kNESInteger,
-                                             TGNumberFormat::kNEANonNegative);
+                                             TGNumberFormat::kNEAAnyNumber);
+    // the arrows do not change the number themselves, they emit ValueChanged
+    entry->SetButtonToNum(kFALSE);
+    entry->Connect("ValueChanged(Long_t)", "EventDisplay", this, "stepEvent(Long_t)");
+    entry->GetNumberEntry()->Connect("ReturnPressed()", "EventDisplay", this, "goToEvent()");
     entry->GetNumberEntry()->SetToolTipText("Event number: type it and press Enter to go to that event");
-    entry->Connect("ValueSet(Long_t)", "EventDisplay", this, "goToEvent()");
+    entry->GetButtonUp()->SetToolTipText("Go to next event");
+    entry->GetButtonDown()->SetToolTipText("Go to previous event");
     entry->SetState(evtFile != "");
-    hf->AddFrame(entry, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 2, 10, 10));
+    hf->AddFrame(entry, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
     eventEntries.push_back(entry);
-    TGLabel *countLabel = new TGLabel(hf, "of 0     ");
-    hf->AddFrame(countLabel, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 2, 10, 10));
-    eventCountLabels.push_back(countLabel);
-
-    b = makeButton("GoForward.gif", ">");
-    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
-    b->SetToolTipText("Go to next event");
-    b->Connect("Clicked()", "EventDisplay", this, "fwd()");
+    TGLabel *rangeLabel = new TGLabel(hf, "(no events)");
+    hf->AddFrame(rangeLabel, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
+    eventRangeLabels.push_back(rangeLabel);
 
     b = makeButton("grid_icon.png", "Readout");
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
