@@ -178,13 +178,14 @@ void EventDisplay::fillClusters(std::string clusterType)
       unsigned int nCells;
       if (clusterType == "topo")
       {
-        nCells = eventReader->CaloTopoClusterCells_energy->GetSize();
+        // the cell collection may be missing from the file: then no cells
+        nCells = eventReader->CaloTopoClusterCells_energy ? eventReader->CaloTopoClusterCells_energy->GetSize() : 0;
         first_hit = (*eventReader->CaloTopoClusters_hits_begin)[i];
         last_hit = (*eventReader->CaloTopoClusters_hits_end)[i];
       }
       else
       {
-        nCells = eventReader->CaloClusterCells_energy->GetSize();
+        nCells = eventReader->CaloClusterCells_energy ? eventReader->CaloClusterCells_energy->GetSize() : 0;
         first_hit = (*eventReader->CaloClusters_hits_begin)[i];
         last_hit = (*eventReader->CaloClusters_hits_end)[i];
       }
@@ -1500,7 +1501,10 @@ void EventDisplay::drawClusters(std::string clusterType)
   // loop over cells
   std::unordered_map<ULong64_t, double> cellEnergies_rhoz;
   std::unordered_map<ULong64_t, double> cellEnergies_rhophi;
-  unsigned int nCells = (clusterType == "topo") ? eventReader->CaloTopoClusterCells_energy->GetSize() : eventReader->CaloClusterCells_energy->GetSize();
+  // the cell collection may be missing from the file: then the clusters are
+  // drawn without their cells (barycenter and direction only)
+  const TTreeReaderArray<Float_t> *cellEnergyArray = (clusterType == "topo") ? eventReader->CaloTopoClusterCells_energy : eventReader->CaloClusterCells_energy;
+  unsigned int nCells = cellEnergyArray ? cellEnergyArray->GetSize() : 0;
 
   // index of the cluster each cell belongs to (-1 if none), built once:
   // the cells of cluster j are [hits_begin[j], hits_end[j])
