@@ -22,7 +22,7 @@ CylField::CylField(const std::string& filename,
   : m_magnetIsOn(true), m_reverse(false), fBr(nullptr), fBz(nullptr)
 {
   std::cout << "Reading magnetic field map from file " << filename << std::endl;
-  
+
   TFile file(filename.c_str(), "READ");
   if (file.IsZombie()) {
     throw std::runtime_error("Cannot open ROOT file");
@@ -68,7 +68,7 @@ CylField::CylField(const std::string& filename,
   fZmax = zvals.back();
   std::cout << "r: min, max, npoints = " << fRmin << " " << fRmax << " " << nr << std::endl;
   std::cout << "z: min, max, npoints = " << fZmin << " " << fZmax << " " << nz << std::endl;
-  
+
   // Create histograms (regular grid assumed)
   fBr = new TH2D("hBr", "Br", nr, fRmin, fRmax, nz, fZmin, fZmax);
   fBz = new TH2D("hBz", "Bz", nr, fRmin, fRmax, nz, fZmin, fZmax);
@@ -161,6 +161,8 @@ TEveVectorD CylField::GetFieldD(Double_t x, Double_t y, Double_t z) const
     By = Br * y * invr;
   }
 
+  if (m_reverse)
+    return TEveVectorD(Bx, By, -Bz);
   return TEveVectorD(Bx, By, Bz);
 }
 
@@ -199,7 +201,7 @@ void CylField::DrawFieldMap(const std::string& canvasName,
                         fBr->GetNbinsX(), fRmin, fRmax);  // y = r
   const int nx = fBr->GetNbinsX();
   const int ny = fBr->GetNbinsY();
-  
+
   // Fill magnitude map
   for (int ix = 1; ix <= nx; ++ix) {
     for (int iy = 1; iy <= ny; ++iy) {
@@ -211,12 +213,12 @@ void CylField::DrawFieldMap(const std::string& canvasName,
       hMag->Fill(z, r, mag);  // swapped!
     }
   }
-  
+
   // Draw heatmap
   TCanvas* c = new TCanvas("cField", "Field map", 800, 700);
   gStyle->SetOptStat(0);
   hMag->Draw("COLZ");
-  
+
   // Overlay arrows
   for (int ir = 0; ir < nArrowsR; ++ir) {
     for (int iz = 0; iz < nArrowsZ; ++iz) {
@@ -226,18 +228,18 @@ void CylField::DrawFieldMap(const std::string& canvasName,
       double Bz = fBz->Interpolate(r, z);
       double mag = std::sqrt(Br*Br + Bz*Bz);
       if (mag < 1e-12) continue;
-      
+
       // Direction in (z,r) plane:
       // x-axis = z → component = Bz
       // y-axis = r → component = Br
       double dz = Bz;
       double dr = Br;
-      
+
       // Normalize direction
       double norm = std::sqrt(dz*dz + dr*dr);
       dz /= norm;
       dr /= norm;
-      
+
       // Length proportional to magnitude
       double len = scale * mag;
       double z2 = z + dz * len;
