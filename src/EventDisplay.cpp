@@ -1938,9 +1938,12 @@ void EventDisplay::drawEvent(int event)
   // find out pdgID and momentum of primary particle
   // not OK for processes like Z->ee....
   // maybe can read process info from metadata instead?
+  // (gen particle branches are not set up if drawGenParticles is false or
+  // the collection is missing from the file)
   double pmax = 0.0;
   int ipmax = -1;
-  for (unsigned int i = 0; i < eventReader->genParticles_generatorStatus->GetSize(); i++)
+  unsigned int nGenParticles = eventReader->genParticles_generatorStatus ? eventReader->genParticles_generatorStatus->GetSize() : 0;
+  for (unsigned int i = 0; i < nGenParticles; i++)
   {
     if ((*eventReader->genParticles_generatorStatus)[i] != 1)
       continue;
@@ -1957,7 +1960,7 @@ void EventDisplay::drawEvent(int event)
       ipmax = i;
     }
   }
-  int pdgID = (*eventReader->genParticles_PDG)[ipmax];
+  int pdgID = (ipmax >= 0) ? (*eventReader->genParticles_PDG)[ipmax] : 0;
 
   // draw the various event elements
   drawParticles();
@@ -1977,7 +1980,7 @@ void EventDisplay::drawEvent(int event)
 
   // add process and event label
   if (processLabel == nullptr) {
-    auto processStr = Form("%s, %.1f GeV", ParticleUtils::name(pdgID), pmax);
+    auto processStr = (ipmax >= 0) ? Form("%s, %.1f GeV", ParticleUtils::name(pdgID), pmax) : "no primary particle";
     float x(0.05), y(0.95);
     processLabel = new TGLConstAnnotation(mainGLView, processStr, x, y);
     processLabel->SetTextSize(0.05); // % of window diagonal
