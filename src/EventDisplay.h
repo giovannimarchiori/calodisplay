@@ -22,6 +22,7 @@
 #include <TEveTrack.h>
 #include <TEvePointSet.h>
 #include <TEveQuadSet.h>
+#include <TEveRGBAPalette.h>
 #include <TEveBoxSet.h>
 #include <TEveStraightLineSet.h>
 
@@ -222,6 +223,9 @@ public:
   // the list of the readout elements
   TEveElementList *readout = nullptr;
   TGLConstAnnotation *processLabel = nullptr;
+  // palette for the energy of the cells in the clusters (values in MeV),
+  // shared by all events, with its legend in each view
+  TEveRGBAPalette *cellPalette = nullptr;
   TGLConstAnnotation *eventLabel = nullptr;
   // the event number entries and the labels with the range of the event
   // numbers in the navigation bar (one per tab)

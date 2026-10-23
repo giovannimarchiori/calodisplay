@@ -37,6 +37,12 @@
 #include <TEveManager.h>
 #include <TEveTrackPropagator.h>
 #include <TEveProjectionAxes.h>
+#include <TEveRGBAPaletteOverlay.h>
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
+#include <GL/gl.h>
+#endif
 #include <TEveGeoNode.h>
 
 
@@ -53,6 +59,46 @@ using Units::mm;
 
 namespace
 {
+// legend of a palette: the palette overlay drawn on a semi-transparent dark
+// background, so that it can be read on top of the detector (the background
+// also covers the title, drawn separately above the palette)
+class PaletteLegend : public TEveRGBAPaletteOverlay
+{
+public:
+  using TEveRGBAPaletteOverlay::TEveRGBAPaletteOverlay;
+
+  void Render(TGLRnrCtx &rnrCtx) override
+  {
+    glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+    // [0,1] window units
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, 1, 0, 1, 0, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+    glColor4f(0.f, 0.f, 0.f, 0.7f);
+    glBegin(GL_QUADS);
+    glVertex2f(fPosX - 0.02f, fPosY - 0.04f);
+    glVertex2f(fPosX + fWidth + 0.02f, fPosY - 0.04f);
+    glVertex2f(fPosX + fWidth + 0.02f, fPosY + fHeight + 0.07f);
+    glVertex2f(fPosX - 0.02f, fPosY + fHeight + 0.07f);
+    glEnd();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    glPopAttrib();
+
+    TEveRGBAPaletteOverlay::Render(rnrCtx);
+  }
+};
+
 // identifies a cell of a cluster in a 2D projection: the system, the index of
 // the cluster, the layer, and the bin in the projected view (theta bin for
 // rho-z; module for the ECAL and phi bin for the HCAL for rho-phi)
@@ -1115,10 +1161,7 @@ void EventDisplay::drawClusters(std::string clusterType)
   const double phiMinHCal = geomReader->phiMinHCal;
 
   // create the graphic containers
-  // the palette is ref-counted by the digit sets that use it: hold a reference
-  // while filling, released at the end (deletes it if no cluster uses it)
-  TEveRGBAPalette *pal = new TEveRGBAPalette(0, 1000);
-  pal->IncRefCount();
+  TEveRGBAPalette *pal = cellPalette;
 
   // first, create the containers
   // clusters in 3D
@@ -1902,8 +1945,6 @@ void EventDisplay::drawClusters(std::string clusterType)
       qs_rhophi[icl]->QuadId(new TNamed(Form("%s %d cell L%d P%d", clusterType.c_str(), icl, layer, phiID), "Dong!"));
     }
   }
-
-  pal->DecRefCount();
 }
 
 void EventDisplay::drawEvent(int event)
@@ -1992,15 +2033,8 @@ void EventDisplay::drawEvent(int event)
     rhoPhiEventScene->DestroyElements();
     rhoPhiProjManager->ImportElements(top, rhoPhiEventScene);
 
-    // slow??
-    // TEveRGBAPaletteOverlay *po = new TEveRGBAPaletteOverlay(pal, 0.55, 0.1, 0.4, 0.05);
-    // rhoPhiGLView->AddOverlayElement(po);
-
     rhoZEventScene->DestroyElements();
     rhoZProjManager->ImportElements(top, rhoZEventScene);
-
-    // TEveRGBAPaletteOverlay *po2 = new TEveRGBAPaletteOverlay(pal, 0.55, 0.1, 0.4, 0.05);
-    // rhoZGLView->AddOverlayElement(po2);
   }
 
   std::cout << "Done" << std::endl
@@ -2100,6 +2134,13 @@ void EventDisplay::startDisplay(int initialEvent)
   // see palettes here: https://root.cern.ch/doc/master/classTColor.html
   // gStyle->SetPalette(kAvocado);
   gStyle->SetPalette(kSienna);
+
+  // palette for the cluster cells, with values in MeV (shown in GeV in the
+  // legends); ref-counted by the digit sets that use it, keep a reference so
+  // that it is not deleted when the clusters of an event are destroyed
+  cellPalette = new TEveRGBAPalette(0, 1000);
+  cellPalette->SetUIDoubleRep(kTRUE, 0.001);
+  cellPalette->IncRefCount();
 
   // first tab
   mainGLView = gEve->GetDefaultGLViewer();
@@ -3091,6 +3132,18 @@ void EventDisplay::startDisplay(int initialEvent)
     std::cout << "******************************************************************************" << std::endl
          << std::endl;
     drawEvent(initialEvent);
+  }
+
+  // legend of the cluster cell energies in each view, in the bottom right
+  // corner, above the axis labels of the projections
+  for (TGLViewer *viewer : {mainGLView, rhoPhiGLView, rhoZGLView})
+  {
+    if (!viewer)
+      continue;
+    viewer->AddOverlayElement(new PaletteLegend(cellPalette, 0.60, 0.12, 0.28, 0.03));
+    TGLConstAnnotation *title = new TGLConstAnnotation(viewer, "Cluster cell energy [GeV]", 0.60, 0.21);
+    title->SetTextSize(0.03);
+    title->SetAllowClose(false);
   }
 
   // Set the 3D view as the active tab and rotate the camera

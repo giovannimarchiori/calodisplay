@@ -9,6 +9,10 @@ endif
 CXXFLAGS=$(shell root-config --cflags) -fPIC
 LDFLAGS=$(shell root-config --ldflags)
 LIBS=$(shell root-config --glibs --evelibs)
+# OpenGL is called directly (palette legend): on macOS the framework must be linked explicitly
+ifeq ($(OS),Darwin)
+	LIBS+=-framework OpenGL
+endif
 INCDIR=$(shell root-config --incdir)
 
 # Define variables for directories
