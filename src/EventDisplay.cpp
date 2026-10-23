@@ -241,7 +241,7 @@ void EventDisplay::fillClusters(std::string clusterType)
 
       std::vector<TVector3> barycenterVsMuonLayer(nMuonLayers);
       std::vector<float> sumWeightsVsMuonLayer(nMuonLayers, 0.0);
-  
+
       for (unsigned int iCell = 0; iCell < nCells; iCell++)
       {
         if (iCell < first_hit || iCell >= last_hit)
@@ -355,7 +355,7 @@ void EventDisplay::fillClusters(std::string clusterType)
         }
       }
       cluster->setBarycenterVsHCalBarrelLayers(barycenterVsHCalBarrelLayer);
-    
+
       for (unsigned int iLayer = 0; iLayer < nHCalEndCapLayers; iLayer++)
       {
         if (energyVsHCalEndCapLayer[iLayer] > 0.)
@@ -370,7 +370,7 @@ void EventDisplay::fillClusters(std::string clusterType)
 
       cluster->setBarycenterVsMuonLayers(barycenterVsMuonLayer);
     }
-    
+
     if (debug) {
       cluster->print();
     }
@@ -508,14 +508,14 @@ void EventDisplay::drawParticles()
           }
         }
         prop->SetMaxR(propMaxR);
-        
+
         TEveTrack *track = new TEveTrack(&mct, prop);
         track->SetAttLineAttMarker(particles);
         track->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
                                     p, acos(pz / p), atan2(py, px),
                                     x1 / cm, y1 / cm, z1 / cm));
-        
-        
+
+
         particles->AddElement(track);
       }
     /*
@@ -712,13 +712,13 @@ void EventDisplay::drawDigis()
   if (displayConfig.getBoolConfig("drawVertexDigis"))
   {
     std::cout << "Creating vertex barrel digis" << std::endl;
-    drawHitCollection(vtxDigis, "VTX", 
+    drawHitCollection(vtxDigis, "VTX",
                       eventReader->VertexBarrelDigis_position_x,
                       eventReader->VertexBarrelDigis_position_y,
                       eventReader->VertexBarrelDigis_position_z,
                       nullptr, -9999., true);
     std::cout << "Creating vertex endcap digis" << std::endl;
-    drawHitCollection(vtxDigis, "VTX", 
+    drawHitCollection(vtxDigis, "VTX",
                       eventReader->VertexEndcapDigis_position_x,
                       eventReader->VertexEndcapDigis_position_y,
                       eventReader->VertexEndcapDigis_position_z,
@@ -734,6 +734,7 @@ void EventDisplay::drawDigis()
                       eventReader->MainTrackerDigis_position_y,
                       eventReader->MainTrackerDigis_position_z,
                       nullptr, -9999., true);
+  }
 
   // digis in Si wrapper
   if (displayConfig.getBoolConfig("drawSiWrapperDigis"))
@@ -874,8 +875,7 @@ void EventDisplay::drawDigis()
                       eventReader->MuonBarrelCells_energy,
                       CellEnergyThreshold,
                       true, false);
-                      
-    }
+
     std::cout << "Creating muon endcap cells" << std::endl;
     drawHitCollection(muonCells, "MUON",
                       eventReader->MuonEndcapCells_position_x,
@@ -975,7 +975,7 @@ void EventDisplay::drawTracks()
       for (unsigned int ih = hits_begin; ih < hits_end; ih++) {
         nhits[ih-hits_begin] = (*eventReader->_Tracks_subdetectorHitNumbers)[ih];
       }
-      
+
       // const int tsOrig=2; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
       const int tsOrig=1; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
       //if (x[tsOrig]<5e5) {  // GM dont remember what is this about..
@@ -1242,14 +1242,14 @@ void EventDisplay::drawClusters(std::string clusterType)
     clustersDirection->SetLineColor(kWhite);
     clustersDirection->SetLineWidth(5);
   }
-  
+
   for (unsigned int i = 0; i < nClusters; i++) {
     float E = (clusterType == "topo") ? (*eventReader->CaloTopoClusters_energy)[i] : (*eventReader->CaloClusters_energy)[i];
     if (E < ClusterEnergyThreshold)
       continue;
 
     float x0(0.), y0(0.), z0(0.);
-    float theta(0.), phi(0.);  
+    float theta(0.), phi(0.);
     // topo cluster positions are in cm while calo clusters and hits/cells in mm ... ?
     if (clusterType == "topo") {
       x0 = (*eventReader->CaloTopoClusters_position_x)[i] * mm;
@@ -1269,7 +1269,7 @@ void EventDisplay::drawClusters(std::string clusterType)
         phi = (*eventReader->CaloClusters_phi)[i];
       }
     }
-  
+
     clustersCenter->SetNextPoint(x0, y0, z0);
     if (theta!=0.) {
       float t1(0), t2(0);
@@ -1295,7 +1295,7 @@ void EventDisplay::drawClusters(std::string clusterType)
         t2 = (zMax-z0)/std::cos(theta);
       }
       else {
-        // 
+        //
         std::cout << "Cluster barycentre is not in ECal barrel nor endcap!" << std::endl;
         std::cout << "  x0 = " << x0 << ", y0 = " << y0 << ", z0 = " << z0 << std::endl;
       }
@@ -1567,7 +1567,7 @@ void EventDisplay::drawClusters(std::string clusterType)
       std::cout << "Unknown system " << systemID << std::endl;
       exit(1);
     }
-    
+
     float theta_center = atan2(r_center, z_center);
     // float phi_center = atan2(y_center, x_center);
 
@@ -1934,7 +1934,7 @@ void EventDisplay::drawEvent(int event)
 
   // read event from file
   eventReader->loadEvent(eventId);
-  
+
   // find out pdgID and momentum of primary particle
   // not OK for processes like Z->ee....
   // maybe can read process info from metadata instead?
@@ -2043,7 +2043,7 @@ void EventDisplay::startDisplay(int initialEvent)
   if (bFieldType == "GlobalSolenoid") {
     std::cout << "Using ideal solenoid magnetic field" << std::endl;
     magField = new MagField(geomReader->Bin, geomReader->Bout, geomReader->zMax, geomReader->rMax);
-    
+
     // Note: field is reversed in EVE (see https://root.cern/doc/v636/classTEveTrackPropagator.html)
     ((MagField*) magField)->setReverseState(true);
   }
@@ -2465,7 +2465,7 @@ void EventDisplay::startDisplay(int initialEvent)
   }
   gEve->AddToListTree(readout, true);
   gEve->FullRedraw3D(true);
-  
+
   // create second tab (R-phi view)
   rhoPhiView = gEve->SpawnNewViewer("Projection Rho-Phi");
 
@@ -3031,7 +3031,7 @@ void EventDisplay::startDisplay(int initialEvent)
   // rotate camera
   mainGLView->CurrentCamera().RotateRad(-0.5, -2.4);
   mainGLView->DoDraw();
-  
+
   // clipping
   mainGLView->GetClipSet()->SetClipType(TGLClip::EType(2));
   double data[6];
@@ -3042,7 +3042,7 @@ void EventDisplay::startDisplay(int initialEvent)
   mainGLView->GetClipSet()->SetClipState(TGLClip::EType(2), data);
   mainGLView->RefreshPadEditor(mainGLView);
   mainGLView->DoDraw();
-  
+
   activeGLViewer = mainGLView;
 }
 
@@ -3137,7 +3137,7 @@ void EventDisplay::takeScreenshot()
   if (!std::filesystem::exists("screenshots/")) {
     std::filesystem::create_directory("screenshots/");
   }
-  
+
   TString filename = "screenshots/calodisplay_screenshot_" + view + "_" + tss;
   std::cout << "Saving a screenshot of the selected view to " << filename << " ... ";
   activeGLViewer->SavePictureScale((filename+".png").Data(), 10.);
@@ -3147,17 +3147,17 @@ void EventDisplay::takeScreenshot()
 
 // Create minimal GUI for event navigation.
 void EventDisplay::makeGui()
-{ 
+{
   // add buttons to go through events
   TGTab* tab = browser->GetTabRight();
   Int_t nTabs = tab->GetNumberOfTabs();
   for (Int_t i = 0; i < nTabs; ++i) {
 
     TGCompositeFrame* frm = tab->GetTabContainer(i);
-  
+
     TGHorizontalFrame* hf = new TGHorizontalFrame(frm);
     TGPictureButton* b = 0;
-    
+
     b = new TGPictureButton(hf, gClient->GetPicture("icons/TakeScreenshot.png"));
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "takeScreenshot()");
@@ -3243,7 +3243,7 @@ std::vector<TEvePathMarkD> EventDisplay::getElectronBremsstrahlungMarks(
                           vx[electronIndex],
                           vy[electronIndex],
                           vz[electronIndex]);
-  
+
   //
   // Find daughters
   //
@@ -3254,20 +3254,20 @@ std::vector<TEvePathMarkD> EventDisplay::getElectronBremsstrahlungMarks(
       ++i)
   {
     if(i>=daughters.GetSize()) continue;
-      
+
     int child = daughters[i];
     if(child < 0) continue;
-      
+
     unsigned int childIndex = static_cast<unsigned int>(child);
     if(childIndex >= pdg.GetSize()) continue;
-    
+
     if(std::abs(pdg[childIndex]) == 11)
       hasElectronDaughter = true;
 
     if(pdg[childIndex] == 22)
       photons.push_back(childIndex);
   }
-  
+
 
   //
   // If Geant produced a new electron particle,
@@ -3350,10 +3350,10 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
   const double el_vx = vx[electronIndex]*mm;
   const double el_vy = vy[electronIndex]*mm;
   const double el_vz = vz[electronIndex]*mm;
-  
+
   TVector3 electronMomentum(el_px, el_py, el_pz);
   TVector3 direction = electronMomentum.Unit();
- 
+
   // Find photon daughters and pre-calculate projection distances
   const size_t daughters_size = daughters.GetSize();
   for(unsigned int i=d_begin; i<d_end; ++i)
@@ -3362,7 +3362,7 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
 
     int child = daughters[i];
     if(child < 0) continue;
-    
+
     if(pdg[child] == 22)
     {
       // Pre-calculate projection along direction to avoid heavy lifting inside std::sort
@@ -3379,11 +3379,11 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
   // (rather sort by time...)
   std::sort(photonsWithDist.begin(), photonsWithDist.end(),
             [](const auto& a, const auto& b) { return a.first < b.first; });
-  
+
   // Create electron segments
   std::vector<ElectronSegment> segments;
   segments.reserve(photonsWithDist.size() + 1);
- 
+
   TVector3 currentMomentum = electronMomentum;
   TVector3 currentVertex(el_vx, el_vy, el_vz);
   int charge = - MathUtils::sign(pdg[electronIndex]);
@@ -3398,7 +3398,7 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
     const double g_vx = vx[gamma] * mm;
     const double g_vy = vy[gamma] * mm;
     const double g_vz = vz[gamma] * mm;
-    
+
     TVector3 start(currentVertex.X(), currentVertex.Y(), currentVertex.Z());
     TVector3 end(g_vx, g_vy, g_vz);
 
@@ -3408,11 +3408,11 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
     TEveVectorD start_pos(start.X(), start.Y(), start.Z());
     propagator->InitTrack(start_pos, charge);
     TEveVectorD target_pos(g_vx, g_vy, g_vz);
-      
+
     TEveVectorD propagated_mom(currentMomentum.X(), currentMomentum.Y(), currentMomentum.Z());
     Bool_t success = propagator->GoToVertex(target_pos, propagated_mom);
     if (not success) {
-      std::cout << "ERROR: failed to propagate electron!" << std::endl; 
+      std::cout << "ERROR: failed to propagate electron!" << std::endl;
     }
 
     // Update electron momentum after photon emission
