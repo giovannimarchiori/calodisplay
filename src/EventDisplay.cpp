@@ -3171,7 +3171,24 @@ void EventDisplay::goToEvent()
 void EventDisplay::stepEvent(Long_t val)
 {
   // TGNumberEntry::ValueChanged: val / 10000 != 0 for the down arrow
-  if (val / 10000 == 0)
+  bool up = (val / 10000 == 0);
+
+  // the arrows are repeat-fire buttons, which keep firing until the mouse
+  // button is released. If fwd/bck is going to open a (modal) message box,
+  // release them first: otherwise the release goes to the message box, and
+  // the arrow keeps firing, opening a new message box each time
+  if (evtFile == "" || (up && eventId >= nEvents - 1) || (!up && eventId <= 0))
+  {
+    Event_t release{};
+    release.fType = kButtonRelease;
+    for (TGNumberEntry *entry : eventEntries)
+    {
+      entry->GetButtonUp()->HandleButton(&release);
+      entry->GetButtonDown()->HandleButton(&release);
+    }
+  }
+
+  if (up)
     fwd();
   else
     bck();
