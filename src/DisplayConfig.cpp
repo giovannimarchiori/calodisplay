@@ -86,12 +86,27 @@ void DisplayConfig::writeToFile(std::string filename) {
   out.close();
 }
 
-void DisplayConfig::readFromFile(std::string filename) {
+bool DisplayConfig::readFromFile(std::string filename) {
   std::ifstream in(filename);
+  if (!in) {
+    std::cerr << "Cannot open config file " << filename << std::endl;
+    return false;
+  }
   std::stringstream buffer;
   buffer << in.rdbuf();
   std::string json = buffer.str();
-  std::unique_ptr<std::map<std::string, std::string>> b = TBufferJSON::FromJSON<std::map<std::string, std::string>>(json);
+  std::unique_ptr<std::map<std::string, std::string>> b;
+  try {
+    // throws on JSON syntax errors, returns nullptr if the content does not match the map type
+    b = TBufferJSON::FromJSON<std::map<std::string, std::string>>(json);
+  }
+  catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+  }
+  if (!b) {
+    std::cerr << "Cannot parse config file " << filename << " (malformed JSON?)" << std::endl;
+    return false;
+  }
   // this one keeps only the values in the JSON
   // configMap = *b;
   // this one merges the values in the JSON with the defaults if not specified
@@ -99,4 +114,5 @@ void DisplayConfig::readFromFile(std::string filename) {
     configMap[key] = value;
   }
   in.close();
+  return true;
 }

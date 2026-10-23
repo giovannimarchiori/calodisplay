@@ -93,7 +93,10 @@ int main(int argc, char *argv[])
   }
 
   // load default configuration
-  displayConfig.readFromFile(configFile);
+  if (configFile != "" && !displayConfig.readFromFile(configFile))
+  {
+    return EXIT_FAILURE;
+  }
   
  
   // parse the other arguments

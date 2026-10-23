@@ -178,42 +178,45 @@ void EventDisplay::fillClusters(std::string clusterType)
           energy = (*eventReader->CaloClusterCells_energy)[iCell];
         }
         ULong_t systemID = geomReader->SystemID(cellID);
-        ULong_t layer;
+        ULong_t layer = 0;
+        std::vector<float> *energyVsLayer = nullptr;
         if (systemID == 4)
         {
           layer = geomReader->ECalBarrelLayer(cellID);
-          energyVsECalBarrelLayer[layer] += energy;
+          energyVsLayer = &energyVsECalBarrelLayer;
         }
         else if (systemID == 8)
         {
           layer = geomReader->HCalBarrelLayer(cellID);
-          energyVsHCalBarrelLayer[layer] += energy;
+          energyVsLayer = &energyVsHCalBarrelLayer;
         }
         else if (systemID == 5)
         {
           layer = geomReader->ECalEndCapZBin(cellID);
-          energyVsECalEndCapLayer[layer] += energy;
+          energyVsLayer = &energyVsECalEndCapLayer;
         }
         else if (systemID == 9)
         {
           layer = geomReader->HCalEndCapLayer(cellID);
-          energyVsHCalEndCapLayer[layer] += energy;
+          energyVsLayer = &energyVsHCalEndCapLayer;
         }
-        else if (systemID == 12)
+        else if (systemID == 12 || systemID == 13)
         {
-          // TODO: calculate properly muon barrel layer
-          energyVsMuonLayer[0] += energy;
-        }
-        else if (systemID == 13)
-        {
-          // TODO: calculate properly muon endcap layer
-          energyVsMuonLayer[0] += energy;
+          // TODO: calculate properly muon barrel and endcap layer
+          layer = 0;
+          energyVsLayer = &energyVsMuonLayer;
         }
         else
         {
-          std::cout << "Unknown system " << systemID << std::endl;
-          exit(1);
+          std::cout << "WARNING: unknown system " << systemID << " for cell " << cellID << ", skipping cell" << std::endl;
+          continue;
         }
+        if (layer >= energyVsLayer->size())
+        {
+          std::cout << "WARNING: layer " << layer << " of system " << systemID << " out of range [0, " << energyVsLayer->size() << "), skipping cell" << std::endl;
+          continue;
+        }
+        (*energyVsLayer)[layer] += energy;
       }
 
       cluster->setEnergyVsECalBarrelLayers(energyVsECalBarrelLayer);
@@ -265,58 +268,50 @@ void EventDisplay::fillClusters(std::string clusterType)
           z = (*eventReader->CaloClusterCells_position_z)[iCell] * mm;
         }
         ULong_t systemID = geomReader->SystemID(cellID);
-        ULong_t layer;
+        ULong_t layer = 0;
+        std::vector<float> *energyVsLayer = nullptr;
+        std::vector<TVector3> *barycenterVsLayer = nullptr;
+        std::vector<float> *sumWeightsVsLayer = nullptr;
         if (systemID == 4)  // TODO: use enum instead of these hardcoded constants?
         {
           layer = geomReader->ECalBarrelLayer(cellID);
-          if (energyVsECalBarrelLayer[layer] > 0)
-          {
-            float weight = energy / energyVsECalBarrelLayer[layer];
-            barycenterVsECalBarrelLayer[layer].SetXYZ(
-                barycenterVsECalBarrelLayer[layer].X() + x * weight,
-                barycenterVsECalBarrelLayer[layer].Y() + y * weight,
-                barycenterVsECalBarrelLayer[layer].Z() + z * weight);
-            sumWeightsVsECalBarrelLayer[layer] += weight;
-          }
+          energyVsLayer = &energyVsECalBarrelLayer;
+          barycenterVsLayer = &barycenterVsECalBarrelLayer;
+          sumWeightsVsLayer = &sumWeightsVsECalBarrelLayer;
         }
         else if (systemID == 5)
         {
           layer = geomReader->ECalEndCapZBin(cellID);
-          if (energyVsECalEndCapLayer[layer] > 0)
-          {
-            float weight = energy / energyVsECalEndCapLayer[layer];
-            barycenterVsECalEndCapLayer[layer].SetXYZ(
-              barycenterVsECalEndCapLayer[layer].X() + x * weight,
-              barycenterVsECalEndCapLayer[layer].Y() + y * weight,
-              barycenterVsECalEndCapLayer[layer].Z() + z * weight);
-            sumWeightsVsECalEndCapLayer[layer] += weight;
-          }
+          energyVsLayer = &energyVsECalEndCapLayer;
+          barycenterVsLayer = &barycenterVsECalEndCapLayer;
+          sumWeightsVsLayer = &sumWeightsVsECalEndCapLayer;
         }
         else if (systemID == 8)
         {
           layer = geomReader->HCalBarrelLayer(cellID);
-          if (energyVsHCalBarrelLayer[layer] > 0)
-          {
-            float weight = energy / energyVsHCalBarrelLayer[layer];
-            barycenterVsHCalBarrelLayer[layer].SetXYZ(
-              barycenterVsHCalBarrelLayer[layer].X() + x * weight,
-              barycenterVsHCalBarrelLayer[layer].Y() + y * weight,
-              barycenterVsHCalBarrelLayer[layer].Z() + z * weight);
-            sumWeightsVsHCalBarrelLayer[layer] += weight;
-          }
+          energyVsLayer = &energyVsHCalBarrelLayer;
+          barycenterVsLayer = &barycenterVsHCalBarrelLayer;
+          sumWeightsVsLayer = &sumWeightsVsHCalBarrelLayer;
         }
         else if (systemID == 9)
         {
           layer = geomReader->HCalEndCapLayer(cellID);
-          if (energyVsHCalEndCapLayer[layer] > 0)
-          {
-            float weight = energy / energyVsHCalEndCapLayer[layer];
-            barycenterVsHCalEndCapLayer[layer].SetXYZ(
-              barycenterVsHCalEndCapLayer[layer].X() + x * weight,
-              barycenterVsHCalEndCapLayer[layer].Y() + y * weight,
-              barycenterVsHCalEndCapLayer[layer].Z() + z * weight);
-            sumWeightsVsHCalEndCapLayer[layer] += weight;
-          }
+          energyVsLayer = &energyVsHCalEndCapLayer;
+          barycenterVsLayer = &barycenterVsHCalEndCapLayer;
+          sumWeightsVsLayer = &sumWeightsVsHCalEndCapLayer;
+        }
+        // other systems (muon, unknown) are not used for the barycenter;
+        // out-of-range layers were already reported in the first loop
+        if (energyVsLayer == nullptr || layer >= energyVsLayer->size())
+          continue;
+        if ((*energyVsLayer)[layer] > 0)
+        {
+          float weight = energy / (*energyVsLayer)[layer];
+          TVector3 &barycenter = (*barycenterVsLayer)[layer];
+          barycenter.SetXYZ(barycenter.X() + x * weight,
+                            barycenter.Y() + y * weight,
+                            barycenter.Z() + z * weight);
+          (*sumWeightsVsLayer)[layer] += weight;
         }
       }
 
@@ -1560,8 +1555,8 @@ void EventDisplay::drawClusters(std::string clusterType)
     }
     else
     {
-      std::cout << "Unknown system " << systemID << std::endl;
-      exit(1);
+      std::cout << "WARNING: unknown system " << systemID << " for cell " << cellID << ", skipping cell" << std::endl;
+      continue;
     }
 
     float theta_center = atan2(r_center, z_center);
@@ -2178,6 +2173,11 @@ void EventDisplay::startDisplay(int initialEvent)
       //
       TPRegexp re("ECalBarrel*");
       TEveElement *ecalbarrel = world->FindChild(re);
+      if (!ecalbarrel)
+      {
+        std::cerr << "ERROR: ECalBarrel volume not found in geometry file " << geomFile << std::endl;
+        return;
+      }
       ecalbarrel->SetPickableRecursively(kTRUE);
       ((TEveGeoShape *)ecalbarrel)->SetNSegments(256);
       geom->AddElement(ecalbarrel);
@@ -2297,11 +2297,17 @@ void EventDisplay::startDisplay(int initialEvent)
       }
 
       // HCAL
+      TEveElement *hcalbarrel = nullptr;
       if (doHCal)
       {
-        // add HCal envelope and subvolumes
         re = TPRegexp("HCalEnvelopeVolume*");
-        TEveElement *hcalbarrel = world->FindChild(re);
+        hcalbarrel = world->FindChild(re);
+        if (!hcalbarrel)
+          std::cout << "WARNING: HCalEnvelopeVolume not found in geometry file, not drawing HCAL" << std::endl;
+      }
+      if (hcalbarrel)
+      {
+        // add HCal envelope and subvolumes
         hcalbarrel->SetPickableRecursively(kTRUE);
         ((TEveGeoShape *)hcalbarrel)->SetNSegments(256);
         geom->AddElement(hcalbarrel);
@@ -2572,6 +2578,8 @@ void EventDisplay::startDisplay(int initialEvent)
         {
           TPRegexp re("ECalBarrel_vol_(\\w+)");
           TEveElement *projbarrel = a->FindChild(re);
+          if (!projbarrel)
+            continue;
           projbarrel->SetRnrSelfChildren(false, true);
           TPRegexp rebath("LAr_bath(\\w+)");
           TEveElement *projbath = projbarrel->FindChild(rebath);
@@ -2596,6 +2604,8 @@ void EventDisplay::startDisplay(int initialEvent)
         // show layers in HCAL barrel
         else if (s.BeginsWith("HCal barrel"))
         {
+          if (a->NumChildren() == 0)
+            continue;
           TEveElement *envelope = *(a->BeginChildren());
           envelope->SetRnrSelfChildren(false, true);
           ((TEveGeoShape *)envelope)->SetDrawFrame(false);
@@ -2618,6 +2628,8 @@ void EventDisplay::startDisplay(int initialEvent)
         // show layers in MUON barrel
         else if (s.BeginsWith("Muon tagger barrel"))
         {
+          if (a->NumChildren() == 0)
+            continue;
           TEveElement *envelope = *(a->BeginChildren());
           envelope->SetRnrSelfChildren(false, true);
           ((TEveGeoShape *)envelope)->SetDrawFrame(false);
@@ -2862,6 +2874,8 @@ void EventDisplay::startDisplay(int initialEvent)
         else if (s.BeginsWith("ECal barrel")) {
           TPRegexp re("ECalBarrel_vol_(\\w+)");
           TEveElement *projbarrel = a->FindChild(re);
+          if (!projbarrel)
+            continue;
           projbarrel->SetMainTransparency(useTransparencies ? 60 : 0);
           TPRegexp rebath("LAr_bath(\\w+)");
           TEveElement *projbath = projbarrel->FindChild(rebath);
@@ -2878,6 +2892,8 @@ void EventDisplay::startDisplay(int initialEvent)
         // HCAL barrel - do not draw the envelope, rather show the layers
         else if (s.BeginsWith("HCal barrel"))
         {
+          if (a->NumChildren() == 0)
+            continue;
           TEveElement *envelope = *(a->BeginChildren());
           envelope->SetRnrSelfChildren(false, true);
           ((TEveGeoShape *)envelope)->SetDrawFrame(false);
@@ -2900,6 +2916,8 @@ void EventDisplay::startDisplay(int initialEvent)
         {
           TPRegexp re("HCalThreePartsEndcap*");
           TEveElement *envelope = a->FindChild(re);
+          if (!envelope)
+            continue;
           envelope->SetRnrSelfChildren(false, true);
           ((TEveGeoShape *)envelope)->SetDrawFrame(false);
           for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
@@ -2917,6 +2935,8 @@ void EventDisplay::startDisplay(int initialEvent)
         // MUON barrel - do not draw the envelopes, rather show the layers
         else if (s.BeginsWith("Muon tagger barrel"))
         {
+          if (a->NumChildren() == 0)
+            continue;
           TEveElement *envelope = *(a->BeginChildren());
           envelope->SetRnrSelfChildren(false, true);
           ((TEveGeoShape *)envelope)->SetDrawFrame(false);
@@ -3090,7 +3110,7 @@ void EventDisplay::bck()
     printf("\nNo events loaded\n");
     int ret;
     auto b = new TGMsgBox(gClient->GetRoot(), browser,
-                          "Error", "Already at last event",
+                          "Error", "No events loaded",
                           kMBIconStop, kMBOk, &ret);
   }
   else if (eventId > 0)

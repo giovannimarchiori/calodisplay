@@ -15,10 +15,11 @@
 class DisplayConfig {
 public:
   std::map<std::string, std::string> configMap;
-  
+
   DisplayConfig();
   void print();
-  void readFromFile(std::string filename);
+  // returns false if the file cannot be read or parsed
+  bool readFromFile(std::string filename);
   void writeToFile(std::string filename);
 
   void setStringConfig(const std::string& key, const std::string& value) {
@@ -51,7 +52,7 @@ public:
     return false; // or throw exception for missing config
   }
 
-  float getIntConfig(const std::string& key) const {
+  int getIntConfig(const std::string& key) const {
     if (configMap.find(key) != configMap.end()) {
       return std::stoi(configMap.at(key));
     }
