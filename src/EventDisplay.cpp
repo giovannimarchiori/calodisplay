@@ -14,7 +14,6 @@
 #include "CylField.h"
 #include "Units.h"
 #include "PathUtils.h"
-static int tmpNSeg(int d) { const char* e = getenv("CALO_NSEG"); return e ? atoi(e) : d; }
 
 // ROOT core
 #include <TMath.h>
@@ -2217,7 +2216,7 @@ void EventDisplay::startDisplay(int initialEvent)
         return;
       }
       ecalBarrelEl->SetPickableRecursively(kTRUE);
-      ((TEveGeoShape *)ecalBarrelEl)->SetNSegments(tmpNSeg(256));
+      ((TEveGeoShape *)ecalBarrelEl)->SetNSegments(256);
       geom->AddElement(ecalBarrelEl);
       // hide the envelope, only show physical volumes in it
       ecalBarrelEl->SetRnrSelfChildren(false, true);
@@ -2231,14 +2230,14 @@ void EventDisplay::startDisplay(int initialEvent)
       for (TEveElement *a : matches)
       {
         a->SetMainTransparency(70);
-        ((TEveGeoShape *)a)->SetNSegments(tmpNSeg(256));
+        ((TEveGeoShape *)a)->SetNSegments(256);
       }
       re = TPRegexp("services*");
       ecalBarrelEl->FindChildren(matches, re);
       for (auto a : matches)
       {
         a->SetMainTransparency(70);
-        ((TEveGeoShape *)a)->SetNSegments(tmpNSeg(256));
+        ((TEveGeoShape *)a)->SetNSegments(256);
       }
 
       // turn off Cryo side in 3d, weird rendering
@@ -2347,7 +2346,7 @@ void EventDisplay::startDisplay(int initialEvent)
       {
         // add HCal envelope and subvolumes
         hcalBarrelEl->SetPickableRecursively(kTRUE);
-        ((TEveGeoShape *)hcalBarrelEl)->SetNSegments(tmpNSeg(256));
+        ((TEveGeoShape *)hcalBarrelEl)->SetNSegments(256);
         geom->AddElement(hcalBarrelEl);
         // do not draw envelope, only physical elements inside
         hcalBarrelEl->SetRnrSelfChildren(false, true);
@@ -2364,7 +2363,7 @@ void EventDisplay::startDisplay(int initialEvent)
           for (TEveElement *a : plateMatches)
           {
             a->SetMainTransparency(70);
-            ((TEveGeoShape *)a)->SetNSegments(tmpNSeg(256));
+            ((TEveGeoShape *)a)->SetNSegments(256);
           }
         }
 
@@ -2373,7 +2372,7 @@ void EventDisplay::startDisplay(int initialEvent)
         for (auto a : matches)
         {
           a->SetMainTransparency(70);
-          ((TEveGeoShape *)a)->SetNSegments(tmpNSeg(256));
+          ((TEveGeoShape *)a)->SetNSegments(256);
         }
 
         // group together the layers so that they can be turned on/off together
@@ -2387,7 +2386,7 @@ void EventDisplay::startDisplay(int initialEvent)
         {
           hcalLayers->AddElement(a);
           hcalBarrelEl->RemoveElement(a);
-          ((TEveGeoShape *)a)->SetNSegments(tmpNSeg(256));
+          ((TEveGeoShape *)a)->SetNSegments(256);
           // set number of segments of 2D projection of TileSequenceVol and TileVol
           // slow, don't do it!
           // instead, hide by default the single tiles because they are slow in 3D
@@ -2398,13 +2397,13 @@ void EventDisplay::startDisplay(int initialEvent)
           a->FindChildren(matches_tsv, re2);
           for (TEveElement* tsv : matches_tsv)
           {
-            ((TEveGeoShape*) tsv)->SetNSegments(tmpNSeg(256));
+            ((TEveGeoShape*) tsv)->SetNSegments(256);
             TPRegexp re3("HCalTileVol*");
             TEveElement::List_t matches_tv;
             tsv->FindChildren(matches_tv, re3);
             for (TEveElement* tv : matches_tv)
             {
-              ((TEveGeoShape*) tv)->SetNSegments(tmpNSeg(256));
+              ((TEveGeoShape*) tv)->SetNSegments(256);
             }
           }
           */
@@ -2450,7 +2449,7 @@ void EventDisplay::startDisplay(int initialEvent)
     ecalbarrel->SetShape(new TGeoTube(geomReader->rMin, geomReader->rMax, geomReader->zMax));
     ecalbarrel->SetMainColor(kCyan);
     ecalbarrel->SetMainTransparency(90);
-    ecalbarrel->SetNSegments(tmpNSeg(128));
+    ecalbarrel->SetNSegments(128);
     // geom->AddElement(ecalbarrel);
     gEve->AddGlobalElement(ecalbarrel);
 
@@ -2464,7 +2463,7 @@ void EventDisplay::startDisplay(int initialEvent)
       b->SetShape(new TGeoTube(geomReader->r[iLayer], geomReader->r[iLayer + 1], geomReader->zMax));
       b->SetMainColor(kCyan);
       b->SetMainTransparency(90);
-      b->SetNSegments(tmpNSeg(128));
+      b->SetNSegments(128);
       layers->AddElement(b);
     }
 
@@ -2495,7 +2494,7 @@ void EventDisplay::startDisplay(int initialEvent)
       hcalbarrel->SetShape(new TGeoTube(geomReader->rMinHCal, geomReader->rMaxHCal, geomReader->zMaxHCal));
       hcalbarrel->SetMainColor(kRed);
       hcalbarrel->SetMainTransparency(80);
-      hcalbarrel->SetNSegments(tmpNSeg(128));
+      hcalbarrel->SetNSegments(128);
       // geom->AddElement(hcalbarrel);
       gEve->AddGlobalElement(hcalbarrel);
 
@@ -2508,7 +2507,7 @@ void EventDisplay::startDisplay(int initialEvent)
         b->SetShape(new TGeoTube(geomReader->rHCal[iLayer], geomReader->rHCal[iLayer + 1], geomReader->zMaxHCal));
         b->SetMainColor(kRed);
         b->SetMainTransparency(80);
-        b->SetNSegments(tmpNSeg(128));
+        b->SetNSegments(128);
         hcallayers->AddElement(b);
       }
       gEve->AddToListTree(hcalbarrel, true);
@@ -3693,7 +3692,7 @@ void EventDisplay::addVertex(TEveElement* el, SubDetector& /*det*/)
         if (overrideDetectorColors) grandchild->SetMainColor(kRed);
         ((TEveGeoShape *)grandchild)->SetDrawFrame(false);
         if (gcName.Contains("VertexInnerBarrel"))
-          ((TEveGeoShape *)grandchild)->SetNSegments(tmpNSeg(128));
+          ((TEveGeoShape *)grandchild)->SetNSegments(128);
         // by default draw only the sensors
         if (!gcName.Contains("sensor")) {
           grandchild->SetRnrSelfChildren(false, false);
@@ -3732,7 +3731,7 @@ void EventDisplay::addDCH(TEveElement* el, SubDetector& det)
   el->SetRnrSelfChildren(true, false);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
   if (overrideDetectorColors) el->SetMainColor(kGreen-5);
-  ((TEveGeoShape *)el)->SetNSegments(tmpNSeg(128));
+  ((TEveGeoShape *)el)->SetNSegments(128);
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 }
 
@@ -3758,7 +3757,7 @@ void EventDisplay::addWrapper(TEveElement* el, SubDetector& det)
     child->SetRnrSelfChildren(true, false);
     child->SetMainTransparency(useTransparencies ? 60 : 0);
     if (overrideDetectorColors) child->SetMainColor(kRed);
-    ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128));
+    ((TEveGeoShape *)child)->SetNSegments(128);
     ((TEveGeoShape *)child)->SetDrawFrame(false);
   }
 }
@@ -3784,7 +3783,7 @@ void EventDisplay::addECalB(TEveElement* el, SubDetector& det)
     else
       child->SetRnrSelfChildren(true, false);
     child->SetMainTransparency(useTransparencies ? 60 : 0);
-    ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128));
+    ((TEveGeoShape *)child)->SetNSegments(128);
     ((TEveGeoShape *)child)->SetDrawFrame(false);
   }
 }
@@ -3814,7 +3813,7 @@ void EventDisplay::addHCalB(TEveElement* el, SubDetector& det)
   // el->SetRnrSelfChildren(false, true);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
   if (overrideDetectorColors) el->SetMainColor(kAzure-7);
-  ((TEveGeoShape *)el)->SetNSegments(tmpNSeg(128));
+  ((TEveGeoShape *)el)->SetNSegments(128);
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 
   // setup the properties of the children of the envelope (for the projection)
@@ -3830,7 +3829,7 @@ void EventDisplay::addHCalB(TEveElement* el, SubDetector& det)
     ((TEveGeoShape *)child)->SetDrawFrame(true);
     // or not
     // ((TEveGeoShape *)child)->SetDrawFrame(false);
-    ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128));
+    ((TEveGeoShape *)child)->SetNSegments(128);
   }
 }
 
@@ -3849,7 +3848,7 @@ void EventDisplay::addHCalEC(TEveElement* el, SubDetector& det)
   // el->SetRnrSelfChildren(false, true);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
   if (overrideDetectorColors) el->SetMainColor(kAzure-7);
-  ((TEveGeoShape *)el)->SetNSegments(tmpNSeg(128));
+  ((TEveGeoShape *)el)->SetNSegments(128);
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 
   // setup the properties of the children of the envelope
@@ -3871,7 +3870,7 @@ void EventDisplay::addHCalEC(TEveElement* el, SubDetector& det)
     }
   }
 
-  // quite identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128))... maybe we can merge code...
+  // quite identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(128)... maybe we can merge code...
 }
 
 void EventDisplay::addMuonB(TEveElement* el, SubDetector& det)
@@ -3883,7 +3882,7 @@ void EventDisplay::addMuonB(TEveElement* el, SubDetector& det)
   el->SetRnrSelfChildren(true, false);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
   if (overrideDetectorColors) el->SetMainColor(kOrange);
-  ((TEveGeoShape *)el)->SetNSegments(tmpNSeg(128));
+  ((TEveGeoShape *)el)->SetNSegments(128);
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 
   // setup the properties of the children of the envelope
@@ -3893,7 +3892,7 @@ void EventDisplay::addMuonB(TEveElement* el, SubDetector& det)
     TEveElement *child = *itr;
     // show the radial layers
     // child->SetRnrSelfChildren(false, true);
-    ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128));
+    ((TEveGeoShape *)child)->SetNSegments(128);
     // child->SetMainColor(kOrange);
     ((TEveGeoShape *)child)->SetDrawFrame(true);
   }
@@ -3918,11 +3917,11 @@ void EventDisplay::addMuonEC(TEveElement* el, SubDetector& det)
     TEveElement *child = *itr;
     // show the radial layers
     child->SetRnrSelfChildren(false, true);
-    ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128));
+    ((TEveGeoShape *)child)->SetNSegments(128);
     child->SetMainColor(kOrange);
     ((TEveGeoShape *)child)->SetDrawFrame(true);
   }
   */
 
-  // identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128))... maybe we can merge code...
+  // identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(128)... maybe we can merge code...
 }
