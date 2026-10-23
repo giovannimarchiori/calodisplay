@@ -113,9 +113,6 @@ CylField::CylField(const std::string& filename,
   file.Close();
 
   std::cout << "DONE" << std::endl;
-
-  PrintFieldMap();
-  DrawFieldMap("field.pdf", 20, 20, 20.0);
 }
 
 CylField::~CylField()

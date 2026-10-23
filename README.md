@@ -66,7 +66,7 @@ The configuration is read from a JSON file (see `config.json`), containing a map
 - `drawXXX` (`true`/`false`): whether to draw a given type of objects, e.g. `drawGenParticles`, `drawTracks`, `drawVertexHits`, `drawMainTrackerDigis`, `drawECalBarrelHits`, `drawECalBarrelCells`, `drawHCalEndcapCells`, `drawMuonHits`, `drawTopoClusters`, `drawCaloClusters`, `drawClusterDirection`, ...
 - collection names, e.g. `genParticles`, `tracks`, `vertexBarrelHits`, `mainTrackerDigis`, `ecalBarrelHits`, `ecalBarrelCells`, `hcalEndcapCells`, `muonBarrelCells`, `topoClusters`, `topoClusterCells`, `caloClusters`, `caloClusterCells`, ...
 - energy thresholds in GeV: `energyThresholdParticles`, `energyThresholdHits`, `energyThresholdCells`, `energyThresholdClusters`
-- `bField`: `GlobalSolenoid` for an ideal solenoid field, anything else to use the field map in `bFieldMap` (default: `data/ALLEGRO_fieldmap_2T_20260424.root`). If the field map cannot be read, the ideal solenoid field is used.
+- `bField`: `GlobalSolenoid` (default) for an ideal solenoid with B = 2 T inside (and -1 T in the return yoke), `GlobalSolenoid_<B>T` (e.g. `GlobalSolenoid_3T`) for an ideal solenoid with B = `<B>` T inside (and -`<B>`/2 T in the return yoke), otherwise the path of the ROOT file with the field map, or an empty string for the default field map `data/ALLEGRO_fieldmap_2T_20260424.root`. If the field map cannot be read, the ideal solenoid field is used. With `printFieldMap` set to `true`, the field map is printed on the terminal and drawn in `field.pdf`.
 - `bkgColor3D`: background colour of the 3D view
 
 ### Input event files

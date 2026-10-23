@@ -14,6 +14,7 @@
 #include "CylField.h"
 #include "Units.h"
 #include "PathUtils.h"
+static int tmpNSeg(int d) { const char* e = getenv("CALO_NSEG"); return e ? atoi(e) : d; }
 
 // ROOT core
 #include <TMath.h>
@@ -2033,12 +2034,37 @@ void EventDisplay::startDisplay(int initialEvent)
   geomReader = std::make_unique<DetectorGeometry>(detectorVersion);
 
   // create magnetic field
-  std::string bFieldType = displayConfig.getStringConfig("bField");
-  if (bFieldType != "GlobalSolenoid") {
-    std::string fieldMapFile = PathUtils::findFile(displayConfig.getStringConfig("bFieldMap"));
+  // bField: GlobalSolenoid for an ideal solenoid with the default field, or
+  // GlobalSolenoid_<B>T for a field of <B> tesla inside the solenoid;
+  // otherwise the path of the field map, or empty for the default field map
+  std::string bField = displayConfig.getStringConfig("bField");
+  const std::string solenoidPrefix = "GlobalSolenoid";
+  const bool useSolenoid = (bField.compare(0, solenoidPrefix.size(), solenoidPrefix) == 0);
+  double bSolenoid = geomReader->Bin;
+  if (useSolenoid && bField != solenoidPrefix) {
+    const std::string value = bField.substr(solenoidPrefix.size());
+    const char *begin = value.c_str() + 1;
+    char *end = nullptr;
+    double b = 0.;
+    if (value.size() > 2 && value.front() == '_' && value.back() == 'T')
+      b = std::strtod(begin, &end);
+    if (end != nullptr && end != begin && end == value.c_str() + value.size() - 1)
+      bSolenoid = b;
+    else
+      std::cerr << "ERROR: invalid bField " << bField << " (expected GlobalSolenoid or GlobalSolenoid_<B>T, e.g. GlobalSolenoid_2.5T), "
+                << "using a solenoid with B = " << bSolenoid << " T" << std::endl;
+  }
+  if (!useSolenoid) {
+    if (bField == "")
+      bField = "data/ALLEGRO_fieldmap_2T_20260424.root";
+    std::string fieldMapFile = PathUtils::findFile(bField);
     std::cout << "Using magnetic field map " << fieldMapFile << std::endl;
     try {
       CylField* fieldMap = new CylField(fieldMapFile, "fieldmap");
+      if (displayConfig.getBoolConfig("printFieldMap")) {
+        fieldMap->PrintFieldMap();
+        fieldMap->DrawFieldMap("field.pdf", 20, 20, 20.0);
+      }
       // Note: field is reversed in EVE (see https://root.cern/doc/v636/classTEveTrackPropagator.html)
       fieldMap->setReverseState(true);
       magField = fieldMap;
@@ -2049,8 +2075,11 @@ void EventDisplay::startDisplay(int initialEvent)
     }
   }
   if (!magField) {
-    std::cout << "Using ideal solenoid magnetic field" << std::endl;
-    MagField* solenoid = new MagField(geomReader->Bin, geomReader->Bout, geomReader->zMax, geomReader->rMax);
+    // the return field outside the solenoid scales with the field inside
+    const double bOut = bSolenoid * geomReader->Bout / geomReader->Bin;
+    std::cout << "Using ideal solenoid magnetic field, B = " << bSolenoid << " T inside, "
+              << bOut << " T outside" << std::endl;
+    MagField* solenoid = new MagField(bSolenoid, bOut, geomReader->zMax, geomReader->rMax);
     // Note: field is reversed in EVE (see https://root.cern/doc/v636/classTEveTrackPropagator.html)
     solenoid->setReverseState(true);
     magField = solenoid;
@@ -2188,7 +2217,7 @@ void EventDisplay::startDisplay(int initialEvent)
         return;
       }
       ecalBarrelEl->SetPickableRecursively(kTRUE);
-      ((TEveGeoShape *)ecalBarrelEl)->SetNSegments(256);
+      ((TEveGeoShape *)ecalBarrelEl)->SetNSegments(tmpNSeg(256));
       geom->AddElement(ecalBarrelEl);
       // hide the envelope, only show physical volumes in it
       ecalBarrelEl->SetRnrSelfChildren(false, true);
@@ -2202,14 +2231,14 @@ void EventDisplay::startDisplay(int initialEvent)
       for (TEveElement *a : matches)
       {
         a->SetMainTransparency(70);
-        ((TEveGeoShape *)a)->SetNSegments(256);
+        ((TEveGeoShape *)a)->SetNSegments(tmpNSeg(256));
       }
       re = TPRegexp("services*");
       ecalBarrelEl->FindChildren(matches, re);
       for (auto a : matches)
       {
         a->SetMainTransparency(70);
-        ((TEveGeoShape *)a)->SetNSegments(256);
+        ((TEveGeoShape *)a)->SetNSegments(tmpNSeg(256));
       }
 
       // turn off Cryo side in 3d, weird rendering
@@ -2318,7 +2347,7 @@ void EventDisplay::startDisplay(int initialEvent)
       {
         // add HCal envelope and subvolumes
         hcalBarrelEl->SetPickableRecursively(kTRUE);
-        ((TEveGeoShape *)hcalBarrelEl)->SetNSegments(256);
+        ((TEveGeoShape *)hcalBarrelEl)->SetNSegments(tmpNSeg(256));
         geom->AddElement(hcalBarrelEl);
         // do not draw envelope, only physical elements inside
         hcalBarrelEl->SetRnrSelfChildren(false, true);
@@ -2335,7 +2364,7 @@ void EventDisplay::startDisplay(int initialEvent)
           for (TEveElement *a : plateMatches)
           {
             a->SetMainTransparency(70);
-            ((TEveGeoShape *)a)->SetNSegments(256);
+            ((TEveGeoShape *)a)->SetNSegments(tmpNSeg(256));
           }
         }
 
@@ -2344,7 +2373,7 @@ void EventDisplay::startDisplay(int initialEvent)
         for (auto a : matches)
         {
           a->SetMainTransparency(70);
-          ((TEveGeoShape *)a)->SetNSegments(256);
+          ((TEveGeoShape *)a)->SetNSegments(tmpNSeg(256));
         }
 
         // group together the layers so that they can be turned on/off together
@@ -2358,7 +2387,7 @@ void EventDisplay::startDisplay(int initialEvent)
         {
           hcalLayers->AddElement(a);
           hcalBarrelEl->RemoveElement(a);
-          ((TEveGeoShape *)a)->SetNSegments(256);
+          ((TEveGeoShape *)a)->SetNSegments(tmpNSeg(256));
           // set number of segments of 2D projection of TileSequenceVol and TileVol
           // slow, don't do it!
           // instead, hide by default the single tiles because they are slow in 3D
@@ -2369,13 +2398,13 @@ void EventDisplay::startDisplay(int initialEvent)
           a->FindChildren(matches_tsv, re2);
           for (TEveElement* tsv : matches_tsv)
           {
-            ((TEveGeoShape*) tsv)->SetNSegments(256);
+            ((TEveGeoShape*) tsv)->SetNSegments(tmpNSeg(256));
             TPRegexp re3("HCalTileVol*");
             TEveElement::List_t matches_tv;
             tsv->FindChildren(matches_tv, re3);
             for (TEveElement* tv : matches_tv)
             {
-              ((TEveGeoShape*) tv)->SetNSegments(256);
+              ((TEveGeoShape*) tv)->SetNSegments(tmpNSeg(256));
             }
           }
           */
@@ -2421,7 +2450,7 @@ void EventDisplay::startDisplay(int initialEvent)
     ecalbarrel->SetShape(new TGeoTube(geomReader->rMin, geomReader->rMax, geomReader->zMax));
     ecalbarrel->SetMainColor(kCyan);
     ecalbarrel->SetMainTransparency(90);
-    ecalbarrel->SetNSegments(128);
+    ecalbarrel->SetNSegments(tmpNSeg(128));
     // geom->AddElement(ecalbarrel);
     gEve->AddGlobalElement(ecalbarrel);
 
@@ -2435,7 +2464,7 @@ void EventDisplay::startDisplay(int initialEvent)
       b->SetShape(new TGeoTube(geomReader->r[iLayer], geomReader->r[iLayer + 1], geomReader->zMax));
       b->SetMainColor(kCyan);
       b->SetMainTransparency(90);
-      b->SetNSegments(128);
+      b->SetNSegments(tmpNSeg(128));
       layers->AddElement(b);
     }
 
@@ -2466,7 +2495,7 @@ void EventDisplay::startDisplay(int initialEvent)
       hcalbarrel->SetShape(new TGeoTube(geomReader->rMinHCal, geomReader->rMaxHCal, geomReader->zMaxHCal));
       hcalbarrel->SetMainColor(kRed);
       hcalbarrel->SetMainTransparency(80);
-      hcalbarrel->SetNSegments(128);
+      hcalbarrel->SetNSegments(tmpNSeg(128));
       // geom->AddElement(hcalbarrel);
       gEve->AddGlobalElement(hcalbarrel);
 
@@ -2479,7 +2508,7 @@ void EventDisplay::startDisplay(int initialEvent)
         b->SetShape(new TGeoTube(geomReader->rHCal[iLayer], geomReader->rHCal[iLayer + 1], geomReader->zMaxHCal));
         b->SetMainColor(kRed);
         b->SetMainTransparency(80);
-        b->SetNSegments(128);
+        b->SetNSegments(tmpNSeg(128));
         hcallayers->AddElement(b);
       }
       gEve->AddToListTree(hcalbarrel, true);
@@ -3664,7 +3693,7 @@ void EventDisplay::addVertex(TEveElement* el, SubDetector& /*det*/)
         if (overrideDetectorColors) grandchild->SetMainColor(kRed);
         ((TEveGeoShape *)grandchild)->SetDrawFrame(false);
         if (gcName.Contains("VertexInnerBarrel"))
-          ((TEveGeoShape *)grandchild)->SetNSegments(128);
+          ((TEveGeoShape *)grandchild)->SetNSegments(tmpNSeg(128));
         // by default draw only the sensors
         if (!gcName.Contains("sensor")) {
           grandchild->SetRnrSelfChildren(false, false);
@@ -3703,7 +3732,7 @@ void EventDisplay::addDCH(TEveElement* el, SubDetector& det)
   el->SetRnrSelfChildren(true, false);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
   if (overrideDetectorColors) el->SetMainColor(kGreen-5);
-  ((TEveGeoShape *)el)->SetNSegments(128);
+  ((TEveGeoShape *)el)->SetNSegments(tmpNSeg(128));
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 }
 
@@ -3729,7 +3758,7 @@ void EventDisplay::addWrapper(TEveElement* el, SubDetector& det)
     child->SetRnrSelfChildren(true, false);
     child->SetMainTransparency(useTransparencies ? 60 : 0);
     if (overrideDetectorColors) child->SetMainColor(kRed);
-    ((TEveGeoShape *)child)->SetNSegments(128);
+    ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128));
     ((TEveGeoShape *)child)->SetDrawFrame(false);
   }
 }
@@ -3755,7 +3784,7 @@ void EventDisplay::addECalB(TEveElement* el, SubDetector& det)
     else
       child->SetRnrSelfChildren(true, false);
     child->SetMainTransparency(useTransparencies ? 60 : 0);
-    ((TEveGeoShape *)child)->SetNSegments(128);
+    ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128));
     ((TEveGeoShape *)child)->SetDrawFrame(false);
   }
 }
@@ -3785,7 +3814,7 @@ void EventDisplay::addHCalB(TEveElement* el, SubDetector& det)
   // el->SetRnrSelfChildren(false, true);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
   if (overrideDetectorColors) el->SetMainColor(kAzure-7);
-  ((TEveGeoShape *)el)->SetNSegments(128);
+  ((TEveGeoShape *)el)->SetNSegments(tmpNSeg(128));
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 
   // setup the properties of the children of the envelope (for the projection)
@@ -3801,7 +3830,7 @@ void EventDisplay::addHCalB(TEveElement* el, SubDetector& det)
     ((TEveGeoShape *)child)->SetDrawFrame(true);
     // or not
     // ((TEveGeoShape *)child)->SetDrawFrame(false);
-    ((TEveGeoShape *)child)->SetNSegments(128);
+    ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128));
   }
 }
 
@@ -3820,7 +3849,7 @@ void EventDisplay::addHCalEC(TEveElement* el, SubDetector& det)
   // el->SetRnrSelfChildren(false, true);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
   if (overrideDetectorColors) el->SetMainColor(kAzure-7);
-  ((TEveGeoShape *)el)->SetNSegments(128);
+  ((TEveGeoShape *)el)->SetNSegments(tmpNSeg(128));
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 
   // setup the properties of the children of the envelope
@@ -3842,7 +3871,7 @@ void EventDisplay::addHCalEC(TEveElement* el, SubDetector& det)
     }
   }
 
-  // quite identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(128)... maybe we can merge code...
+  // quite identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128))... maybe we can merge code...
 }
 
 void EventDisplay::addMuonB(TEveElement* el, SubDetector& det)
@@ -3854,7 +3883,7 @@ void EventDisplay::addMuonB(TEveElement* el, SubDetector& det)
   el->SetRnrSelfChildren(true, false);
   el->SetMainTransparency(useTransparencies ? 60 : 0);
   if (overrideDetectorColors) el->SetMainColor(kOrange);
-  ((TEveGeoShape *)el)->SetNSegments(128);
+  ((TEveGeoShape *)el)->SetNSegments(tmpNSeg(128));
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 
   // setup the properties of the children of the envelope
@@ -3864,7 +3893,7 @@ void EventDisplay::addMuonB(TEveElement* el, SubDetector& det)
     TEveElement *child = *itr;
     // show the radial layers
     // child->SetRnrSelfChildren(false, true);
-    ((TEveGeoShape *)child)->SetNSegments(128);
+    ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128));
     // child->SetMainColor(kOrange);
     ((TEveGeoShape *)child)->SetDrawFrame(true);
   }
@@ -3889,11 +3918,11 @@ void EventDisplay::addMuonEC(TEveElement* el, SubDetector& det)
     TEveElement *child = *itr;
     // show the radial layers
     child->SetRnrSelfChildren(false, true);
-    ((TEveGeoShape *)child)->SetNSegments(128);
+    ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128));
     child->SetMainColor(kOrange);
     ((TEveGeoShape *)child)->SetDrawFrame(true);
   }
   */
 
-  // identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(128)... maybe we can merge code...
+  // identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(tmpNSeg(128))... maybe we can merge code...
 }

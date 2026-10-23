@@ -26,9 +26,12 @@ DisplayConfig::DisplayConfig() {
   setBoolConfig("drawTopoClusters", true);
   setBoolConfig("drawCaloClusters", false);
 
+  // GlobalSolenoid for an ideal solenoid with the default field, GlobalSolenoid_<B>T
+  // for a field of <B> tesla, otherwise the path of the field map (an empty string
+  // for the default field map)
   setStringConfig("bField", "GlobalSolenoid");
-  // field map used if bField is not GlobalSolenoid
-  setStringConfig("bFieldMap", "data/ALLEGRO_fieldmap_2T_20260424.root");
+  // print the field map on the terminal and draw it in field.pdf
+  setBoolConfig("printFieldMap", false);
   setStringConfig("genParticles", "genParticles");
   setStringConfig("simParticles", "SimParticlesSecondaries");
   setStringConfig("vertexInnerBarrelHits", "VertexInnerBarrelCollection");
