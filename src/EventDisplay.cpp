@@ -45,6 +45,40 @@ using Units::units;
 using Units::cm;
 using Units::mm;
 
+namespace
+{
+// find the first element (depth-first) whose name begins with prefix
+TEveElement *findElementBeginningWith(TEveElement *el, const char *prefix)
+{
+  for (TEveElement::List_i itr = el->BeginChildren(); itr != el->EndChildren(); ++itr)
+  {
+    if (TString((*itr)->GetElementName()).BeginsWith(prefix))
+      return *itr;
+    if (TEveElement *found = findElementBeginningWith(*itr, prefix))
+      return found;
+  }
+  return nullptr;
+}
+
+// count the ECAL barrel readout layers in the G4 geometry
+// (children named layer* of the active volume in the LAr bath)
+// returns -1 if the active volume is not found
+int countECalBarrelLayers(TEveElement *world)
+{
+  TEveElement *ecalBarrel = findElementBeginningWith(world, "ECalBarrel");
+  if (!ecalBarrel)
+    return -1;
+  TEveElement *active = findElementBeginningWith(ecalBarrel, "active");
+  if (!active)
+    return -1;
+  int nLayers = 0;
+  for (TEveElement::List_i itr = active->BeginChildren(); itr != active->EndChildren(); ++itr)
+    if (TString((*itr)->GetElementName()).BeginsWith("layer"))
+      nLayers++;
+  return nLayers;
+}
+}
+
 
 void EventDisplay::fillClusters(std::string clusterType)
 {
@@ -2034,7 +2068,9 @@ void EventDisplay::startDisplay(int initialEvent)
   CellEnergyThreshold = displayConfig.getFloatConfig("energyThresholdCells");
 
   // calculate the geometry parameters
-  if (geomFile.find("v03") != std::string::npos)
+  // detectorVersion: 2 = ECAL barrel with 12 layers (ALLEGRO o1_v02)
+  //                  3 = ECAL barrel with 11 layers (ALLEGRO o1_v03, o2_v01)
+  if (geomFile.find("o1_v03") != std::string::npos || geomFile.find("o2_v01") != std::string::npos)
     detectorVersion = 3;
   else
     detectorVersion = 2;
@@ -2109,6 +2145,14 @@ void EventDisplay::startDisplay(int initialEvent)
     world->SetMainTransparency(100);
     fGeom->Close();
     delete fGeom;
+
+    // check that the number of ECAL barrel layers in the geometry matches detectorVersion
+    int nLayersInGeom = countECalBarrelLayers(world);
+    if (nLayersInGeom < 0)
+      std::cout << "WARNING: could not find the ECAL barrel layers in the geometry, cannot check detectorVersion" << std::endl;
+    else if (nLayersInGeom != geomReader->nLayers)
+      std::cout << "WARNING: geometry has " << nLayersInGeom << " ECAL barrel layers but detectorVersion "
+                << detectorVersion << " (from the geometry file name) assumes " << geomReader->nLayers << std::endl;
 
     if (not showFullDetector) {
       rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
