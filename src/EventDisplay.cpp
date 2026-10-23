@@ -217,7 +217,7 @@ void EventDisplay::fillClusters(std::string clusterType)
       for (unsigned int iCell = first_hit; iCell < std::min(last_hit, nCells); iCell++)
       {
         ULong_t cellID;
-        float energy, x_center, y_center, z_center;
+        float energy;
         cellID = cells.cellID[iCell];
         energy = cells.energy[iCell];
         if (cellID == 0)
@@ -347,7 +347,7 @@ void EventDisplay::fillClusters(std::string clusterType)
         }
       }
 
-      for (unsigned int iLayer = 0; iLayer < nECalBarrelLayers; iLayer++)
+      for (int iLayer = 0; iLayer < nECalBarrelLayers; iLayer++)
       {
         if (energyVsECalBarrelLayer[iLayer] > 0)
         {
@@ -359,7 +359,7 @@ void EventDisplay::fillClusters(std::string clusterType)
       }
       cluster->setBarycenterVsECalBarrelLayers(barycenterVsECalBarrelLayer);
 
-      for (unsigned int iLayer = 0; iLayer < nECalEndCapLayers; iLayer++)
+      for (int iLayer = 0; iLayer < nECalEndCapLayers; iLayer++)
       {
         if (energyVsECalEndCapLayer[iLayer] > 0)
         {
@@ -371,7 +371,7 @@ void EventDisplay::fillClusters(std::string clusterType)
       }
       cluster->setBarycenterVsECalEndCapLayers(barycenterVsECalEndCapLayer);
 
-      for (unsigned int iLayer = 0; iLayer < nHCalBarrelLayers; iLayer++)
+      for (int iLayer = 0; iLayer < nHCalBarrelLayers; iLayer++)
       {
         if (energyVsHCalBarrelLayer[iLayer] > 0.)
         {
@@ -383,7 +383,7 @@ void EventDisplay::fillClusters(std::string clusterType)
       }
       cluster->setBarycenterVsHCalBarrelLayers(barycenterVsHCalBarrelLayer);
 
-      for (unsigned int iLayer = 0; iLayer < nHCalEndCapLayers; iLayer++)
+      for (int iLayer = 0; iLayer < nHCalEndCapLayers; iLayer++)
       {
         if (energyVsHCalEndCapLayer[iLayer] > 0.)
         {
@@ -440,7 +440,6 @@ void EventDisplay::drawParticles()
       float p = sqrt(px * px + py * py + pz * pz);
       if (p < ParticleEnergyThreshold)
         continue;
-      float pT = sqrt(px * px + py * py);
 
       double t = (*eventReader->genParticles_time)[ip];
       double x1 = (*eventReader->genParticles_vertex_x)[ip] * mm;
@@ -479,31 +478,31 @@ void EventDisplay::drawParticles()
         {
           TEveMCTrack mctSegment;
           mctSegment.SetPdgCode((*eventReader->genParticles_PDG)[ip]);
-          double p = seg.momentum.Mag();
-          double px = seg.momentum.X();
-          double py = seg.momentum.Y();
-          double pz = seg.momentum.Z();
-          double x1 = seg.start.X();
-          double y1 = seg.start.Y();
-          double z1 = seg.start.Z();
-          double m = (*eventReader->genParticles_mass)[ip];
-          mctSegment.SetMomentum(px, py, pz, sqrt(p*p+m*m));
-          mctSegment.SetProductionVertex(x1, y1, z1, 0);
+          double pSeg = seg.momentum.Mag();
+          double pxSeg = seg.momentum.X();
+          double pySeg = seg.momentum.Y();
+          double pzSeg = seg.momentum.Z();
+          double xSeg = seg.start.X();
+          double ySeg = seg.start.Y();
+          double zSeg = seg.start.Z();
+          double mSeg = (*eventReader->genParticles_mass)[ip];
+          mctSegment.SetMomentum(pxSeg, pySeg, pzSeg, sqrt(pSeg*pSeg+mSeg*mSeg));
+          mctSegment.SetProductionVertex(xSeg, ySeg, zSeg, 0);
           TEveTrackPropagator* prop = new TEveTrackPropagator("electron_brem_segment",
                                                               "electron brem segment",
                                                               magField,
                                                               false);
           double propMaxR = rMax;
-          double v[3];
-          v[0] = seg.end.X();
-          v[1] = seg.end.Y();
-          v[2] = seg.end.Z();
-          if ((std::sqrt(v[0]*v[0]+v[1]*v[1]) < rMax) && std::sqrt(x1*x1+y1*y1) < rMax) {
-            if (x1*x1+y1*y1 > v[0]*v[0]+v[1]*v[1]) {
-              propMaxR = std::sqrt(x1*x1+y1*y1);
+          double vSeg[3];
+          vSeg[0] = seg.end.X();
+          vSeg[1] = seg.end.Y();
+          vSeg[2] = seg.end.Z();
+          if ((std::sqrt(vSeg[0]*vSeg[0]+vSeg[1]*vSeg[1]) < rMax) && std::sqrt(xSeg*xSeg+ySeg*ySeg) < rMax) {
+            if (xSeg*xSeg+ySeg*ySeg > vSeg[0]*vSeg[0]+vSeg[1]*vSeg[1]) {
+              propMaxR = std::sqrt(xSeg*xSeg+ySeg*ySeg);
             }
             else {
-              propMaxR = std::sqrt(v[0]*v[0]+v[1]*v[1]);
+              propMaxR = std::sqrt(vSeg[0]*vSeg[0]+vSeg[1]*vSeg[1]);
             }
           }
           prop->SetMaxR(propMaxR);
@@ -511,9 +510,9 @@ void EventDisplay::drawParticles()
           prop->SetFitReferences(false);
           TEveTrack* segTrack = new TEveTrack(&mctSegment, prop);
           segTrack->SetAttLineAttMarker(particles);
-          segTrack->SetElementTitle(Form("p = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
-                                      p, acos(pz / p), atan2(py, px),
-                                      x1 / cm, y1 / cm, z1 / cm));
+          segTrack->SetElementTitle(Form("pSeg = %.3f GeV\ntheta = %f\nphi = %f\nx = %f cm\ny = %f cm\nz= %f cm",
+                                      pSeg, acos(pzSeg / pSeg), atan2(pySeg, pxSeg),
+                                      xSeg / cm, ySeg / cm, zSeg / cm));
           particles->AddElement(segTrack);
         }
       }
@@ -972,7 +971,7 @@ void EventDisplay::drawTracks()
       unsigned int nTrackStates = 0;
       if (trackStates_end > trackStates_begin)
         nTrackStates = trackStates_end - trackStates_begin;
-      float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5], px[5], py[5], pz[5], p[5];
+      float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5];
       for (unsigned int i=0; i<5; i++) x[i]=-1e9; // set to some large value to check later if track state has been filled
       for (unsigned int its = trackStates_begin; its < trackStates_end; its++) {
         int location = (*eventReader->_Tracks_trackStates_location)[its];
@@ -1054,14 +1053,14 @@ void EventDisplay::drawTracks()
             if (debug) std::cout << "Skipping track state at location " << i << std::endl;
             continue;
           }
-          float radius = 1.f / std::fabs(omega[i]);
-          float pxy = FCT * bField * radius;
-          float px = pxy * std::cos(phi[i]);
-          float py = pxy * std::sin(phi[i]);
-          float pz = tanLambda[i] * pxy;
+          float radiusState = 1.f / std::fabs(omega[i]);
+          float pxyState = FCT * bField * radiusState;
+          float pxState = pxyState * std::cos(phi[i]);
+          float pyState = pxyState * std::sin(phi[i]);
+          float pzState = tanLambda[i] * pxyState;
           track->AddPathMark(TEvePathMarkD(TEvePathMarkD::kReference,
                                            TEveVectorD(x[i]*mm, y[i]*mm, z[i]*mm),
-                                           TEveVectorD(px, py, pz)));
+                                           TEveVectorD(pxState, pyState, pzState)));
         }
         if (debug) track->PrintPathMarks();
         // could also save decay ...
@@ -1325,8 +1324,8 @@ void EventDisplay::drawClusters(std::string clusterType)
         float b = 2*std::sin(theta)*(x0*std::cos(phi) + y0*std::sin(phi));
         float c = x0*x0 + y0*y0 - rMin*rMin;
         t1 = MathUtils::solveQuadratic(a,b,c,1);
-        double rMax = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
-        c = x0*x0 + y0*y0 - rMax*rMax;
+        double rMaxCalo = doHCal ? geomReader->rMaxHCal : geomReader->rMax;
+        c = x0*x0 + y0*y0 - rMaxCalo*rMaxCalo;
         t2 = MathUtils::solveQuadratic(a,b,c,1);
       }
       else if (geomReader->isInECalEndCap(std::sqrt(x0*x0 + y0*y0), z0)) {
@@ -1374,7 +1373,7 @@ void EventDisplay::drawClusters(std::string clusterType)
   {
     std::cout << "  Looping over clusters to fill 3D projections" << std::endl;
   }
-  int icl = 0;
+  int iclAboveThreshold = 0;
   for (unsigned int i = 0; i < nClusters; i++)
   {
     float energy, xcl, ycl, zcl;
@@ -1456,7 +1455,7 @@ void EventDisplay::drawClusters(std::string clusterType)
         layerBarycenters->SetMarkerStyle(4);
         layerBarycenters->SetMarkerSize(3);
         clusters_3D->AddElement(layerBarycenters);
-        CaloCluster *clus = (*clusterData)[icl].get();
+        CaloCluster *clus = (*clusterData)[iclAboveThreshold].get();
         for (unsigned int iLayer = 0; iLayer < clus->getNLayersECalBarrel(); iLayer++)
         {
           if (clus->getEnergyInECalBarrelLayer(iLayer) > 0)
@@ -1477,7 +1476,7 @@ void EventDisplay::drawClusters(std::string clusterType)
                                            clus->getBarycenterInECalEndCapLayer(iLayer).Z() / cm);
           }
         }
-        for (unsigned int iLayer = 0; iLayer < (*clusterData)[icl]->getNLayersHCalBarrel(); iLayer++)
+        for (unsigned int iLayer = 0; iLayer < (*clusterData)[iclAboveThreshold]->getNLayersHCalBarrel(); iLayer++)
         {
           if (clus->getEnergyInHCalBarrelLayer(iLayer) > 0)
           {
@@ -1487,7 +1486,7 @@ void EventDisplay::drawClusters(std::string clusterType)
                                            clus->getBarycenterInHCalBarrelLayer(iLayer).Z() / cm);
           }
         }
-        for (unsigned int iLayer = 0; iLayer < (*clusterData)[icl]->getNLayersHCalEndCap(); iLayer++)
+        for (unsigned int iLayer = 0; iLayer < (*clusterData)[iclAboveThreshold]->getNLayersHCalEndCap(); iLayer++)
         {
           if (clus->getEnergyInHCalEndCapLayer(iLayer) > 0)
           {
@@ -1498,7 +1497,7 @@ void EventDisplay::drawClusters(std::string clusterType)
           }
         }
       }
-      icl++;
+      iclAboveThreshold++;
     }
   }
   // loop over cells
@@ -1674,41 +1673,41 @@ void EventDisplay::drawClusters(std::string clusterType)
       else if (systemID == DetectorGeometry::kHCalBarrel)
       {
         // HCAL
-        float phiMin = phiMinHCal + gridPhiHCal * phiID;
-        float phiMax = phiMinHCal + gridPhiHCal * (phiID + 1);
+        float phiLow = phiMinHCal + gridPhiHCal * phiID;
+        float phiHigh = phiMinHCal + gridPhiHCal * (phiID + 1);
         float thetaMin = theta_center - thetaGridHCal / 2.;
         float thetaMax = theta_center + thetaGridHCal / 2.;
 
-        verts3D[0] = r_in * cos(phiMin);
-        verts3D[1] = r_in * sin(phiMin);
+        verts3D[0] = r_in * cos(phiLow);
+        verts3D[1] = r_in * sin(phiLow);
         verts3D[2] = r_in / tan(thetaMin);
 
-        verts3D[3] = r_in * cos(phiMax);
-        verts3D[4] = r_in * sin(phiMax);
+        verts3D[3] = r_in * cos(phiHigh);
+        verts3D[4] = r_in * sin(phiHigh);
         verts3D[5] = r_in / tan(thetaMin);
 
-        verts3D[6] = r_in * cos(phiMax);
-        verts3D[7] = r_in * sin(phiMax);
+        verts3D[6] = r_in * cos(phiHigh);
+        verts3D[7] = r_in * sin(phiHigh);
         verts3D[8] = r_in / tan(thetaMax);
 
-        verts3D[9] = r_in * cos(phiMin);
-        verts3D[10] = r_in * sin(phiMin);
+        verts3D[9] = r_in * cos(phiLow);
+        verts3D[10] = r_in * sin(phiLow);
         verts3D[11] = r_in / tan(thetaMax);
 
-        verts3D[12] = r_out * cos(phiMin);
-        verts3D[13] = r_out * sin(phiMin);
+        verts3D[12] = r_out * cos(phiLow);
+        verts3D[13] = r_out * sin(phiLow);
         verts3D[14] = r_out / tan(thetaMin);
 
-        verts3D[15] = r_out * cos(phiMax);
-        verts3D[16] = r_out * sin(phiMax);
+        verts3D[15] = r_out * cos(phiHigh);
+        verts3D[16] = r_out * sin(phiHigh);
         verts3D[17] = r_out / tan(thetaMin);
 
-        verts3D[18] = r_out * cos(phiMax);
-        verts3D[19] = r_out * sin(phiMax);
+        verts3D[18] = r_out * cos(phiHigh);
+        verts3D[19] = r_out * sin(phiHigh);
         verts3D[20] = r_out / tan(thetaMax);
 
-        verts3D[21] = r_out * cos(phiMin);
-        verts3D[22] = r_out * sin(phiMin);
+        verts3D[21] = r_out * cos(phiLow);
+        verts3D[22] = r_out * sin(phiLow);
         verts3D[23] = r_out / tan(thetaMax);
 
         bs[icl]->AddBox(verts3D);
@@ -1885,16 +1884,16 @@ void EventDisplay::drawClusters(std::string clusterType)
       // std::cout << "cluster layer module = " << icl << " " << layer << " " << moduleID << std::endl;
       float r_in = geomReader->rHCal[layer];
       float r_out = geomReader->rHCal[layer + 1];
-      float phiMin = phiMinHCal + gridPhiHCal * phiID;
-      float phiMax = phiMinHCal + gridPhiHCal * (phiID + 1);
-      verts[0] = r_in * cos(phiMin);
-      verts[1] = r_in * sin(phiMin);
-      verts[3] = r_in * cos(phiMax);
-      verts[4] = r_in * sin(phiMax);
-      verts[6] = r_out * cos(phiMax);
-      verts[7] = r_out * sin(phiMax);
-      verts[9] = r_out * cos(phiMin);
-      verts[10] = r_out * sin(phiMin);
+      float phiLow = phiMinHCal + gridPhiHCal * phiID;
+      float phiHigh = phiMinHCal + gridPhiHCal * (phiID + 1);
+      verts[0] = r_in * cos(phiLow);
+      verts[1] = r_in * sin(phiLow);
+      verts[3] = r_in * cos(phiHigh);
+      verts[4] = r_in * sin(phiHigh);
+      verts[6] = r_out * cos(phiHigh);
+      verts[7] = r_out * sin(phiHigh);
+      verts[9] = r_out * cos(phiLow);
+      verts[10] = r_out * sin(phiLow);
       verts[2] = verts[5] = verts[8] = verts[11] = 0.;
       qs_rhophi[icl]->AddQuad(verts);
       qs_rhophi[icl]->QuadValue((int)(1000 * energy));
@@ -2179,31 +2178,31 @@ void EventDisplay::startDisplay(int initialEvent)
       // ECAL barrel
       //
       TPRegexp re("ECalBarrel*");
-      TEveElement *ecalbarrel = world->FindChild(re);
-      if (!ecalbarrel)
+      TEveElement *ecalBarrelEl = world->FindChild(re);
+      if (!ecalBarrelEl)
       {
         std::cerr << "ERROR: ECalBarrel volume not found in geometry file " << geomFile << std::endl;
         return;
       }
-      ecalbarrel->SetPickableRecursively(kTRUE);
-      ((TEveGeoShape *)ecalbarrel)->SetNSegments(256);
-      geom->AddElement(ecalbarrel);
+      ecalBarrelEl->SetPickableRecursively(kTRUE);
+      ((TEveGeoShape *)ecalBarrelEl)->SetNSegments(256);
+      geom->AddElement(ecalBarrelEl);
       // hide the envelope, only show physical volumes in it
-      ecalbarrel->SetRnrSelfChildren(false, true);
+      ecalBarrelEl->SetRnrSelfChildren(false, true);
 
       // set transparency of the subvolumes of the bath
       re = TPRegexp("LAr_bath*");
-      TEveElement *bath = ecalbarrel->FindChild(re);
+      TEveElement *bath = ecalBarrelEl->FindChild(re);
       TEveElement::List_t matches;
       re = TPRegexp("ECAL_Cryo*");
-      ecalbarrel->FindChildren(matches, re);
+      ecalBarrelEl->FindChildren(matches, re);
       for (TEveElement *a : matches)
       {
         a->SetMainTransparency(70);
         ((TEveGeoShape *)a)->SetNSegments(256);
       }
       re = TPRegexp("services*");
-      ecalbarrel->FindChildren(matches, re);
+      ecalBarrelEl->FindChildren(matches, re);
       for (auto a : matches)
       {
         a->SetMainTransparency(70);
@@ -2213,7 +2212,7 @@ void EventDisplay::startDisplay(int initialEvent)
       // turn off Cryo side in 3d, weird rendering
       re = TPRegexp("ECAL_Cryo_side_(\\w+)");
       TEveElement::List_t matches2;
-      ecalbarrel->FindChildren(matches2, re);
+      ecalBarrelEl->FindChildren(matches2, re);
       for (auto a : matches2)
       {
         a->SetRnrSelf(false);
@@ -2222,17 +2221,17 @@ void EventDisplay::startDisplay(int initialEvent)
       if (bath)
       {
         TEveElementList *newbath = new TEveElementList("LAr_bath");
-        ecalbarrel->AddElement(newbath);
-        TEveElement::List_t matches;
+        ecalBarrelEl->AddElement(newbath);
+        TEveElement::List_t bathMatches;
         re = TPRegexp("PCB(\\w+)");
-        bath->FindChildren(matches, re);
-        for (auto a : matches)
+        bath->FindChildren(bathMatches, re);
+        for (auto a : bathMatches)
           PCBs->AddElement(a);
         newbath->AddElement(PCBs);
-        TEveElement::List_t matches2;
+        TEveElement::List_t bathMatches2;
         re = TPRegexp("active*");
-        bath->FindChildren(matches2, re);
-        for (TEveElement *a : matches2)
+        bath->FindChildren(bathMatches2, re);
+        for (TEveElement *a : bathMatches2)
         {
           actives->AddElement(a);
           ((TEveGeoShape *)a)->SetMainTransparency(100);
@@ -2260,7 +2259,7 @@ void EventDisplay::startDisplay(int initialEvent)
           //  a->SetRnrSelfChildren(true, false);
         }
         newbath->AddElement(passives);
-        ecalbarrel->RemoveElement(bath);
+        ecalBarrelEl->RemoveElement(bath);
         // hide elements inside bath by default because they are slow in 3D
         newbath->SetRnrSelfChildren(true, false);
 
@@ -2304,33 +2303,33 @@ void EventDisplay::startDisplay(int initialEvent)
       }
 
       // HCAL
-      TEveElement *hcalbarrel = nullptr;
+      TEveElement *hcalBarrelEl = nullptr;
       if (doHCal)
       {
         re = TPRegexp("HCalEnvelopeVolume*");
-        hcalbarrel = world->FindChild(re);
-        if (!hcalbarrel)
+        hcalBarrelEl = world->FindChild(re);
+        if (!hcalBarrelEl)
           std::cout << "WARNING: HCalEnvelopeVolume not found in geometry file, not drawing HCAL" << std::endl;
       }
-      if (hcalbarrel)
+      if (hcalBarrelEl)
       {
         // add HCal envelope and subvolumes
-        hcalbarrel->SetPickableRecursively(kTRUE);
-        ((TEveGeoShape *)hcalbarrel)->SetNSegments(256);
-        geom->AddElement(hcalbarrel);
+        hcalBarrelEl->SetPickableRecursively(kTRUE);
+        ((TEveGeoShape *)hcalBarrelEl)->SetNSegments(256);
+        geom->AddElement(hcalBarrelEl);
         // do not draw envelope, only physical elements inside
-        hcalbarrel->SetRnrSelfChildren(false, true);
+        hcalBarrelEl->SetRnrSelfChildren(false, true);
 
         // re = TPRegexp("HCalLayerVol*");
-        // hcalbarrel->FindChildren(matches, re);
+        // hcalBarrelEl->FindChildren(matches, re);
         // for (auto a : matches) a->SetRnrSelfChildren(true, false);
 
         // set transparency and number of segments in 2D projection of plate faces and steel
         {
           re = TPRegexp("HCal(\\w+)PlateVol(\\w+)");
-          TEveElement::List_t matches;
-          hcalbarrel->FindChildren(matches, re);
-          for (TEveElement *a : matches)
+          TEveElement::List_t plateMatches;
+          hcalBarrelEl->FindChildren(plateMatches, re);
+          for (TEveElement *a : plateMatches)
           {
             a->SetMainTransparency(70);
             ((TEveGeoShape *)a)->SetNSegments(256);
@@ -2338,7 +2337,7 @@ void EventDisplay::startDisplay(int initialEvent)
         }
 
         re = TPRegexp("HCal*Steel*");
-        hcalbarrel->FindChildren(matches, re);
+        hcalBarrelEl->FindChildren(matches, re);
         for (auto a : matches)
         {
           a->SetMainTransparency(70);
@@ -2348,14 +2347,14 @@ void EventDisplay::startDisplay(int initialEvent)
         // group together the layers so that they can be turned on/off together
         // set number of segments of 2D projection of layer envelopes
         TEveElementList *hcalLayers = new TEveElementList("HCalLayers");
-        hcalbarrel->AddElement(hcalLayers);
+        hcalBarrelEl->AddElement(hcalLayers);
         re = TPRegexp("HCalLayerVol*");
         TEveElement::List_t matches4;
-        hcalbarrel->FindChildren(matches4, re);
+        hcalBarrelEl->FindChildren(matches4, re);
         for (TEveElement *a : matches4)
         {
           hcalLayers->AddElement(a);
-          hcalbarrel->RemoveElement(a);
+          hcalBarrelEl->RemoveElement(a);
           ((TEveGeoShape *)a)->SetNSegments(256);
           // set number of segments of 2D projection of TileSequenceVol and TileVol
           // slow, don't do it!
@@ -2532,8 +2531,8 @@ void EventDisplay::startDisplay(int initialEvent)
       TEveElement *projbarrel = element->FindChild(re);
       if (projbarrel)
       {
-        TPRegexp re("ECAL_Cryo_side_(\\w+)");
-        TEveElement *projcryoside = projbarrel->FindChild(re);
+        TPRegexp reCryo("ECAL_Cryo_side_(\\w+)");
+        TEveElement *projcryoside = projbarrel->FindChild(reCryo);
         if (projcryoside)
         {
           projcryoside->SetRnrSelf(false);
@@ -2571,10 +2570,10 @@ void EventDisplay::startDisplay(int initialEvent)
         // turn off the envelopes of the vertex barrel
         else if (s.BeginsWith("Vertex barrel")) {
           a->SetRnrSelfChildren(false, true);
-          for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
-            TEveElement *b = *itr;
-            TString s(b->GetElementName());
-            if (s.Contains("assembly")) {
+          for (TEveElement::List_i itrChild = a->BeginChildren(); itrChild != a->EndChildren(); itrChild++) {
+            TEveElement *b = *itrChild;
+            TString childName(b->GetElementName());
+            if (childName.Contains("assembly")) {
               b->SetRnrSelfChildren(false, true);
             }
           }
@@ -2843,10 +2842,10 @@ void EventDisplay::startDisplay(int initialEvent)
         // turn off the envelopes of the vertex barrel
         else if (s.BeginsWith("Vertex barrel")) {
           a->SetRnrSelfChildren(false, true);
-          for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
-            TEveElement *b = *itr;
-            TString s(b->GetElementName());
-            if (s.Contains("assembly")) {
+          for (TEveElement::List_i itrChild = a->BeginChildren(); itrChild != a->EndChildren(); itrChild++) {
+            TEveElement *b = *itrChild;
+            TString childName(b->GetElementName());
+            if (childName.Contains("assembly")) {
               b->SetRnrSelfChildren(false, true);
             }
           }
@@ -2854,8 +2853,8 @@ void EventDisplay::startDisplay(int initialEvent)
         // show vessel and gas for DCH
         else if (s.BeginsWith("Drift chamber")) {
           a->SetRnrSelfChildren(false, true);
-          for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
-            TEveElement *b = *itr;
+          for (TEveElement::List_i itrChild = a->BeginChildren(); itrChild != a->EndChildren(); itrChild++) {
+            TEveElement *b = *itrChild;
             b->SetRnrSelfChildren(true, false);
             if (overrideDetectorColors) b->SetMainColor(kGreen-5);
             ((TEveGeoShape *)b)->SetDrawFrame(false);
@@ -2865,13 +2864,13 @@ void EventDisplay::startDisplay(int initialEvent)
         // instead show its daughter volume instead
         else if (s.BeginsWith("Si wrapper endcap")) {
           a->SetRnrSelfChildren(false, true);
-          for (TEveElement::List_i itr = a->BeginChildren(); itr != a->EndChildren(); itr++) {
-            TEveElement *b = *itr;
-            TString s(b->GetElementName());
-            if (s.BeginsWith("SiWrD_envelope")) {
+          for (TEveElement::List_i itrChild = a->BeginChildren(); itrChild != a->EndChildren(); itrChild++) {
+            TEveElement *b = *itrChild;
+            TString childName(b->GetElementName());
+            if (childName.BeginsWith("SiWrD_envelope")) {
               b->SetRnrSelfChildren(false, true);
-              for (TEveElement::List_i itr = b->BeginChildren(); itr != b->EndChildren(); itr++) {
-                TEveElement *c = *itr;
+              for (TEveElement::List_i itrGrandChild = b->BeginChildren(); itrGrandChild != b->EndChildren(); itrGrandChild++) {
+                TEveElement *c = *itrGrandChild;
                 c->SetRnrSelfChildren(true, false);
               }
             }
@@ -3093,7 +3092,7 @@ void EventDisplay::fwd()
   {
     printf("\nNo events loaded\n");
     int ret;
-    auto b = new TGMsgBox(gClient->GetRoot(), browser,
+    new TGMsgBox(gClient->GetRoot(), browser,
                           "Error", "No events loaded",
                           kMBIconStop, kMBOk, &ret);
   }
@@ -3107,7 +3106,7 @@ void EventDisplay::fwd()
     printf("\nAlready at last event\n");
 
     int ret;
-    auto b = new TGMsgBox(gClient->GetRoot(), browser,
+    new TGMsgBox(gClient->GetRoot(), browser,
                           "Error", "Already at last event",
                           kMBIconStop, kMBOk, &ret);
   }
@@ -3119,7 +3118,7 @@ void EventDisplay::bck()
   {
     printf("\nNo events loaded\n");
     int ret;
-    auto b = new TGMsgBox(gClient->GetRoot(), browser,
+    new TGMsgBox(gClient->GetRoot(), browser,
                           "Error", "No events loaded",
                           kMBIconStop, kMBOk, &ret);
   }
@@ -3133,7 +3132,7 @@ void EventDisplay::bck()
     printf("\nAlready at first event\n");
 
     int ret;
-    auto b = new TGMsgBox(gClient->GetRoot(), browser,
+    new TGMsgBox(gClient->GetRoot(), browser,
                           "Error", "Already at first event",
                           kMBIconStop, kMBOk, &ret);
   }
@@ -3505,13 +3504,13 @@ void EventDisplay::setCellIDEncodings()
     {"ecalEndcapCells", DetectorGeometry::Readout::ECalEndcap},
     {"hcalBarrelCells", DetectorGeometry::Readout::HCalBarrel},
     {"hcalEndcapCells", DetectorGeometry::Readout::HCalEndcap}};
-  for (const auto& [key, readout] : readouts)
+  for (const auto& [key, readoutType] : readouts)
   {
     std::string collection = displayConfig.getStringConfig(key);
     if (collection == "")
       continue;
     auto it = encodings.find(collection);
-    // the encoding is also stored for the readout, i.e. without "Positioned"
+    // the encoding is also stored for the readoutType, i.e. without "Positioned"
     const std::string positioned = "Positioned";
     if (it == encodings.end() && collection.size() > positioned.size() &&
         collection.compare(collection.size() - positioned.size(), positioned.size(), positioned) == 0)
@@ -3522,7 +3521,7 @@ void EventDisplay::setCellIDEncodings()
                 << ") in the metadata of the event file, using the default encoding" << std::endl;
       continue;
     }
-    DetectorGeometry::SetCellIDEncoding(readout, it->second);
+    DetectorGeometry::SetCellIDEncoding(readoutType, it->second);
   }
 }
 
@@ -3557,7 +3556,7 @@ void EventDisplay::addSimpleElement(TEveElement* el, SubDetector& det)
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 }
 
-void EventDisplay::addVertex(TEveElement* el, SubDetector& det)
+void EventDisplay::addVertex(TEveElement* el, SubDetector& /*det*/)
 {
   TEveElementList* barrel = new TEveElementList("Vertex barrel");
   geom->AddElement(barrel);

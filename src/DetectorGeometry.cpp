@@ -26,32 +26,32 @@ DetectorGeometry::DetectorGeometry(int version) {
 /******************************************************************************/
 
 // calculate length along electrode at r=r_out for electrode
-// starting at r=r_in and inclined in phi by alpha
+// starting at r=r_in and inclined in phi by angle
 // for r_in>r_out, when the solution exists, it's always > 0
-double DetectorGeometry::getL(double alpha, double r_in, double r_out) {
+double DetectorGeometry::getL(double angle, double r_in, double r_out) {
   if (r_out > r_in)
-    return sqrt(r_out*r_out - r_in*r_in*sin(alpha)*sin(alpha)) - r_in*cos(alpha);
+    return sqrt(r_out*r_out - r_in*r_in*sin(angle)*sin(angle)) - r_in*cos(angle);
   else
-    return r_in*cos(alpha) - sqrt(r_out*r_out - r_in*r_in*sin(alpha)*sin(alpha));
+    return r_in*cos(angle) - sqrt(r_out*r_out - r_in*r_in*sin(angle)*sin(angle));
 }
 
 // calculate phi offset between point at r=r_out with respect 
 // to point at r=r_in if they are on the same electrode 
-// inclined in phi by alpha
-double DetectorGeometry::getPhi(double alpha, double r_in, double r_out) {
-  double L = getL(alpha, r_in, r_out);
+// inclined in phi by angle
+double DetectorGeometry::getPhi(double angle, double r_in, double r_out) {
+  double L = getL(angle, r_in, r_out);
   if (r_out > r_in)
-    return TMath::ASin(L/r_out * sin(alpha));
+    return TMath::ASin(L/r_out * sin(angle));
   else
-    return -TMath::ASin(L/r_out * sin(alpha));
+    return -TMath::ASin(L/r_out * sin(angle));
 }
 
 // calculate radius of point on electrode starting at 
-// r=r_in, inclined in phi by alpha, and at distance L 
+// r=r_in, inclined in phi by angle, and at distance L 
 // from beginning of electrode
-double DetectorGeometry::getR(double alpha, double r_in, double L) {
-  return sqrt( (r_in+L*cos(alpha)) * (r_in+L*cos(alpha))
-	       + (L*sin(alpha)) * (L*sin(alpha)) );
+double DetectorGeometry::getR(double angle, double r_in, double L) {
+  return sqrt( (r_in+L*cos(angle)) * (r_in+L*cos(angle))
+	       + (L*sin(angle)) * (L*sin(angle)) );
 }
 
 
@@ -178,24 +178,24 @@ void DetectorGeometry::calcGeom(int version) {
   cout << endl;
   cout << "theta coverage of each layer: " << endl;
   for (int iLayer=0; iLayer<nLayersHCal; iLayer++) {
-    float thetaMin = TMath::ATan2(rHCal[iLayer], zMaxHCal+dzHCalEndPlate-thicknessHCalEndPlate);
-    float thetaMax = TMath::ATan2(rHCal[iLayer], zMinHCal-dzHCalEndPlate+thicknessHCalEndPlate);
-    cout <<  iLayer  <<  " " << thetaMin << " - " << thetaMax << endl;
+    float thetaMinLayer = TMath::ATan2(rHCal[iLayer], zMaxHCal+dzHCalEndPlate-thicknessHCalEndPlate);
+    float thetaMaxLayer = TMath::ATan2(rHCal[iLayer], zMinHCal-dzHCalEndPlate+thicknessHCalEndPlate);
+    cout <<  iLayer  <<  " " << thetaMinLayer << " - " << thetaMaxLayer << endl;
   }
   cout << endl << endl;
   
 }
 
-bool DetectorGeometry::isInECalBarrel(double r, double z) {
-  if ( (r>=rMin) && (r<=rMax) &&
+bool DetectorGeometry::isInECalBarrel(double rho, double z) {
+  if ( (rho>=rMin) && (rho<=rMax) &&
        (z>=zMin) && (z<=zMax) )
     return true;
   else
     return false;
 }
 
-bool DetectorGeometry::isInECalEndCap(double r, double z) {
-  if ( (r>=rMinEndCap) && (r<=rMaxEndCap) &&
+bool DetectorGeometry::isInECalEndCap(double rho, double z) {
+  if ( (rho>=rMinEndCap) && (rho<=rMaxEndCap) &&
        ( (z>=zMinEndCap && z<=zMaxEndCap) ||
          (z<=-zMinEndCap && z>=-zMaxEndCap) ) )
     return true;

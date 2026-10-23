@@ -251,8 +251,8 @@ int main(int argc, char *argv[])
   // start the application
   argc = 0;
   argv = nullptr;
-  TRint *gApplication = new TRint("display", &argc, argv);
+  TRint *app = new TRint("display", &argc, argv);
   display.startDisplay(skipEvents);
-  gApplication->Run();
+  app->Run();
   return 0;
 }

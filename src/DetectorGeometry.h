@@ -136,19 +136,19 @@ public:
   
   
   // calculate length along electrode at r=r_out for electrode
-  // starting at r=r_in and inclined in phi by alpha
+  // starting at r=r_in and inclined in phi by angle
   // for r_in>r_out, when the solution exists, it's always > 0
-  double getL(double alpha, double r_in, double r_out);
+  double getL(double angle, double r_in, double r_out);
 
   // calculate phi offset between point at r=r_out with respect 
   // to point at r=r_in if they are on the same electrode 
-  // inclined in phi by alpha
-  double getPhi(double alpha, double r_in, double r_out);
+  // inclined in phi by angle
+  double getPhi(double angle, double r_in, double r_out);
 
   // calculate radius of point on electrode starting at 
-  // r=r_in, inclined in phi by alpha, and at distance L 
+  // r=r_in, inclined in phi by angle, and at distance L 
   // from beginning of electrode
-  double getR(double alpha, double r_in, double L);
+  double getR(double angle, double r_in, double L);
 
   // length of electrodes
   double Ltot;
@@ -180,8 +180,8 @@ public:
   // and print them to screen
   void calcGeom(int version);
 
-  bool isInECalBarrel(double r, double z);
-  bool isInECalEndCap(double r, double z);
+  bool isInECalBarrel(double rho, double z);
+  bool isInECalEndCap(double rho, double z);
 
   /******************************************************************************/
   // HELPER FUNCTIONS related to the readout
