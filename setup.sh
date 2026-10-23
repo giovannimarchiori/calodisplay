@@ -118,6 +118,9 @@ unset -f check_build
 # vglrun (VirtualGL) to render on the GPU, if available
 check_vnc() {
     [[ -z $DISPLAY ]] && return
+    # on macOS DISPLAY points to XQuartz, which is started by any X client
+    # (e.g. xdpyinfo): skip the check, VirtualGL is for Linux servers anyway
+    [[ $(uname) == Darwin ]] && return
     local vnc=0
     if command -v xdpyinfo >/dev/null 2>&1; then
         # VNC servers (TigerVNC, TurboVNC, ...) provide a VNC X extension
