@@ -745,7 +745,7 @@ void EventDisplay::drawDigis()
                       eventReader->SiWrapperBarrelDigis_position_y,
                       eventReader->SiWrapperBarrelDigis_position_z,
                       nullptr, -9999., true);
-    drawHitCollection(siwrHits, "Si wrapper",
+    drawHitCollection(siwrDigis, "Si wrapper",
                       eventReader->SiWrapperEndcapDigis_position_x,
                       eventReader->SiWrapperEndcapDigis_position_y,
                       eventReader->SiWrapperEndcapDigis_position_z,
