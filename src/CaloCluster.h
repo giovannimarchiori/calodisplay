@@ -12,6 +12,7 @@
 /******************************************************************************/
 // dependencies
 /******************************************************************************/
+#include <array>
 #include <vector>
 #include "TVector3.h"
 
@@ -21,6 +22,10 @@
 class CaloCluster
 {
 public:
+  // the parts of the calorimeters, with the energy and barycenter of the
+  // cluster in each of their layers
+  enum Part { kECalBarrel, kECalEndcap, kHCalBarrel, kHCalEndcap, kMuon, kNParts };
+
   // constructor
   CaloCluster() = default;
 
@@ -30,62 +35,37 @@ public:
   float getEnergy() const { return m_energy; };
   void setEnergy(float energy) { m_energy = energy; };
 
-  float getEnergyECal() const;
-  float getEnergyHCal() const;
-  float getEnergyMuon() const;
+  // energy in a part, and in the ECal, HCal and muon tagger (summed over the layers)
+  float getEnergy(Part part) const;
+  float getEnergyECal() const { return getEnergy(kECalBarrel) + getEnergy(kECalEndcap); };
+  float getEnergyHCal() const { return getEnergy(kHCalBarrel) + getEnergy(kHCalEndcap); };
+  float getEnergyMuon() const { return getEnergy(kMuon); };
 
   TVector3 getBarycenter() const { return m_barycenter; };
   void setBarycenterXYZ(float x, float y, float z) { m_barycenter = TVector3(x, y, z); };
 
-  unsigned int getNLayersECalBarrel() const { return m_energyVsECalBarrelLayer.size(); };
-  float getEnergyInECalBarrelLayer(unsigned int layer) const;
-  void setEnergyVsECalBarrelLayers(const std::vector<float> &energyVsECalBarrelLayer);
-  TVector3 getBarycenterInECalBarrelLayer(unsigned int layer) const;
-  void setBarycenterVsECalBarrelLayers(const std::vector<TVector3> &barycenterVsECalBarrelLayer);
-
-  unsigned int getNLayersECalEndCap() const { return m_energyVsECalEndCapLayer.size(); };
-  float getEnergyInECalEndCapLayer(unsigned int layer) const;
-  void setEnergyVsECalEndCapLayers(const std::vector<float> &energyVsECalEndCapLayer);
-  TVector3 getBarycenterInECalEndCapLayer(unsigned int layer) const;
-  void setBarycenterVsECalEndCapLayers(const std::vector<TVector3> &barycenterVsECalEndCapLayer);
-
-  unsigned int getNLayersHCalBarrel() const { return m_energyVsHCalBarrelLayer.size(); };
-  float getEnergyInHCalBarrelLayer(unsigned int layer) const;
-  void setEnergyVsHCalBarrelLayers(const std::vector<float> &energyVsHCalBarrelLayer);
-  TVector3 getBarycenterInHCalBarrelLayer(unsigned int layer) const;
-  void setBarycenterVsHCalBarrelLayers(const std::vector<TVector3> &barycenterVsHCalBarrelLayer);
-
-  unsigned int getNLayersHCalEndCap() const { return m_energyVsHCalEndCapLayer.size(); };
-  float getEnergyInHCalEndCapLayer(unsigned int layer) const;
-  void setEnergyVsHCalEndCapLayers(const std::vector<float> &energyVsHCalEndCapLayer);
-  TVector3 getBarycenterInHCalEndCapLayer(unsigned int layer) const;
-  void setBarycenterVsHCalEndCapLayers(const std::vector<TVector3> &barycenterVsHCalEndCapLayer);
-
-  unsigned int getNLayersMuon() const { return m_energyVsMuonLayer.size(); };
-  float getEnergyInMuonLayer(unsigned int layer) const;
-  void setEnergyVsMuonLayers(const std::vector<float> &energyVsMuonLayer);
-  TVector3 getBarycenterInMuonLayer(unsigned int layer) const;
-  void setBarycenterVsMuonLayers(const std::vector<TVector3> &barycenterVsMuonLayer);
+  // energy and barycenter in each layer of a part
+  unsigned int getNLayers(Part part) const { return m_layers[part].energy.size(); };
+  // 0 if the layer is out of range
+  float getEnergyInLayer(Part part, unsigned int layer) const;
+  // the origin if the layer is out of range
+  TVector3 getBarycenterInLayer(Part part, unsigned int layer) const;
+  void setEnergyVsLayers(Part part, const std::vector<float> &energyVsLayer) { m_layers[part].energy = energyVsLayer; };
+  void setBarycenterVsLayers(Part part, const std::vector<TVector3> &barycenterVsLayer) { m_layers[part].barycenter = barycenterVsLayer; };
 
   void print() const;
 
 private:
-  unsigned int m_index;
-  float m_energy;
+  unsigned int m_index = 0;
+  float m_energy = 0.;
   TVector3 m_barycenter;
 
-  std::vector<float> m_energyVsECalBarrelLayer;
-  std::vector<TVector3> m_barycenterVsECalBarrelLayer;
-  std::vector<float> m_energyVsECalEndCapLayer;
-  std::vector<TVector3> m_barycenterVsECalEndCapLayer;
-
-  std::vector<float> m_energyVsHCalBarrelLayer;
-  std::vector<TVector3> m_barycenterVsHCalBarrelLayer;
-  std::vector<float> m_energyVsHCalEndCapLayer;
-  std::vector<TVector3> m_barycenterVsHCalEndCapLayer;
-
-  std::vector<float> m_energyVsMuonLayer;
-  std::vector<TVector3> m_barycenterVsMuonLayer;
+  struct Layers
+  {
+    std::vector<float> energy;
+    std::vector<TVector3> barycenter;
+  };
+  std::array<Layers, kNParts> m_layers;
 
   // direction ...
   // shower shapes...

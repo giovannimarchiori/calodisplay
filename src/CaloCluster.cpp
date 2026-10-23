@@ -15,226 +15,46 @@
 using std::cout;
 using std::endl;
 
+namespace
+{
+// names of the parts, for the printouts
+const char *partName[CaloCluster::kNParts] = {"ECAL barrel", "ECAL endcap", "HCAL barrel", "HCAL endcap", "MUON"};
+}
+
 /******************************************************************************/
 // class definition
 /******************************************************************************/
 
-float CaloCluster::getEnergyECal() const
+float CaloCluster::getEnergy(Part part) const
 {
   float E(0.);
-  for (float Elayer : m_energyVsECalBarrelLayer)
-  {
-    E += Elayer;
-  }
-  for (float Elayer : m_energyVsECalEndCapLayer)
+  for (float Elayer : m_layers[part].energy)
   {
     E += Elayer;
   }
   return E;
 }
 
-float CaloCluster::getEnergyHCal() const
+float CaloCluster::getEnergyInLayer(Part part, unsigned int layer) const
 {
-  float E(0.);
-  for (float Elayer : m_energyVsHCalBarrelLayer)
+  if (layer >= m_layers[part].energy.size())
   {
-    E += Elayer;
-  }
-  for (float Elayer : m_energyVsHCalEndCapLayer)
-  {
-    E += Elayer;
-  }
-  return E;
-}
-
-float CaloCluster::getEnergyMuon() const
- {
-  float E(0.);
-  for (float Elayer : m_energyVsMuonLayer)
-  {
-    E += Elayer;
-  }
-  return E;
-}
-
-float CaloCluster::getEnergyInECalBarrelLayer(unsigned int layer) const
-{
-  if (layer >= m_energyVsECalBarrelLayer.size())
-  {
-    cout << "CaloCluster::getEnergyInECalBarrelLayer : layer outside of range, returning 0.0" << endl;
+    cout << "CaloCluster::getEnergyInLayer : layer " << layer << " of the " << partName[part]
+         << " outside of range, returning 0.0" << endl;
     return 0;
   }
-  else
-  {
-    return m_energyVsECalBarrelLayer[layer];
-  }
+  return m_layers[part].energy[layer];
 }
 
-float CaloCluster::getEnergyInECalEndCapLayer(unsigned int layer) const
+TVector3 CaloCluster::getBarycenterInLayer(Part part, unsigned int layer) const
 {
-  if (layer >= m_energyVsECalEndCapLayer.size())
+  if (layer >= m_layers[part].barycenter.size())
   {
-    cout << "CaloCluster::getEnergyInECalEndCapLayer : layer outside of range, returning 0.0" << endl;
-    return 0;
-  }
-  else
-  {
-    return m_energyVsECalEndCapLayer[layer];
-  }
-}
-
-float CaloCluster::getEnergyInHCalBarrelLayer(unsigned int layer) const
-{
-  if (layer >= m_energyVsHCalBarrelLayer.size())
-  {
-    cout << "CaloCluster::getEnergyInHCalBarrelLayer : layer outside of range, returning 0.0" << endl;
-    return 0;
-  }
-  else
-  {
-    return m_energyVsHCalBarrelLayer[layer];
-  }
-}
-
-float CaloCluster::getEnergyInHCalEndCapLayer(unsigned int layer) const
-{
-  if (layer >= m_energyVsHCalEndCapLayer.size())
-  {
-    cout << "CaloCluster::getEnergyInHCalEndCapLayer : layer outside of range, returning 0.0" << endl;
-    return 0;
-  }
-  else
-  {
-    return m_energyVsHCalEndCapLayer[layer];
-  }
-}
-
-float CaloCluster::getEnergyInMuonLayer(unsigned int layer) const
-{
-  if (layer >= m_energyVsMuonLayer.size())
-  {
-    cout << "CaloCluster::getEnergyInMuonLayer : layer outside of range, returning 0.0" << endl;
-    return 0;
-  }
-  else
-  {
-    return m_energyVsMuonLayer[layer];
-  }
-}
-
-void CaloCluster::setEnergyVsECalBarrelLayers(const std::vector<float> &energyVsECalBarrelLayer)
-{
-  m_energyVsECalBarrelLayer = std::vector<float>(energyVsECalBarrelLayer); // use copy constructor
-}
-
-void CaloCluster::setEnergyVsECalEndCapLayers(const std::vector<float> &energyVsECalEndCapLayer)
-{
-  m_energyVsECalEndCapLayer = std::vector<float>(energyVsECalEndCapLayer); // use copy constructor
-}
-
-void CaloCluster::setEnergyVsHCalBarrelLayers(const std::vector<float> &energyVsHCalBarrelLayer)
-{
-  m_energyVsHCalBarrelLayer = std::vector<float>(energyVsHCalBarrelLayer); // use copy constructor
-}
-
-void CaloCluster::setEnergyVsHCalEndCapLayers(const std::vector<float> &energyVsHCalEndCapLayer)
-{
-  m_energyVsHCalEndCapLayer = std::vector<float>(energyVsHCalEndCapLayer); // use copy constructor
-}
-
-void CaloCluster::setEnergyVsMuonLayers(const std::vector<float> &energyVsMuonLayer)
-{
-  m_energyVsMuonLayer = std::vector<float>(energyVsMuonLayer); // use copy constructor
-}
-
-TVector3 CaloCluster::getBarycenterInECalBarrelLayer(unsigned int layer) const
-{
-  if (layer >= m_barycenterVsECalBarrelLayer.size())
-  {
-    cout << "CaloCluster::getBarycenterInECalBarrelLayer : layer outside of range, returning origin" << endl;
+    cout << "CaloCluster::getBarycenterInLayer : layer " << layer << " of the " << partName[part]
+         << " outside of range, returning origin" << endl;
     return TVector3(0.0, 0.0, 0.0);
   }
-  else
-  {
-    return m_barycenterVsECalBarrelLayer[layer];
-  }
-}
-
-TVector3 CaloCluster::getBarycenterInECalEndCapLayer(unsigned int layer) const
-{
-  if (layer >= m_barycenterVsECalEndCapLayer.size())
-  {
-    cout << "CaloCluster::getBarycenterInECalEndCapLayer : layer outside of range, returning origin" << endl;
-    return TVector3(0.0, 0.0, 0.0);
-  }
-  else
-  {
-    return m_barycenterVsECalEndCapLayer[layer];
-  }
-}
-
-TVector3 CaloCluster::getBarycenterInHCalBarrelLayer(unsigned int layer) const
-{
-  if (layer >= m_barycenterVsHCalBarrelLayer.size())
-  {
-    cout << "CaloCluster::getBarycenterInHCalBarrelLayer : layer outside of range, returning origin" << endl;
-    return TVector3(0.0, 0.0, 0.0);
-  }
-  else
-  {
-    return m_barycenterVsHCalBarrelLayer[layer];
-  }
-}
-
-TVector3 CaloCluster::getBarycenterInHCalEndCapLayer(unsigned int layer) const
-{
-  if (layer >= m_barycenterVsHCalEndCapLayer.size())
-  {
-    cout << "CaloCluster::getBarycenterInHCalEndCapLayer : layer outside of range, returning origin" << endl;
-    return TVector3(0.0, 0.0, 0.0);
-  }
-  else
-  {
-    return m_barycenterVsHCalEndCapLayer[layer];
-  }
-}
-
-TVector3 CaloCluster::getBarycenterInMuonLayer(unsigned int layer) const
-{
-  if (layer >= m_barycenterVsMuonLayer.size())
-  {
-    cout << "CaloCluster::getBarycenterInMuonLayer : layer outside of range, returning origin" << endl;
-    return TVector3(0.0, 0.0, 0.0);
-  }
-  else
-  {
-    return m_barycenterVsMuonLayer[layer];
-  }
-}
-
-void CaloCluster::setBarycenterVsECalBarrelLayers(const std::vector<TVector3> &barycenterVsECalBarrelLayer)
-{
-  m_barycenterVsECalBarrelLayer = std::vector<TVector3>(barycenterVsECalBarrelLayer); // use copy constructor
-}
-
-void CaloCluster::setBarycenterVsECalEndCapLayers(const std::vector<TVector3> &barycenterVsECalEndCapLayer)
-{
-  m_barycenterVsECalEndCapLayer = std::vector<TVector3>(barycenterVsECalEndCapLayer); // use copy constructor
-}
-
-void CaloCluster::setBarycenterVsHCalBarrelLayers(const std::vector<TVector3> &barycenterVsHCalBarrelLayer)
-{
-  m_barycenterVsHCalBarrelLayer = std::vector<TVector3>(barycenterVsHCalBarrelLayer); // use copy constructor
-}
-
-void CaloCluster::setBarycenterVsHCalEndCapLayers(const std::vector<TVector3> &barycenterVsHCalEndCapLayer)
-{
-  m_barycenterVsHCalEndCapLayer = std::vector<TVector3>(barycenterVsHCalEndCapLayer); // use copy constructor
-}
-
-void CaloCluster::setBarycenterVsMuonLayers(const std::vector<TVector3> &barycenterVsMuonLayer)
-{
-  m_barycenterVsMuonLayer = std::vector<TVector3>(barycenterVsMuonLayer); // use copy constructor
+  return m_layers[part].barycenter[layer];
 }
 
 void CaloCluster::print() const
@@ -245,30 +65,14 @@ void CaloCluster::print() const
   std::cout << "Energy in ECAL: " << getEnergyECal() << " GeV" << endl;
   std::cout << "Energy in HCAL: " << getEnergyHCal() << " GeV" << endl;
   std::cout << "Energy in MUON: " << getEnergyMuon() << " GeV" << endl;
-  std::cout << "Energy and barycenter in each layer of the ECAL barrel: " << std::endl;
-  for (unsigned int i=0; i<m_energyVsECalBarrelLayer.size(); i++)
+  for (int part = 0; part < kNParts; part++)
   {
-    std::cout << i << "   " << m_energyVsECalBarrelLayer[i] << " GeV  "  <<   m_barycenterVsECalBarrelLayer[i].Pt() << " " << m_barycenterVsECalBarrelLayer[i].Theta() << " " << m_barycenterVsECalBarrelLayer[i].Phi() << std::endl;
-  }
-  std::cout << "Energy and barycenter in each layer of the ECAL endcap: " << std::endl;
-  for (unsigned int i=0; i<m_energyVsECalEndCapLayer.size(); i++)
-  {
-    std::cout << i << "   " << m_energyVsECalEndCapLayer[i] << " GeV  "  <<   m_barycenterVsECalEndCapLayer[i].Pt() << " " << m_barycenterVsECalEndCapLayer[i].Theta() << " " << m_barycenterVsECalEndCapLayer[i].Phi() << std::endl;
-  }
-  std::cout << "Energy and barycenter in each layer of the HCAL barrel: " << std::endl;
-  for (unsigned int i=0; i<m_energyVsHCalBarrelLayer.size(); i++)
-  {
-    std::cout << i << "   " << m_energyVsHCalBarrelLayer[i] << " GeV  "  <<   m_barycenterVsHCalBarrelLayer[i].Pt() << " " << m_barycenterVsHCalBarrelLayer[i].Theta() << " " << m_barycenterVsHCalBarrelLayer[i].Phi() << std::endl;
-  }
-  std::cout << "Energy and barycenter in each layer of the HCAL endcap: " << std::endl;
-  for (unsigned int i=0; i<m_energyVsHCalEndCapLayer.size(); i++)
-  {
-    std::cout << i << "   " << m_energyVsHCalEndCapLayer[i] << " GeV  "  <<   m_barycenterVsHCalEndCapLayer[i].Pt() << " " << m_barycenterVsHCalEndCapLayer[i].Theta() << " " << m_barycenterVsHCalEndCapLayer[i].Phi() << std::endl;
-  }
-  std::cout << "Energy and barycenter in each layer of the MUON: " << std::endl;
-  for (unsigned int i=0; i<m_energyVsMuonLayer.size(); i++)
-  {
-    std::cout << i << "   " << m_energyVsMuonLayer[i] << " GeV  "  <<   m_barycenterVsMuonLayer[i].Pt() << " " << m_barycenterVsMuonLayer[i].Theta() << " " << m_barycenterVsMuonLayer[i].Phi() << std::endl;
+    const Layers &layers = m_layers[part];
+    std::cout << "Energy and barycenter in each layer of the " << partName[part] << ": " << std::endl;
+    for (unsigned int i = 0; i < layers.energy.size(); i++)
+    {
+      std::cout << i << "   " << layers.energy[i] << " GeV  " << layers.barycenter[i].Pt() << " " << layers.barycenter[i].Theta() << " " << layers.barycenter[i].Phi() << std::endl;
+    }
   }
   // ideally divide by cm (or mm)
   // and report output in cm
