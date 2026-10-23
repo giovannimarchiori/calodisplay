@@ -1525,8 +1525,8 @@ void EventDisplay::drawClusters(std::string clusterType)
     // cluster = assume < 512 (9 bits)
     // so both IDs can fit in a 32-bit integer
     // but could even play it safer and just use cellID and remove unused fields
-    float r_in, r_out;
-    int layer, thetaID, moduleID, phiID;
+    float r_in(0.), r_out(0.);
+    int layer(0), thetaID(0), moduleID(0), phiID(0);
     ULong64_t rhophiID(0), rhozID(0);
 
     // temporary
@@ -1553,25 +1553,10 @@ void EventDisplay::drawClusters(std::string clusterType)
       r_in = geomReader->rHCal[layer];
       r_out = geomReader->rHCal[layer + 1];
     }
-    else if (systemID == 5)
+    else if (systemID == 5 || systemID == 9 || systemID == 12 || systemID == 13)
     {
-      // std::cout << "Not drawing cells for ECAL endcap: system " << systemID << std::endl;
-      ;
-    }
-    else if (systemID == 9)
-    {
-      // std::cout << "Not drawing cells for HCAL endcap: system " << systemID << std::endl;
-      ;
-    }
-    else if (systemID == 12)
-    {
-      // std::cout << "Not drawing cells for MUON barrel: system " << systemID << std::endl;
-      ;
-    }
-    else if (systemID == 13)
-    {
-      // std::cout << "Not drawing cells for MUON barrel: system " << systemID << std::endl;
-      ;
+      // cells of ECAL endcap, HCAL endcap, MUON barrel and endcap are not drawn
+      continue;
     }
     else
     {
@@ -1803,9 +1788,9 @@ void EventDisplay::drawClusters(std::string clusterType)
     }
 
     int system = (int)DetectorGeometry::SystemID(cellID);
-    int layer, thetaID, moduleID;
-    long phiID(0), rhozID(0);
-    float r_in, r_out, thetaMin, thetaMax;
+    int layer(0), thetaID(0);
+    long rhozID(0);
+    float r_in(0.), r_out(0.), thetaMin(0.), thetaMax(0.);
     if (system == 4)
     {
       layer = (int)DetectorGeometry::ECalBarrelLayer(cellID);
@@ -1821,6 +1806,11 @@ void EventDisplay::drawClusters(std::string clusterType)
       rhozID = system + 16 * (icl + 512 * layer + 512 * 16 * thetaID);
       r_in = geomReader->rHCal[layer];
       r_out = geomReader->rHCal[layer + 1];
+    }
+    else
+    {
+      // cells of other systems are not drawn
+      continue;
     }
     if (cellEnergies_rhoz.count(rhozID) == 0)
       continue;
