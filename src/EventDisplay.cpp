@@ -1032,6 +1032,19 @@ void EventDisplay::drawTracks()
     else
       tracks->DestroyElements();
 
+    // the transverse momentum of the tracks is obtained from their curvature
+    // omega with the field used in the reconstruction: assume that it is the
+    // one used to propagate the tracks (bField in the configuration), at the
+    // origin (the reconstruction field is not stored in the event file)
+    const float FCT = 2.99792458E-4f;
+    float bField = std::fabs(magField->GetFieldD(0., 0., 0.).fZ);
+    if (bField < 1e-6)
+    {
+      bField = geomReader->Bin;
+      std::cout << "WARNING: the magnetic field is zero, the momentum of the tracks is computed from their curvature with B = "
+                << bField << " T" << std::endl;
+    }
+
     for (unsigned int ip = 0; ip < eventReader->tracks.subdetectorHitNumbers_begin->GetSize(); ip++)
     {
       if (debug) std::cout << "Track " << ip << std::endl;
@@ -1065,8 +1078,6 @@ void EventDisplay::drawTracks()
           std::cout << "  omega = " << omega[location] << std::endl;
           std::cout << "  phi = " << phi[location] << std::endl;
           std::cout << "  tanLambda = " << tanLambda[location] << std::endl;
-          const float FCT = 2.99792458E-4f;
-          const float bField = 2.0;
           float radius = 1.f / std::fabs(omega[location]);
           float pxy = FCT * bField * radius;
           float pz = tanLambda[location] * pxy;
@@ -1092,8 +1103,6 @@ void EventDisplay::drawTracks()
         float x1 = x[tsOrig]*mm;
         float y1 = y[tsOrig]*mm;
         float z1 = z[tsOrig]*mm;
-        const float FCT = 2.99792458E-4f;
-        const float bField = 2.0;
         int charge = MathUtils::sign(omega[tsOrig]);
         float radius = 1.f / std::fabs(omega[tsOrig]);
         float pxy = FCT * bField * radius;
