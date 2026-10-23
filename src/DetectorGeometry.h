@@ -195,6 +195,17 @@ public:
     int width;
   };
 
+  // the values of the system field of the cellID for each subdetector
+  enum System : ULong_t
+  {
+    kECalBarrel = 4,
+    kECalEndcap = 5,
+    kHCalBarrel = 8,
+    kHCalEndcap = 9,
+    kMuonBarrel = 12,
+    kMuonEndcap = 13
+  };
+
   // the calorimeter readouts for which the cellID is decoded
   enum class Readout { ECalBarrel, ECalEndcap, HCalBarrel, HCalEndcap };
 

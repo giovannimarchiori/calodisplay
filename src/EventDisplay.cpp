@@ -225,27 +225,27 @@ void EventDisplay::fillClusters(std::string clusterType)
         ULong_t systemID = geomReader->SystemID(cellID);
         ULong_t layer = 0;
         std::vector<float> *energyVsLayer = nullptr;
-        if (systemID == 4)
+        if (systemID == DetectorGeometry::kECalBarrel)
         {
           layer = geomReader->ECalBarrelLayer(cellID);
           energyVsLayer = &energyVsECalBarrelLayer;
         }
-        else if (systemID == 8)
+        else if (systemID == DetectorGeometry::kHCalBarrel)
         {
           layer = geomReader->HCalBarrelLayer(cellID);
           energyVsLayer = &energyVsHCalBarrelLayer;
         }
-        else if (systemID == 5)
+        else if (systemID == DetectorGeometry::kECalEndcap)
         {
           layer = geomReader->ECalEndCapZBin(cellID);
           energyVsLayer = &energyVsECalEndCapLayer;
         }
-        else if (systemID == 9)
+        else if (systemID == DetectorGeometry::kHCalEndcap)
         {
           layer = geomReader->HCalEndCapLayer(cellID);
           energyVsLayer = &energyVsHCalEndCapLayer;
         }
-        else if (systemID == 12 || systemID == 13)
+        else if (systemID == DetectorGeometry::kMuonBarrel || systemID == DetectorGeometry::kMuonEndcap)
         {
           // TODO: calculate properly muon barrel and endcap layer
           layer = 0;
@@ -304,28 +304,28 @@ void EventDisplay::fillClusters(std::string clusterType)
         std::vector<float> *energyVsLayer = nullptr;
         std::vector<TVector3> *barycenterVsLayer = nullptr;
         std::vector<float> *sumWeightsVsLayer = nullptr;
-        if (systemID == 4)  // TODO: use enum instead of these hardcoded constants?
+        if (systemID == DetectorGeometry::kECalBarrel)
         {
           layer = geomReader->ECalBarrelLayer(cellID);
           energyVsLayer = &energyVsECalBarrelLayer;
           barycenterVsLayer = &barycenterVsECalBarrelLayer;
           sumWeightsVsLayer = &sumWeightsVsECalBarrelLayer;
         }
-        else if (systemID == 5)
+        else if (systemID == DetectorGeometry::kECalEndcap)
         {
           layer = geomReader->ECalEndCapZBin(cellID);
           energyVsLayer = &energyVsECalEndCapLayer;
           barycenterVsLayer = &barycenterVsECalEndCapLayer;
           sumWeightsVsLayer = &sumWeightsVsECalEndCapLayer;
         }
-        else if (systemID == 8)
+        else if (systemID == DetectorGeometry::kHCalBarrel)
         {
           layer = geomReader->HCalBarrelLayer(cellID);
           energyVsLayer = &energyVsHCalBarrelLayer;
           barycenterVsLayer = &barycenterVsHCalBarrelLayer;
           sumWeightsVsLayer = &sumWeightsVsHCalBarrelLayer;
         }
-        else if (systemID == 9)
+        else if (systemID == DetectorGeometry::kHCalEndcap)
         {
           layer = geomReader->HCalEndCapLayer(cellID);
           energyVsLayer = &energyVsHCalEndCapLayer;
@@ -1553,7 +1553,7 @@ void EventDisplay::drawClusters(std::string clusterType)
     int layer(0), thetaID(0), moduleID(0), phiID(0);
     ProjectedCellKey rhophiID{}, rhozID{};
 
-    if (systemID == 4)
+    if (systemID == DetectorGeometry::kECalBarrel)
     {
       layer = (int)DetectorGeometry::ECalBarrelLayer(cellID);
       thetaID = (int)DetectorGeometry::ECalBarrelThetaBin(cellID);
@@ -1563,7 +1563,7 @@ void EventDisplay::drawClusters(std::string clusterType)
       r_in = geomReader->r[layer];
       r_out = geomReader->r[layer + 1];
     }
-    else if (systemID == 8)
+    else if (systemID == DetectorGeometry::kHCalBarrel)
     {
       layer = (int)DetectorGeometry::HCalBarrelLayer(cellID);
       thetaID = (int)DetectorGeometry::HCalBarrelThetaBin(cellID);
@@ -1573,7 +1573,7 @@ void EventDisplay::drawClusters(std::string clusterType)
       r_in = geomReader->rHCal[layer];
       r_out = geomReader->rHCal[layer + 1];
     }
-    else if (systemID == 5 || systemID == 9 || systemID == 12 || systemID == 13)
+    else if (systemID == DetectorGeometry::kECalEndcap || systemID == DetectorGeometry::kHCalEndcap || systemID == DetectorGeometry::kMuonBarrel || systemID == DetectorGeometry::kMuonEndcap)
     {
       // cells of ECAL endcap, HCAL endcap, MUON barrel and endcap are not drawn
       continue;
@@ -1624,7 +1624,7 @@ void EventDisplay::drawClusters(std::string clusterType)
     if (bs[icl] != nullptr)
     {
       float verts3D[24];
-      if (systemID == 4)
+      if (systemID == DetectorGeometry::kECalBarrel)
       {
         double Lin = geomReader->getL(alpha, rMin, r_in);
         double Lout = geomReader->getL(alpha, rMin, r_out);
@@ -1671,7 +1671,7 @@ void EventDisplay::drawClusters(std::string clusterType)
           // bs->BoxId(new TNamed(Form("Cell %lu", cellID), "Dong!"));
         }
       }
-      else if (systemID==8)
+      else if (systemID == DetectorGeometry::kHCalBarrel)
       {
         // HCAL
         float phiMin = phiMinHCal + gridPhiHCal * phiID;
@@ -1784,7 +1784,7 @@ void EventDisplay::drawClusters(std::string clusterType)
     int layer(0), thetaID(0);
     ProjectedCellKey rhozID{};
     float r_in(0.), r_out(0.), thetaMin(0.), thetaMax(0.);
-    if (system == 4)
+    if (system == DetectorGeometry::kECalBarrel)
     {
       layer = (int)DetectorGeometry::ECalBarrelLayer(cellID);
       thetaID = (int)DetectorGeometry::ECalBarrelThetaBin(cellID);
@@ -1792,7 +1792,7 @@ void EventDisplay::drawClusters(std::string clusterType)
       r_in = geomReader->r[layer];
       r_out = geomReader->r[layer + 1];
     }
-    else if (system == 8)
+    else if (system == DetectorGeometry::kHCalBarrel)
     {
       layer = (int)DetectorGeometry::HCalBarrelLayer(cellID);
       thetaID = (int)DetectorGeometry::HCalBarrelThetaBin(cellID);
@@ -1815,12 +1815,12 @@ void EventDisplay::drawClusters(std::string clusterType)
     z_center = cells.z[i] * mm;
     float r_center = sqrt(x_center * x_center + y_center * y_center);
     float theta_center = atan2(r_center, z_center);
-    if (system == 4)
+    if (system == DetectorGeometry::kECalBarrel)
     {
       thetaMin = theta_center - thetaGrid * geomReader->mergedCells_Theta[layer] / 2.;
       thetaMax = theta_center + thetaGrid * geomReader->mergedCells_Theta[layer] / 2.;
     }
-    else if (system == 8)
+    else if (system == DetectorGeometry::kHCalBarrel)
     {
       thetaMin = theta_center - thetaGridHCal / 2.;
       thetaMax = theta_center + thetaGridHCal / 2.;
@@ -1849,7 +1849,7 @@ void EventDisplay::drawClusters(std::string clusterType)
   {
     int system = key.system;
     int icl = key.cluster;
-    if (system == 4)
+    if (system == DetectorGeometry::kECalBarrel)
     {
       int layer = key.layer;
       int moduleID = key.bin;
@@ -1878,7 +1878,7 @@ void EventDisplay::drawClusters(std::string clusterType)
         qs_rhophi[icl]->QuadId(new TNamed(Form("%s %d cell L%d M%d", clusterType.c_str(), icl, layer, moduleID), "Dong!"));
       }
     }
-    else if (system==8)
+    else if (system == DetectorGeometry::kHCalBarrel)
     {
       int layer = key.layer;
       int phiID = key.bin;
