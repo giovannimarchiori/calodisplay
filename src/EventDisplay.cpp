@@ -3510,9 +3510,10 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
   TVector3 currentVertex(el_vx, el_vy, el_vz);
   int charge = - MathUtils::sign(pdg[electronIndex]);
 
-  // Create propagator
-  TEveTrackPropagator* propagator = new TEveTrackPropagator();
-  propagator->SetMagFieldObj(magField);
+  // Create propagator (local, only used to extrapolate the electron between
+  // the photon vertices; it must not own the field, which is shared)
+  TEveTrackPropagator propagator;
+  propagator.SetMagFieldObj(magField, false);
   // propagator.SetStepper(TEveTrackPropagator::kHelix);
 
   for(const auto& [dist, gamma] : photonsWithDist)
@@ -3528,11 +3529,11 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
 
     // Extrapolate electron to gamma vertex
     TEveVectorD start_pos(start.X(), start.Y(), start.Z());
-    propagator->InitTrack(start_pos, charge);
+    propagator.InitTrack(start_pos, charge);
     TEveVectorD target_pos(g_vx, g_vy, g_vz);
 
     TEveVectorD propagated_mom(currentMomentum.X(), currentMomentum.Y(), currentMomentum.Z());
-    Bool_t success = propagator->GoToVertex(target_pos, propagated_mom);
+    Bool_t success = propagator.GoToVertex(target_pos, propagated_mom);
     if (not success) {
       std::cout << "ERROR: failed to propagate electron!" << std::endl;
     }
