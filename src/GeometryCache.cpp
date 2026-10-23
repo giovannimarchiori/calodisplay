@@ -17,6 +17,7 @@
 #include <TList.h>
 #include <TNamed.h>
 
+#include <chrono>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
@@ -49,8 +50,11 @@ std::string versionInfo(const std::string& geomFile, const std::string& codeVers
 {
   std::error_code ec;
   std::ostringstream info;
+  // (the time is converted to a 64-bit number of nanoseconds: on macOS the
+  // count of the file clock is a 128-bit integer, which cannot be printed)
+  const auto mtime = fs::last_write_time(geomFile, ec).time_since_epoch();
   info << "size=" << fs::file_size(geomFile, ec)
-       << " mtime=" << fs::last_write_time(geomFile, ec).time_since_epoch().count()
+       << " mtime=" << static_cast<long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(mtime).count())
        << " code=" << codeVersion;
   return info.str();
 }
