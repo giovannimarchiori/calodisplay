@@ -36,7 +36,7 @@ source setup.sh
 
 Execute with e.g.
 ```
-calodisplay -g data/ALLEGRO_o1_v03_noDCHcells.root  -e data/allegro_o1_v03_evts_10_pdg_11_MomentumMinMax_10.0_10.0_GeV_ThetaMinMax_90.0_90.0_PhiMinMax_0_360_HCal_ON_digi_reco.root -c config.json --fulldet --dohcal --doendcap
+calodisplay -g data/ALLEGRO_o1_v03_noDCHcells.root  -e data/allegro_o1_v03_evts_10_pdg_11_MomentumMinMax_10.0_10.0_GeV_ThetaMinMax_90.0_90.0_PhiMinMax_0_360_HCal_ON_digi_reco.root -c config.json --fulldet
 ```
 Execute with `calodisplay -h` to see available options:
 - `-g|--geometry <geomFile.root>`: ROOT file with the detector geometry
@@ -44,12 +44,14 @@ Execute with `calodisplay -h` to see available options:
 - `-c|--config <configFile.json>`: configuration file (default: `config.json`)
 - `-s|--skipEvents <nevents>`: number of the first event to display
 - `--nog4`: use a simplified geometry rather than the G4 geometry in the geometry file
-- `--fulldet`: show the full detector (including tracker, muon detector, interaction region)
-- `--dohcal`: show HCAL volume, hits and cells
-- `--doendcap`: show ECAL and (optionally) HCAL endcaps
-- `--sw`: show sliding-window clusters
-- `--notopo`: do not show topoclusters
+- `--fulldet`: show the full detector (including tracker, muon detector, interaction region), with HCAL and endcaps
+- `--dohcal`: show the HCAL volumes and readout (without `--fulldet`, only the em calorimeters are shown)
+- `--doendcap`: show the ECAL and (with `--dohcal`) HCAL endcaps
+- `--nocache`: read the full G4 geometry, not the one without the volumes that are never drawn from the geometry cache (see below)
 - `--debug`: display extended information on the console during execution
+- `--set <key>=<value>`: set a parameter of the configuration (see below), overriding the configuration file, e.g. `--set drawCaloClusters=true --set drawTopoClusters=false`. Can be repeated.
+
+What is drawn of the events (particles, tracks, hits, cells, clusters) is set in the configuration (`drawXXX` keys), independently of `--fulldet`, `--dohcal` and `--doendcap`, which select the detector geometry.
 
 `calodisplay` can be run from any directory: relative paths of the configuration, geometry and field map files, and the icons, are looked up first in the current directory and then in the installation directory (`$CALODISPLAY_DIR`, set by `setup.sh`, or otherwise the parent of the directory containing the executable).
 
@@ -59,7 +61,7 @@ The ECAL barrel layout is deduced from the name of the geometry file: names cont
 Inside a VNC session, OpenGL applications use software rendering (Mesa llvmpipe), even if the machine has a GPU, and the display can be slow.
 If the machine has a GPU and [VirtualGL](https://virtualgl.org) is installed and configured, run the event display with `vglrun` to render on the GPU:
 ```
-vglrun calodisplay -g data/ALLEGRO_o1_v03_noDCHcells.root -e <events.root> -c config.json --fulldet --dohcal --doendcap
+vglrun calodisplay -g data/ALLEGRO_o1_v03_noDCHcells.root -e <events.root> -c config.json --fulldet
 ```
 Check that `vglrun glxinfo -B` reports the GPU as renderer.
 
@@ -83,6 +85,8 @@ The event file is a podio/EDM4hep ROOT file, e.g. produced by the ALLEGRO simula
 - The cells of the clusters are taken from the dedicated cluster cell collections (`topoClusterCells`, `caloClusterCells`) if present in the file. Otherwise, the links stored in the clusters to the cells of the cell collections in the file (e.g. `ECalBarrelModuleThetaMergedPositioned`) are followed.
 
 ### Detector geometry
+The geometry files contain all the volumes of the detector (about 850k for ALLEGRO o1_v03), but only a small fraction of them is drawn. To make the display start faster, the first time a geometry file is used with a given set of options (`--fulldet`, `--dohcal`, `--doendcap`), the volumes that can be drawn in one of the views are determined, and the geometry without the other volumes is saved in a cache file, `<geometry>.displaycache.root`, next to the geometry file (or in `~/.cache/calodisplay` if that directory is not writable). The following times the geometry is read from the cache: e.g. with `--fulldet` the startup time goes from about 60 s to about 10 s. The cache is rebuilt automatically when the geometry file changes or calodisplay is recompiled. With `--nocache`, the full geometry is read (and all the volumes can be turned on in the browser).
+
 To create the root file with the detector geometry (if that on the website is outdated):
 - create the GDML file from Geant4 with ddsim (do e.g. `ddsim --numberOfEvents 0 --enableGun --compactFile $K4GEO/FCCee/ALLEGRO/compact/ALLEGRO_o1_v03/ALLEGRO_o1_v03.xml  --geometry.dumpGDML ALLEGRO_o1_v03.gdml --runType run`)
 - convert the GDML to ROOT with `util/gdmltoroot.C`:
