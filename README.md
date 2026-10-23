@@ -17,7 +17,7 @@ source setup.sh
 
 Compile:
 ```
-make
+make -j8
 ```
 
 Download detector model file and an example event file:
