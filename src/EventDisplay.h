@@ -27,7 +27,8 @@
 
 #include <TGLViewer.h>
 
-#include <TGTextEntry.h>
+#include <TGNumberEntry.h>
+#include <TGLabel.h>
 
 #include <TVector3.h>
 #include <TPRegexp.h>
@@ -222,7 +223,9 @@ public:
   TEveElementList *readout = nullptr;
   TGLConstAnnotation *processLabel = nullptr;
   TGLConstAnnotation *eventLabel = nullptr;
-  TGTextEntry *textEntry = nullptr;
+  // the event number entries and the "of N" labels in the navigation bar (one per tab)
+  std::vector<TGNumberEntry *> eventEntries;
+  std::vector<TGLabel *> eventCountLabels;
 
   std::unique_ptr<DetectorGeometry> geomReader;
   // the file must be declared before the reader, so that the reader is destroyed first
@@ -277,6 +280,12 @@ public:
 
   // move to previous event
   void bck();
+
+  // move to the event typed in the event number entry
+  void goToEvent();
+
+  // show the current event and the number of events in the navigation bar
+  void updateEventEntries();
 
   // show/hide the readouts
   void toggleReadout();

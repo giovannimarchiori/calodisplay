@@ -26,6 +26,8 @@
 #include <TGButton.h>
 #include <TGTab.h>
 #include <TGMsgBox.h>
+#include <TGNumberEntry.h>
+#include <TGLabel.h>
 
 // TGeo
 #include <TGeoTube.h>
@@ -2005,6 +2007,7 @@ void EventDisplay::drawEvent(int event)
             << std::endl;
 
   browser->SetStatusText(Form("Event %d loaded", eventId),0);
+  updateEventEntries();
 }
 
 // do not implement, use compiler-generated one
@@ -3051,6 +3054,7 @@ void EventDisplay::startDisplay(int initialEvent)
 
     // read the number of events in the file
     nEvents = eventReader->nEvents;
+    updateEventEntries();
 
     // load and display the requested event
     std::cout << std::endl;
@@ -3138,6 +3142,50 @@ void EventDisplay::bck()
   }
 }
 
+void EventDisplay::goToEvent()
+{
+  if (evtFile == "" || eventEntries.empty())
+    return;
+
+  // the entry that emitted the signal (one per tab)
+  auto it = std::find(eventEntries.begin(), eventEntries.end(), static_cast<TGNumberEntry *>(gTQSender));
+  TGNumberEntry *entry = (it != eventEntries.end()) ? *it : eventEntries.front();
+  Long_t event = entry->GetIntNumber();
+
+  if (event < 0 || event >= nEvents)
+  {
+    printf("\nEvent %ld out of range [0, %d]\n", event, nEvents - 1);
+    int ret;
+    new TGMsgBox(gClient->GetRoot(), browser,
+                 "Error", Form("Event %ld out of range [0, %d]", event, nEvents - 1),
+                 kMBIconStop, kMBOk, &ret);
+    updateEventEntries();
+    return;
+  }
+  if (event == eventId)
+    return;
+  drawEvent(event);
+}
+
+void EventDisplay::updateEventEntries()
+{
+  for (TGNumberEntry *entry : eventEntries)
+  {
+    if (nEvents > 0)
+      entry->SetLimits(TGNumberFormat::kNELLimitMinMax, 0, nEvents - 1);
+    // do not emit ValueSet, which would reload the event
+    entry->SetIntNumber(eventId, kFALSE);
+  }
+  for (TGLabel *label : eventCountLabels)
+  {
+    label->SetText(Form("of %d", nEvents));
+    label->Resize(label->GetDefaultSize());
+  }
+  for (TGLabel *label : eventCountLabels)
+    if (label->GetParent())
+      ((TGCompositeFrame *) label->GetParent())->Layout();
+}
+
 void EventDisplay::toggleReadout()
 {
   if (showReadout) {
@@ -3211,6 +3259,18 @@ void EventDisplay::makeGui()
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "bck()");
     b->SetToolTipText("Go to previous event");
+
+    // event number entry: type the number and press Enter, or use its arrows
+    TGNumberEntry *entry = new TGNumberEntry(hf, 0, 6, -1, TGNumberFormat::kNESInteger,
+                                             TGNumberFormat::kNEANonNegative);
+    entry->GetNumberEntry()->SetToolTipText("Event number: type it and press Enter to go to that event");
+    entry->Connect("ValueSet(Long_t)", "EventDisplay", this, "goToEvent()");
+    entry->SetState(evtFile != "");
+    hf->AddFrame(entry, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 2, 10, 10));
+    eventEntries.push_back(entry);
+    TGLabel *countLabel = new TGLabel(hf, "of 0     ");
+    hf->AddFrame(countLabel, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 2, 10, 10));
+    eventCountLabels.push_back(countLabel);
 
     b = makeButton("GoForward.gif", ">");
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
