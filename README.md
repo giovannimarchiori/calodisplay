@@ -55,6 +55,14 @@ Execute with `calodisplay -h` to see available options:
 
 The ECAL barrel layout is deduced from the name of the geometry file: names containing `o1_v03` or `o2_v01` correspond to the ECAL barrel with 11 layers, the others to the older version with 12 layers. A warning is printed if the number of layers in the geometry does not match.
 
+### Running in a VNC session (hardware OpenGL with VirtualGL)
+Inside a VNC session, OpenGL applications use software rendering (Mesa llvmpipe), even if the machine has a GPU, and the display can be slow.
+If the machine has a GPU and [VirtualGL](https://virtualgl.org) is installed and configured, run the event display with `vglrun` to render on the GPU:
+```
+vglrun calodisplay -g data/ALLEGRO_o1_v03_noDCHcells.root -e <events.root> -c config.json --fulldet --dohcal --doendcap
+```
+Check that `vglrun glxinfo -B` reports the GPU as renderer.
+
 ### Navigation
 The navigation bar at the bottom contains:
 - a button to take a screenshot of the selected view
