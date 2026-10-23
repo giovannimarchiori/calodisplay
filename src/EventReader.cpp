@@ -1,5 +1,5 @@
 /******************************************************************************/
-// Simple event display for the ALLEGRO detector with ECAL with inclined modules
+// Event display for the ALLEGRO detector for FCC-ee
 // author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
 //
 // class EventReader: sets up the TTreeReader branches for reading event data
@@ -12,11 +12,10 @@
 
 #include <TBranchElement.h>
 
-EventReader::EventReader(TFile* f, bool doHCal)
+EventReader::EventReader(TFile* f)
 {
   fReader = std::make_unique<TTreeReader>("events", f);
   nEvents = fReader->GetEntries();
-  m_doHCal = doHCal;
 }
 
 bool EventReader::checkCollection(const std::string& drawFlag,
@@ -184,25 +183,14 @@ void EventReader::setBranches()
     setHits(ecalEndcapCells, collection, "energy", "position", true);
 
   // hits and cells in the HCal
-  if (m_doHCal) {
-    if (checkCollection("drawHCalBarrelHits", "hcalBarrelHits", "energy", collection))
-      setHits(hcalBarrelHits, collection, "energy", "stepPosition", false);
-    if (checkCollection("drawHCalBarrelCells", "hcalBarrelCells", "energy", collection))
-      setHits(hcalBarrelCells, collection, "energy", "position", true);
-    if (checkCollection("drawHCalEndcapHits", "hcalEndcapHits", "energy", collection))
-      setHits(hcalEndcapHits, collection, "energy", "stepPosition", false);
-    if (checkCollection("drawHCalEndcapCells", "hcalEndcapCells", "energy", collection))
-      setHits(hcalEndcapCells, collection, "energy", "position", true);
-  }
-  else {
-    // the names of the collections are kept: the cellID encoding of the HCal
-    // cells is still needed to draw the HCal cells of the (topo) clusters
-    std::cout << "doHCal is false, setting drawHCal*Hits and drawHCal*Cells to false" << std::endl;
-    displayConfig.setBoolConfig("drawHCalBarrelHits", false);
-    displayConfig.setBoolConfig("drawHCalBarrelCells", false);
-    displayConfig.setBoolConfig("drawHCalEndcapHits", false);
-    displayConfig.setBoolConfig("drawHCalEndcapCells", false);
-  }
+  if (checkCollection("drawHCalBarrelHits", "hcalBarrelHits", "energy", collection))
+    setHits(hcalBarrelHits, collection, "energy", "stepPosition", false);
+  if (checkCollection("drawHCalBarrelCells", "hcalBarrelCells", "energy", collection))
+    setHits(hcalBarrelCells, collection, "energy", "position", true);
+  if (checkCollection("drawHCalEndcapHits", "hcalEndcapHits", "energy", collection))
+    setHits(hcalEndcapHits, collection, "energy", "stepPosition", false);
+  if (checkCollection("drawHCalEndcapCells", "hcalEndcapCells", "energy", collection))
+    setHits(hcalEndcapCells, collection, "energy", "position", true);
 
   // hits and cells in the muon tagger
   if (checkCollections("drawMuonHits", "muonBarrelHits", "muonEndcapHits", "energy", collection, collection2))

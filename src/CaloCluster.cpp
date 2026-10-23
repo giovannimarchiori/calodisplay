@@ -1,5 +1,5 @@
 /******************************************************************************/
-// Simple event display for the LAr calorimeter with inclined modules
+// Event display for the ALLEGRO detector for FCC-ee
 // author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
 //
 // class CaloCluster: contains cluster summary information

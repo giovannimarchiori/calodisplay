@@ -1,3 +1,12 @@
+/******************************************************************************/
+// Event display for the ALLEGRO detector for FCC-ee
+// author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
+//
+// class CylField: magnetic field map in (r, z), read from a ROOT file and
+// interpolated on its grid, for the propagation of the tracks
+//
+/******************************************************************************/
+
 #ifndef __CYL_FIELD_H__
 #define __CYL_FIELD_H__
 

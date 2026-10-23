@@ -1,3 +1,11 @@
+/******************************************************************************/
+// Event display for the ALLEGRO detector for FCC-ee
+// author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
+//
+// namespace Units: units of length (ROOT uses cm, Geant4 mm)
+//
+/******************************************************************************/
+
 #ifndef __UNITS_H__
 #define __UNITS_H__
 

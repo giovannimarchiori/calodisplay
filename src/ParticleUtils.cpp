@@ -1,3 +1,11 @@
+/******************************************************************************/
+// Event display for the ALLEGRO detector for FCC-ee
+// author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
+//
+// namespace ParticleUtils: names of the particles from their PDG ID
+//
+/******************************************************************************/
+
 #include "ParticleUtils.h"
 
 #include <unordered_map>

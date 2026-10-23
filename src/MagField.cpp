@@ -1,3 +1,12 @@
+/******************************************************************************/
+// Event display for the ALLEGRO detector for FCC-ee
+// author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
+//
+// class MagField: magnetic field of an ideal solenoid (uniform field inside,
+// return field outside), for the propagation of the tracks
+//
+/******************************************************************************/
+
 #include "MagField.h"
 #include <iostream>
 

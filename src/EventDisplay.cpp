@@ -1,5 +1,5 @@
 /******************************************************************************/
-// Simple event display for the ALLEGRO detector with ECAL with inclined modules
+// Event display for the ALLEGRO detector for FCC-ee
 // author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
 //
 // class EventDisplay: creates and populates the event display
@@ -46,6 +46,7 @@
 #include <GL/gl.h>
 #endif
 #include <TEveGeoNode.h>
+#include <TEveGeoShapeExtract.h>
 
 
 #include <algorithm>
@@ -64,6 +65,10 @@ using Units::mm;
 
 namespace
 {
+// the code that decides which volumes of the G4 geometry are drawn is in this
+// file: the geometry cache is rebuilt when it is recompiled
+const std::string geometryCodeVersion = __DATE__ " " __TIME__;
+
 // vertical legend of a palette, with the axis on the right of the colour bar,
 // on a semi-transparent dark background so that it can be read on top of the
 // detector (the background also covers the title, drawn separately above it).
@@ -2210,23 +2215,37 @@ void EventDisplay::startDisplay(int initialEvent)
   readout->SetRnrSelfChildren(showReadout, showReadout);
   if (useG4geom)
   {
-    // auto fGeom = TFile::Open(geomFile.c_str(), "CACHEREAD");
-    std::cout << "Reading Geant4 geometry from file " << geomFile << std::endl;
-    auto fGeom = TFile::Open(geomFile.c_str(), "READ");
-    if (!fGeom)
-      return;
-
     gEve->AddGlobalElement(geom);
     gEve->AddToListTree(geom, true);
 
-    TEveGeoShapeExtract *gse = (TEveGeoShapeExtract *)fGeom->Get("world");
-    if (!gse)
-      return;
+    // the geometry without the volumes that are never drawn, from the cache
+    // if available, otherwise the full geometry from the geometry file
+    TEveGeoShapeExtract *gse = nullptr;
+    if (useGeometryCache)
+      gse = GeometryCache::read(geomFile, geometryCacheTag(), geometryCodeVersion);
+    const bool fromCache = (gse != nullptr);
+    if (!fromCache)
+    {
+      std::cout << "Reading Geant4 geometry from file " << geomFile << std::endl;
+      std::unique_ptr<TFile> fGeom(TFile::Open(geomFile.c_str(), "READ"));
+      if (!fGeom)
+        return;
+      gse = dynamic_cast<TEveGeoShapeExtract *>(fGeom->Get("world"));
+      if (!gse)
+        return;
+      fGeom->Close();
+    }
 
     TEveGeoShape *world = TEveGeoShape::ImportShapeExtract(gse, 0);
     world->SetMainTransparency(100);
-    fGeom->Close();
-    delete fGeom;
+    if (useGeometryCache && !fromCache)
+    {
+      // keep the full geometry until the display is set up, to write the cache
+      geometryExtract = gse;
+      GeometryCache::mapExtracts(gse, world, geometryExtracts);
+    }
+    else
+      GeometryCache::deleteExtract(gse);
 
     // check that the number of ECAL barrel layers in the geometry matches detectorVersion
     int nLayersInGeom = countECalBarrelLayers(world);
@@ -3136,6 +3155,16 @@ void EventDisplay::startDisplay(int initialEvent)
   gEve->FullRedraw3D(true);
 
 
+  // write the geometry cache, now that the volumes that can be drawn are known
+  if (geometryExtract)
+  {
+    GeometryCache::write(geomFile, geometryCacheTag(), geometryCodeVersion, geometryExtract,
+                         geometryExtracts, {geom, rhoPhiScene, rhoZScene});
+    GeometryCache::deleteExtract(geometryExtract, true);
+    geometryExtract = nullptr;
+    geometryExtracts.clear();
+  }
+
   // create the gui for event navigation
   makeGui();
 
@@ -3158,7 +3187,7 @@ void EventDisplay::startDisplay(int initialEvent)
 
     // open the file with the events and create the reader
     eventFile.reset(TFile::Open(evtFile.c_str(), "READ"));
-    eventReader = std::make_unique<EventReader>(eventFile.get(), doHCal);
+    eventReader = std::make_unique<EventReader>(eventFile.get());
 
     // setup the branches
     eventReader->setBranches();
@@ -3709,6 +3738,11 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
       currentMomentum
     });
   return segments;
+}
+
+std::string EventDisplay::geometryCacheTag() const
+{
+  return Form("fulldet%d_hcal%d_endcap%d", showFullDetector, doHCal, doEndcaps);
 }
 
 void EventDisplay::createElementList(TEveElementList*& list, const std::string& listName)

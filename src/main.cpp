@@ -1,5 +1,5 @@
 /******************************************************************************/
-// Simple event display for the ALLEGRO detector with ECAL with inclined modules
+// Event display for the ALLEGRO detector for FCC-ee
 // author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
 //
 // main.cpp: source for executable
@@ -24,14 +24,17 @@ std::string usage(bool verbose = false)
 {
   EventDisplay aDisplay;
   std::string use = "Usage:\n";
-  use += "calodisplay [--nog4] [--fulldet] [--dohcal] [--doendcap] [--sw] [--notopo] [--debug] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-c|--config <configFile.json>] [-s|--skipEvents <nevents>]\n\n";
+  use += "calodisplay [--nog4] [--fulldet] [--dohcal] [--doendcap] [--nocache] [--debug] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-c|--config <configFile.json>] [--set <key>=<value>] [-s|--skipEvents <nevents>]\n\n";
   use += "--nog4      : use simplified geometry rather than G4 geometry in file <geomFile.root>\n";
-  use += "--fulldet   : show the full detector (including tracker, muon detector, interaction region)\n";
-  use += "--dohcal    : show HCAL volume, hits and cells\n";
-  use += "--doendcap  : show ECAL and (optionally) HCAL endcaps\n";
-  use += "--sw        : show sliding-window clusters\n";
-  use += "--notopo    : do not show topoclusters\n\n";
-  use += "--debug     : display extended information on the console during execution\n\n";
+  use += "--fulldet   : show the full detector (including tracker, muon detector, interaction region),\n";
+  use += "              with HCAL and endcaps\n";
+  use += "--dohcal    : show the HCAL volumes and readout\n";
+  use += "--doendcap  : show the ECAL and (with --dohcal) HCAL endcaps\n";
+  use += "--nocache   : read the full G4 geometry, not the one without the volumes that are never drawn\n";
+  use += "              from the geometry cache (slower, but all the volumes can be turned on in the browser)\n";
+  use += "--debug     : display extended information on the console during execution\n";
+  use += "--set <key>=<value> : set a parameter of the configuration (overriding the configuration file),\n";
+  use += "              e.g. --set drawCaloClusters=true (can be repeated)\n\n";
 
   if (verbose)
   {
@@ -135,15 +138,25 @@ int main(int argc, char *argv[])
         continue;
       }
 
-      else if (arg == "--sw")
+      else if (arg == "--set")
       {
-        displayConfig.setBoolConfig("drawCaloClusters", true);
+        if (i == args.size() - 1)
+          throw std::runtime_error("missing <key>=<value> after --set option!");
+        i++;
+        std::string setting(args[i]);
+        size_t eq = setting.find('=');
+        if (eq == std::string::npos || eq == 0)
+          throw std::runtime_error("expected <key>=<value> after --set option, got " + setting);
+        std::string key = setting.substr(0, eq);
+        if (displayConfig.configMap.count(key) == 0)
+          std::cout << "WARNING: --set: " << key << " is not in the configuration, adding it" << std::endl;
+        displayConfig.setStringConfig(key, setting.substr(eq + 1));
         continue;
       }
 
-      else if (arg == "--notopo")
+      else if (arg == "--nocache")
       {
-        displayConfig.setBoolConfig("drawTopoClusters", false);
+        display.useGeometryCache = false;
         continue;
       }
 
@@ -231,6 +244,13 @@ int main(int argc, char *argv[])
   {
     std::cerr << "Event file " << display.evtFile << " does not exist!!!" << std::endl;
     return EXIT_FAILURE;
+  }
+
+  // the full detector includes the HCAL and the endcaps
+  if (display.showFullDetector)
+  {
+    display.doHCal = true;
+    display.doEndcaps = true;
   }
 
   // check if there are some conflicting options

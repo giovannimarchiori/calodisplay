@@ -1,3 +1,11 @@
+/******************************************************************************/
+// Event display for the ALLEGRO detector for FCC-ee
+// author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
+//
+// namespace MathUtils: mathematical utility functions
+//
+/******************************************************************************/
+
 #include "MathUtils.h"
 #include <cmath>
 

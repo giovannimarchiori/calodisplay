@@ -1,3 +1,11 @@
+/******************************************************************************/
+// Event display for the ALLEGRO detector for FCC-ee
+// author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
+//
+// namespace PathUtils: location of the files distributed with calodisplay
+//
+/******************************************************************************/
+
 #ifndef __PATHUTILS__
 #define __PATHUTILS__
 

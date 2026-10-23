@@ -1,5 +1,5 @@
 /******************************************************************************/
-// Simple event display for the ALLEGRO detector with ECAL with inclined modules
+// Event display for the ALLEGRO detector for FCC-ee
 // author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
 //
 // class EventReader: sets up the TTreeReader branches for reading event data
@@ -155,7 +155,7 @@ public:
   std::set<UInt_t> missingCellCollections;
 
  public:
-  EventReader(TFile* f, bool doHCal=false);
+  EventReader(TFile* f);
   bool checkCollection(const std::string& drawFlag,
 		       const std::string& flagName,
 		       const std::string& requiredBranch,
@@ -205,7 +205,6 @@ public:
   // configuration metadata, as "<algorithm or tool>.<property>" -> value
   std::map<std::string, std::string> readGaudiOptions();
   void loadEvent(int event);
-  bool m_doHCal;
 };
 
 #endif

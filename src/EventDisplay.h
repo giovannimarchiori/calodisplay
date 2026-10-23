@@ -1,5 +1,5 @@
 /******************************************************************************/
-// Simple event display for the ALLEGRO detector with ECAL with inclined modules
+// Event display for the ALLEGRO detector for FCC-ee
 // author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
 //
 // class EventDisplay: creates and populates the event display
@@ -37,6 +37,7 @@
 #include <memory>
 
 #include "DetectorGeometry.h"
+#include "GeometryCache.h"
 #include "EventReader.h"
 #include "CaloCluster.h"
 #include "GraphicUtils.h"
@@ -132,6 +133,9 @@ public:
   bool useG4geom = true;
   std::string geomFile = "data/ALLEGRO_o1_v03_noDCHcells.root";
   int detectorVersion = 3;
+  // read the G4 geometry without the volumes that are never drawn from a
+  // cache (see GeometryCache.h), writing it the first time
+  bool useGeometryCache = true;
 
   // merging along theta and module directions and drawing options
   // std::string evtFile = "output_fullCalo_SimAndDigi_withTopoCluster_MagneticField_False_pMin_10000_MeV_ThetaMinMax_40_140_pdgId_11_pythiaFalse_NoiseFalse.root";
@@ -219,6 +223,12 @@ public:
 
   // the list of the geometry
   TEveElementList* geom = nullptr;
+  // the full G4 geometry, kept until the display is set up to write the
+  // geometry cache, and the elements created from it
+  TEveGeoShapeExtract* geometryExtract = nullptr;
+  GeometryCache::ExtractMap geometryExtracts;
+  // identifies the display options that change which volumes are drawn
+  std::string geometryCacheTag() const;
 
   // the list of the readout elements
   TEveElementList *readout = nullptr;

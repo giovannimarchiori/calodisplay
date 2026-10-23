@@ -1,3 +1,11 @@
+/******************************************************************************/
+// Event display for the ALLEGRO detector for FCC-ee
+// author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
+//
+// namespace PodioUtils: utilities for podio files (collection IDs)
+//
+/******************************************************************************/
+
 #ifndef __PODIOUTILS__
 #define __PODIOUTILS__
 

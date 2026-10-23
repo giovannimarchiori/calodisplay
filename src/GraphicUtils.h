@@ -1,3 +1,11 @@
+/******************************************************************************/
+// Event display for the ALLEGRO detector for FCC-ee
+// author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
+//
+// class TGLConstAnnotation: GL annotation that cannot be edited with the mouse
+//
+/******************************************************************************/
+
 #ifndef __GRAPHICUTILS__
 #define __GRAPHICUTILS__
 

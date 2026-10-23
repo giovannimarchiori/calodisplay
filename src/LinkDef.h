@@ -1,3 +1,11 @@
+/******************************************************************************/
+// Event display for the ALLEGRO detector for FCC-ee
+// author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
+//
+// LinkDef: classes for which rootcling generates the ROOT dictionary
+//
+/******************************************************************************/
+
 #ifdef __CINT__
 #pragma link off all globals;
 #pragma link off all classes;
