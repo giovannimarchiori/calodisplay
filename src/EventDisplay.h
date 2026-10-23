@@ -157,8 +157,9 @@ public:
   /******************************************************************************/
   // ELEMENTS OF THE EVENT DISPLAY
   /******************************************************************************/
-  // Magnetic field
-  TEveMagField* magField = nullptr;
+  // Magnetic field: owned by the display and shared by the track propagators
+  // (which must not own it, or it would be deleted by each of them)
+  std::unique_ptr<TEveMagField> magField;
 
   // MC particles
   TEveTrackList *particles = nullptr;
@@ -423,6 +424,39 @@ private:
   std::vector<SubDetector> m_subDetectors;
 
   SubDetector* findSubDetector(TString const& s);
+
+  // the steps of startDisplay
+  // read the energy thresholds and the detector version
+  void readConfiguration();
+  // create the magnetic field (ideal solenoid or field map, see bField)
+  void createMagneticField();
+  // create the eve manager, the main window and the 3D view
+  void createMainWindow();
+  // create the geometry (returns false if it cannot be read)
+  bool buildGeometry();
+  // the G4 geometry, from the geometry cache or the geometry file
+  bool buildG4Geometry();
+  // the full detector (--fulldet), with the handlers of the subdetectors
+  void buildFullDetector(TEveElement *world);
+  // the calorimeters only (returns false if the ECAL barrel is not found)
+  bool buildCalorimeters(TEveElement *world);
+  // the simplified geometry, from the calculated dimensions (--nog4)
+  void buildSimplifiedGeometry();
+  // the rho-phi and rho-z views: the projection of the geometry and the readout
+  void createRhoPhiView();
+  void projectGeometryRhoPhi();
+  void drawRhoPhiReadout();
+  void createRhoZView();
+  void projectGeometryRhoZ();
+  void drawRhoZReadout();
+  // write the geometry cache (when the geometry was read from the geometry file)
+  void writeGeometryCache();
+  // open the event file and set up the event reader
+  void openEventFile();
+  // legends of the cluster cell energies in the projections
+  void addPaletteLegends();
+  // set the 3D view as the active tab, rotate the camera and set the clipping
+  void setInitialCamera();
 
   // decode the cellIDs with the CellIDEncoding stored in the event file
   void setCellIDEncodings();
