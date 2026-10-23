@@ -157,6 +157,7 @@ clean:
 	rm -f -r $(SHARED_LIBRARY_DS)
 	rm -f *~ src/*~
 	rm -f src/*_cpp.* src/*.pcm
+	rm -f *_dict*.h
 
 # Target for test output
 echo:
