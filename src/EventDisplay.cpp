@@ -39,6 +39,8 @@
 #include <TEveProjectionAxes.h>
 #include <TEveRGBAPaletteOverlay.h>
 #ifdef __APPLE__
+// OpenGL is deprecated on macOS (but still available, and used by ROOT)
+#define GL_SILENCE_DEPRECATION
 #include <OpenGL/gl.h>
 #else
 #include <GL/gl.h>
