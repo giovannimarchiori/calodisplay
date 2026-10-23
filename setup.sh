@@ -114,4 +114,31 @@ check_build() {
 check_build
 unset -f check_build
 
+# in a VNC session OpenGL is rendered in software (slow): remind to use
+# vglrun (VirtualGL) to render on the GPU, if available
+check_vnc() {
+    [[ -z $DISPLAY ]] && return
+    local vnc=0
+    if command -v xdpyinfo >/dev/null 2>&1; then
+        # VNC servers (TigerVNC, TurboVNC, ...) provide a VNC X extension
+        xdpyinfo 2>/dev/null | grep -qE "^ +(TIGERVNC|VNC-EXTENSION)$" && vnc=1
+    else
+        # no xdpyinfo: look for an Xvnc server for this display
+        local display=${DISPLAY#*:}
+        display=${display%%.*}
+        pgrep -f "Xvnc :${display}( |$)" >/dev/null 2>&1 && vnc=1
+    fi
+    [[ $vnc = 0 ]] && return
+    echo ""
+    if command -v vglrun >/dev/null 2>&1; then
+        echo "You are in a VNC session: to render on the GPU instead of in software, run with vglrun, e.g.:"
+        echo "    vglrun calodisplay -g <geometry.root> -e <events.root>"
+    else
+        echo "You are in a VNC session: OpenGL is rendered in software and can be slow"
+        echo "(VirtualGL is not installed, see the README)"
+    fi
+}
+check_vnc
+unset -f check_vnc
+
 echo ""
