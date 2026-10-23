@@ -584,7 +584,7 @@ EventReader::~EventReader() {
     delete ECalBarrelCells_position_y;
     delete ECalBarrelCells_position_z;
   }
-  if (ECalBarrelCells2_cellID) {
+  if (ECalBarrelCells2_energy) {
     delete ECalBarrelCells2_cellID;
     delete ECalBarrelCells2_energy;
     delete ECalBarrelCells2_position_x;
@@ -630,14 +630,14 @@ EventReader::~EventReader() {
     delete HCalEndcapCells_position_y;
     delete HCalEndcapCells_position_z;
   }
-  if (MuonBarrelHits_cellID) {
+  if (MuonBarrelHits_energy) {
     delete MuonBarrelHits_cellID;
     delete MuonBarrelHits_energy;
     delete MuonBarrelHits_position_x;
     delete MuonBarrelHits_position_y;
     delete MuonBarrelHits_position_z;
   }
-  if (MuonEndcapHits_cellID) {
+  if (MuonEndcapHits_energy) {
     delete MuonEndcapHits_cellID;
     delete MuonEndcapHits_energy;
     delete MuonEndcapHits_position_x;
