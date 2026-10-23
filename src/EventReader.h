@@ -15,6 +15,11 @@
 #include <TFile.h>
 #include <TTreeReader.h>
 #include <TTreeReaderArray.h>
+#include <map>
+#include <memory>
+#include <set>
+#include <string>
+#include <vector>
 using namespace std;
 
 /******************************************************************************/
@@ -292,6 +297,38 @@ public:
   TTreeReaderArray<Float_t> *CaloClusterCells_position_y = nullptr;
   TTreeReaderArray<Float_t> *CaloClusterCells_position_z = nullptr;
 
+  // the links from the clusters to their cells (podio ObjectIDs), used when
+  // there is no dedicated collection with the cells of the clusters
+  TTreeReaderArray<Int_t> *CaloTopoClusters_hits_index = nullptr;
+  TTreeReaderArray<UInt_t> *CaloTopoClusters_hits_collectionID = nullptr;
+  TTreeReaderArray<Int_t> *CaloClusters_hits_index = nullptr;
+  TTreeReaderArray<UInt_t> *CaloClusters_hits_collectionID = nullptr;
+
+  // the cells of the clusters in the current event, in the order of the
+  // cluster hits: the cells of cluster i are [hits_begin[i], hits_end[i]).
+  // Filled by loadEvent, from the cluster cell collection or from the links
+  struct ClusterCells
+  {
+    std::vector<ULong_t> cellID;
+    std::vector<Float_t> energy;
+    std::vector<Float_t> x, y, z;
+    size_t size() const { return energy.size(); }
+  };
+  ClusterCells topoClusterCells;
+  ClusterCells swClusterCells;
+
+  // the calorimeter cell collections in the file, by podio collection ID,
+  // used to follow the links
+  struct CellCollection
+  {
+    std::string name;
+    std::unique_ptr<TTreeReaderArray<ULong_t>> cellID;
+    std::unique_ptr<TTreeReaderArray<Float_t>> energy, x, y, z;
+  };
+  std::map<UInt_t, CellCollection> cellCollections;
+  // collection IDs pointed to by links but not found in the file (warned once)
+  std::set<UInt_t> missingCellCollections;
+
   
  public:
   EventReader(TFile* f, bool doHCal=false);
@@ -315,6 +352,29 @@ public:
       return new TTreeReaderArray<T>(*fReader, Form("%s.%s", collection.c_str(), branch.c_str()));
   }
   void setBranches();
+  // set up the reading of the cells of the clusters, from the cell collection
+  // (if present) or from the links of the clusters to the cell collections
+  // returns false if neither is available
+  bool setClusterCells(const std::string& clustersKey,
+                       const std::string& cellsKey,
+                       TTreeReaderArray<ULong_t>*& cellID,
+                       TTreeReaderArray<Float_t>*& energy,
+                       TTreeReaderArray<Float_t>*& x,
+                       TTreeReaderArray<Float_t>*& y,
+                       TTreeReaderArray<Float_t>*& z,
+                       TTreeReaderArray<Int_t>*& linkIndex,
+                       TTreeReaderArray<UInt_t>*& linkCollectionID);
+  // find all the calorimeter cell collections in the file
+  void setCellCollections();
+  // fill the cells of the clusters for the current event
+  void fillClusterCells(ClusterCells& cells,
+                        TTreeReaderArray<ULong_t>* cellID,
+                        TTreeReaderArray<Float_t>* energy,
+                        TTreeReaderArray<Float_t>* x,
+                        TTreeReaderArray<Float_t>* y,
+                        TTreeReaderArray<Float_t>* z,
+                        TTreeReaderArray<Int_t>* linkIndex,
+                        TTreeReaderArray<UInt_t>* linkCollectionID);
   void loadEvent(int event);
   bool m_doHCal;
   bool m_doSW;

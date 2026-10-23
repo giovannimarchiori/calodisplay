@@ -8,6 +8,9 @@
 
 #include "EventReader.h"
 #include "Globals.h"
+#include "PodioUtils.h"
+
+#include <TBranchElement.h>
 
 EventReader::EventReader(TFile* f, bool doHCal)
 {
@@ -372,33 +375,12 @@ void EventReader::setBranches()
   }
 
   // cells in the SW clusters
-  // need to modify EventDisplay.cpp FillClusters and DrawClusters if I don't want to use cell info
-  //  if (displayConfig.getBoolConfig("drawCaloClusters") && displayConfig.getBoolConfig("drawCaloClusterCells")) {
-  if (displayConfig.getBoolConfig("drawCaloClusters")) {
-    std::string collection = displayConfig.getStringConfig("caloClusterCells");
-    if (collection == "") {
-      // try to use default collection
-      collection = displayConfig.getStringConfig("caloClusters");
-      collection.pop_back();
-      collection += "Cells";
-      std::cout << "WARNING: caloClusterCells not set, trying with " << collection << std::endl;
-      displayConfig.setStringConfig("caloClusterCells", collection);
-    }
-    if (! fReader->GetTree()->FindBranch(Form("%s.cellID", collection.c_str()))) {
-      std::cout << "WARNING: branch " << collection << ".cellID not found, disabling calo cluster cells" << std::endl;
-      displayConfig.setBoolConfig("drawCaloClusterCells", false);
-      displayConfig.setStringConfig("caloClusterCells", "");
-      // also disable the clusters until I fix EventDisplay.cpp
-      displayConfig.setBoolConfig("drawCaloClusters", false);
-      displayConfig.setStringConfig("caloClusters", "");
-    }
-    else {
-      CaloClusterCells_cellID     = makeArray<ULong_t>(collection, "cellID");
-      CaloClusterCells_energy     = makeArray<Float_t>(collection, "energy");
-      CaloClusterCells_position_x = makeArray<Float_t>(collection, "position.x");
-      CaloClusterCells_position_y = makeArray<Float_t>(collection, "position.y");
-      CaloClusterCells_position_z = makeArray<Float_t>(collection, "position.z");
-    }
+  if (displayConfig.getBoolConfig("drawCaloClusters"))
+  {
+    setClusterCells("caloClusters", "caloClusterCells",
+                    CaloClusterCells_cellID, CaloClusterCells_energy,
+                    CaloClusterCells_position_x, CaloClusterCells_position_y, CaloClusterCells_position_z,
+                    CaloClusters_hits_index, CaloClusters_hits_collectionID);
   }
 
   // topo clusters
@@ -415,32 +397,131 @@ void EventReader::setBranches()
   }
   
   // cells in the topo clusters
-  // need to modify EventDisplay.cpp FillClusters and DrawClusters if I don't want to use cell info
-  // if (displayConfig.getBoolConfig("drawTopoClusters") && displayConfig.getBoolConfig("drawTopoClusterCells")) {
-  if (displayConfig.getBoolConfig("drawTopoClusters")) {
-    std::string collection = displayConfig.getStringConfig("topoClusterCells");
-    if (collection == "") {
-      // try to use default collection
-      collection = displayConfig.getStringConfig("topoClusters");
-      collection.pop_back();
-      collection += "Cells";
-      std::cout << "WARNING: topoClusterCells not set, trying with " << collection << std::endl;
-      displayConfig.setStringConfig("topoClusterCells", collection);
-    }
-    if (! fReader->GetTree()->FindBranch(Form("%s.cellID", collection.c_str()))) {
-      std::cout << "WARNING: branch " << collection << ".cellID not found, disabling topo cluster cells" << std::endl;
-      displayConfig.setBoolConfig("drawTopoClusterCells", false);
-      displayConfig.setStringConfig("topoClusterCells", "");
-      // also disable the clusters until I fix EventDisplay.cpp
-      // displayConfig.setBoolConfig("drawTopoClusters", false);
-      // displayConfig.setStringConfig("topoClusters", "");
-    }
-    else {
-      CaloTopoClusterCells_cellID     = makeArray<ULong_t>(collection, "cellID");
-      CaloTopoClusterCells_energy     = makeArray<Float_t>(collection, "energy");
-      CaloTopoClusterCells_position_x = makeArray<Float_t>(collection, "position.x");
-      CaloTopoClusterCells_position_y = makeArray<Float_t>(collection, "position.y");
-      CaloTopoClusterCells_position_z = makeArray<Float_t>(collection, "position.z");
+  if (displayConfig.getBoolConfig("drawTopoClusters"))
+  {
+    setClusterCells("topoClusters", "topoClusterCells",
+                    CaloTopoClusterCells_cellID, CaloTopoClusterCells_energy,
+                    CaloTopoClusterCells_position_x, CaloTopoClusterCells_position_y, CaloTopoClusterCells_position_z,
+                    CaloTopoClusters_hits_index, CaloTopoClusters_hits_collectionID);
+  }
+}
+
+bool EventReader::setClusterCells(const std::string& clustersKey,
+                                  const std::string& cellsKey,
+                                  TTreeReaderArray<ULong_t>*& cellID,
+                                  TTreeReaderArray<Float_t>*& energy,
+                                  TTreeReaderArray<Float_t>*& x,
+                                  TTreeReaderArray<Float_t>*& y,
+                                  TTreeReaderArray<Float_t>*& z,
+                                  TTreeReaderArray<Int_t>*& linkIndex,
+                                  TTreeReaderArray<UInt_t>*& linkCollectionID)
+{
+  std::string clusters = displayConfig.getStringConfig(clustersKey);
+  std::string collection = displayConfig.getStringConfig(cellsKey);
+  if (collection == "") {
+    // try to use default collection
+    collection = clusters;
+    collection.pop_back();
+    collection += "Cells";
+    std::cout << "WARNING: " << cellsKey << " not set, trying with " << collection << std::endl;
+  }
+
+  // 1. a dedicated collection with the cells of the clusters
+  if (fReader->GetTree()->FindBranch(Form("%s.cellID", collection.c_str()))) {
+    displayConfig.setStringConfig(cellsKey, collection);
+    cellID = makeArray<ULong_t>(collection, "cellID");
+    energy = makeArray<Float_t>(collection, "energy");
+    x      = makeArray<Float_t>(collection, "position.x");
+    y      = makeArray<Float_t>(collection, "position.y");
+    z      = makeArray<Float_t>(collection, "position.z");
+    return true;
+  }
+  displayConfig.setStringConfig(cellsKey, "");
+
+  // 2. the links of the clusters to the cells in the cell collections
+  std::string links = "_" + clusters + "_hits";
+  if (fReader->GetTree()->FindBranch(Form("%s.collectionID", links.c_str()))) {
+    std::cout << "Branch " << collection << ".cellID not found, using the links " << links
+              << " of the clusters to the cell collections" << std::endl;
+    linkIndex        = makeArray<Int_t>(links, "index");
+    linkCollectionID = makeArray<UInt_t>(links, "collectionID");
+    if (cellCollections.empty())
+      setCellCollections();
+    return true;
+  }
+
+  std::cout << "WARNING: neither branch " << collection << ".cellID nor " << links
+            << " found, drawing the clusters without their cells" << std::endl;
+  return false;
+}
+
+void EventReader::setCellCollections()
+{
+  // the podio collection ID is a hash of the collection name, so the
+  // collections can be identified without reading the podio metadata
+  for (TObject* obj : *fReader->GetTree()->GetListOfBranches()) {
+    TBranchElement* branch = dynamic_cast<TBranchElement*>(obj);
+    if (!branch || std::string(branch->GetClassName()) != "vector<edm4hep::CalorimeterHitData>")
+      continue;
+    std::string name = branch->GetName();
+    CellCollection& cells = cellCollections[PodioUtils::collectionID(name)];
+    cells.name = name;
+    cells.cellID.reset(makeArray<ULong_t>(name, "cellID"));
+    cells.energy.reset(makeArray<Float_t>(name, "energy"));
+    cells.x.reset(makeArray<Float_t>(name, "position.x"));
+    cells.y.reset(makeArray<Float_t>(name, "position.y"));
+    cells.z.reset(makeArray<Float_t>(name, "position.z"));
+  }
+  std::cout << "Calorimeter cell collections available for the cluster links:";
+  for (const auto& [id, cells] : cellCollections)
+    std::cout << " " << cells.name;
+  std::cout << std::endl;
+}
+
+void EventReader::fillClusterCells(ClusterCells& cells,
+                                   TTreeReaderArray<ULong_t>* cellID,
+                                   TTreeReaderArray<Float_t>* energy,
+                                   TTreeReaderArray<Float_t>* x,
+                                   TTreeReaderArray<Float_t>* y,
+                                   TTreeReaderArray<Float_t>* z,
+                                   TTreeReaderArray<Int_t>* linkIndex,
+                                   TTreeReaderArray<UInt_t>* linkCollectionID)
+{
+  cells.cellID.clear();
+  cells.energy.clear();
+  cells.x.clear();
+  cells.y.clear();
+  cells.z.clear();
+
+  auto addCell = [&cells](ULong_t id, Float_t e, Float_t xx, Float_t yy, Float_t zz) {
+    cells.cellID.push_back(id);
+    cells.energy.push_back(e);
+    cells.x.push_back(xx);
+    cells.y.push_back(yy);
+    cells.z.push_back(zz);
+  };
+
+  if (energy) {
+    // dedicated collection with the cells of the clusters
+    for (unsigned int i = 0; i < energy->GetSize(); i++)
+      addCell((*cellID)[i], (*energy)[i], (*x)[i], (*y)[i], (*z)[i]);
+  }
+  else if (linkIndex) {
+    // follow the links to the cell collections
+    for (unsigned int i = 0; i < linkIndex->GetSize(); i++) {
+      UInt_t collectionID = (*linkCollectionID)[i];
+      Int_t index = (*linkIndex)[i];
+      auto it = cellCollections.find(collectionID);
+      if (it == cellCollections.end() || index < 0 || (unsigned int) index >= it->second.energy->GetSize()) {
+        if (it == cellCollections.end() && missingCellCollections.insert(collectionID).second)
+          std::cout << "WARNING: cell collection with podio ID " << collectionID
+                    << " used by the cluster links is not in the file, its cells are not drawn" << std::endl;
+        // keep the cell (with cellID 0) so that hits_begin/hits_end stay aligned
+        addCell(0, 0., 0., 0., 0.);
+        continue;
+      }
+      const CellCollection& c = it->second;
+      addCell((*c.cellID)[index], (*c.energy)[index], (*c.x)[index], (*c.y)[index], (*c.z)[index]);
     }
   }
 }
@@ -692,6 +773,12 @@ EventReader::~EventReader() {
     delete CaloTopoClusterCells_position_y;
     delete CaloTopoClusterCells_position_z;
   }
+  delete CaloTopoClusters_hits_index;
+  delete CaloTopoClusters_hits_collectionID;
+  delete CaloClusters_hits_index;
+  delete CaloClusters_hits_collectionID;
+  // the arrays must be deleted before their reader
+  cellCollections.clear();
   delete fReader;
 }
 
@@ -701,4 +788,15 @@ void EventReader::loadEvent(int event) {
     cout << "Event number " << event << " out of range : [0, " << nEvents-1 << "]" << endl;
   }
   fReader->SetEntry(event);
+
+  if (CaloTopoClusters_energy)
+    fillClusterCells(topoClusterCells,
+                     CaloTopoClusterCells_cellID, CaloTopoClusterCells_energy,
+                     CaloTopoClusterCells_position_x, CaloTopoClusterCells_position_y, CaloTopoClusterCells_position_z,
+                     CaloTopoClusters_hits_index, CaloTopoClusters_hits_collectionID);
+  if (CaloClusters_energy)
+    fillClusterCells(swClusterCells,
+                     CaloClusterCells_cellID, CaloClusterCells_energy,
+                     CaloClusterCells_position_x, CaloClusterCells_position_y, CaloClusterCells_position_z,
+                     CaloClusters_hits_index, CaloClusters_hits_collectionID);
 }

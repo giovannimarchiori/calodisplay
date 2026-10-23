@@ -83,6 +83,8 @@ int countECalBarrelLayers(TEveElement *world)
 
 void EventDisplay::fillClusters(std::string clusterType)
 {
+  // the cells of the clusters of the current event
+  const EventReader::ClusterCells &cells = (clusterType == "topo") ? eventReader->topoClusterCells : eventReader->swClusterCells;
   // read once, not in the loop over the clusters
   const bool calculateBaryCenters = displayConfig.getBoolConfig("calculateClusterBaryCenters");
 
@@ -175,17 +177,15 @@ void EventDisplay::fillClusters(std::string clusterType)
         std::cout << "  Retrieving cluster cells and calculating energy per layer .." << std::endl;
       }
       unsigned int first_hit, last_hit;
-      unsigned int nCells;
+      // (no cells if the cells of the clusters are not available)
+      const unsigned int nCells = cells.size();
       if (clusterType == "topo")
       {
-        // the cell collection may be missing from the file: then no cells
-        nCells = eventReader->CaloTopoClusterCells_energy ? eventReader->CaloTopoClusterCells_energy->GetSize() : 0;
         first_hit = (*eventReader->CaloTopoClusters_hits_begin)[i];
         last_hit = (*eventReader->CaloTopoClusters_hits_end)[i];
       }
       else
       {
-        nCells = eventReader->CaloClusterCells_energy ? eventReader->CaloClusterCells_energy->GetSize() : 0;
         first_hit = (*eventReader->CaloClusters_hits_begin)[i];
         last_hit = (*eventReader->CaloClusters_hits_end)[i];
       }
@@ -200,16 +200,10 @@ void EventDisplay::fillClusters(std::string clusterType)
       {
         ULong_t cellID;
         float energy, x_center, y_center, z_center;
-        if (clusterType == "topo")
-        {
-          cellID = (*eventReader->CaloTopoClusterCells_cellID)[iCell];
-          energy = (*eventReader->CaloTopoClusterCells_energy)[iCell];
-        }
-        else
-        {
-          cellID = (*eventReader->CaloClusterCells_cellID)[iCell];
-          energy = (*eventReader->CaloClusterCells_energy)[iCell];
-        }
+        cellID = cells.cellID[iCell];
+        energy = cells.energy[iCell];
+        if (cellID == 0)
+          continue; // cell not available (see EventReader::fillClusterCells)
         ULong_t systemID = geomReader->SystemID(cellID);
         ULong_t layer = 0;
         std::vector<float> *energyVsLayer = nullptr;
@@ -282,22 +276,11 @@ void EventDisplay::fillClusters(std::string clusterType)
       {
         ULong_t cellID;
         float energy, x, y, z;
-        if (clusterType == "topo")
-        {
-          cellID = (*eventReader->CaloTopoClusterCells_cellID)[iCell];
-          energy = (*eventReader->CaloTopoClusterCells_energy)[iCell];
-          x = (*eventReader->CaloTopoClusterCells_position_x)[iCell] * mm;
-          y = (*eventReader->CaloTopoClusterCells_position_y)[iCell] * mm;
-          z = (*eventReader->CaloTopoClusterCells_position_z)[iCell] * mm;
-        }
-        else
-        {
-          cellID = (*eventReader->CaloClusterCells_cellID)[iCell];
-          energy = (*eventReader->CaloClusterCells_energy)[iCell];
-          x = (*eventReader->CaloClusterCells_position_x)[iCell] * mm;
-          y = (*eventReader->CaloClusterCells_position_y)[iCell] * mm;
-          z = (*eventReader->CaloClusterCells_position_z)[iCell] * mm;
-        }
+        cellID = cells.cellID[iCell];
+        energy = cells.energy[iCell];
+        x = cells.x[iCell] * mm;
+        y = cells.y[iCell] * mm;
+        z = cells.z[iCell] * mm;
         ULong_t systemID = geomReader->SystemID(cellID);
         ULong_t layer = 0;
         std::vector<float> *energyVsLayer = nullptr;
@@ -1073,6 +1056,8 @@ void EventDisplay::drawTracks()
 
 void EventDisplay::drawClusters(std::string clusterType)
 {
+  // the cells of the clusters of the current event
+  const EventReader::ClusterCells &cells = (clusterType == "topo") ? eventReader->topoClusterCells : eventReader->swClusterCells;
   // read once, not in the loop over the clusters
   const bool drawDirection = displayConfig.getBoolConfig("drawClusterDirection");
 
@@ -1501,10 +1486,9 @@ void EventDisplay::drawClusters(std::string clusterType)
   // loop over cells
   std::unordered_map<ULong64_t, double> cellEnergies_rhoz;
   std::unordered_map<ULong64_t, double> cellEnergies_rhophi;
-  // the cell collection may be missing from the file: then the clusters are
+  // if the cells of the clusters are not available, the clusters are
   // drawn without their cells (barycenter and direction only)
-  const TTreeReaderArray<Float_t> *cellEnergyArray = (clusterType == "topo") ? eventReader->CaloTopoClusterCells_energy : eventReader->CaloClusterCells_energy;
-  unsigned int nCells = cellEnergyArray ? cellEnergyArray->GetSize() : 0;
+  unsigned int nCells = cells.size();
 
   // index of the cluster each cell belongs to (-1 if none), built once:
   // the cells of cluster j are [hits_begin[j], hits_end[j])
@@ -1535,22 +1519,13 @@ void EventDisplay::drawClusters(std::string clusterType)
       continue; // should never happen..
     ULong_t cellID;
     float energy, x_center, y_center, z_center;
-    if (clusterType == "topo")
-    {
-      cellID = (*eventReader->CaloTopoClusterCells_cellID)[i];
-      energy = (*eventReader->CaloTopoClusterCells_energy)[i];
-      x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * mm;
-      y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * mm;
-      z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * mm;
-    }
-    else
-    {
-      cellID = (*eventReader->CaloClusterCells_cellID)[i];
-      energy = (*eventReader->CaloClusterCells_energy)[i];
-      x_center = (*eventReader->CaloClusterCells_position_x)[i] * mm;
-      y_center = (*eventReader->CaloClusterCells_position_y)[i] * mm;
-      z_center = (*eventReader->CaloClusterCells_position_z)[i] * mm;
-    }
+    cellID = cells.cellID[i];
+    if (cellID == 0)
+      continue; // cell not available (see EventReader::fillClusterCells)
+    energy = cells.energy[i];
+    x_center = cells.x[i] * mm;
+    y_center = cells.y[i] * mm;
+    z_center = cells.z[i] * mm;
     float r_center = sqrt(x_center * x_center + y_center * y_center);
     int systemID = (int)DetectorGeometry::SystemID(cellID);
     // for 2D projections, assign unique ID
@@ -1755,14 +1730,14 @@ void EventDisplay::drawClusters(std::string clusterType)
     float r_out = geomReader->r[layer+1];
     float x_center, y_center, z_center;
     if (clusterType=="topo") {
-      x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * mm;
-      y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * mm;
-      z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * mm;
+      x_center = cells.x[i] * mm;
+      y_center = cells.y[i] * mm;
+      z_center = cells.z[i] * mm;
     }
     else {
-      x_center = (*eventReader->CaloClusterCells_position_x)[i] * mm;
-      y_center = (*eventReader->CaloClusterCells_position_y)[i] * mm;
-      z_center = (*eventReader->CaloClusterCells_position_z)[i] * mm;
+      x_center = cells.x[i] * mm;
+      y_center = cells.y[i] * mm;
+      z_center = cells.z[i] * mm;
     }
     float r_center = sqrt(x_center*x_center + y_center*y_center);
 
@@ -1796,14 +1771,7 @@ void EventDisplay::drawClusters(std::string clusterType)
       continue; // should never happen..
     ULong_t cellID;
     float energy;
-    if (clusterType == "topo")
-    {
-      cellID = (*eventReader->CaloTopoClusterCells_cellID)[i];
-    }
-    else
-    {
-      cellID = (*eventReader->CaloClusterCells_cellID)[i];
-    }
+    cellID = cells.cellID[i];
 
     int system = (int)DetectorGeometry::SystemID(cellID);
     int layer(0), thetaID(0);
@@ -1835,18 +1803,9 @@ void EventDisplay::drawClusters(std::string clusterType)
     energy = cellEnergies_rhoz[rhozID];
     cellEnergies_rhoz.erase(rhozID);
     float x_center, y_center, z_center;
-    if (clusterType == "topo")
-    {
-      x_center = (*eventReader->CaloTopoClusterCells_position_x)[i] * mm;
-      y_center = (*eventReader->CaloTopoClusterCells_position_y)[i] * mm;
-      z_center = (*eventReader->CaloTopoClusterCells_position_z)[i] * mm;
-    }
-    else
-    {
-      x_center = (*eventReader->CaloClusterCells_position_x)[i] * mm;
-      y_center = (*eventReader->CaloClusterCells_position_y)[i] * mm;
-      z_center = (*eventReader->CaloClusterCells_position_z)[i] * mm;
-    }
+    x_center = cells.x[i] * mm;
+    y_center = cells.y[i] * mm;
+    z_center = cells.z[i] * mm;
     float r_center = sqrt(x_center * x_center + y_center * y_center);
     float theta_center = atan2(r_center, z_center);
     if (system == 4)
