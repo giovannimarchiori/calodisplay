@@ -38,6 +38,9 @@ else
 	SONAME_FLAG=-Wl,-soname,$(SHARED_LIBRARY)
 endif
 
+# File recording the ROOT version used for the build (checked by setup.sh)
+BUILD_INFO=$(BIN_DIR)/build-info.txt
+
 # Binary executable file names with path
 EXECUTABLE=$(BIN_DIR)/$(APP_NAME)
 EXECUTABLE_LOCAL=$(BIN_DIR)/$(APP_NAME)-local
@@ -110,6 +113,8 @@ $(SHARED_LIBRARY_PATH): $(LIB_OBJECTS) $(DICT_OBJ)
 	@echo "Linking "$@
 	$(CXX) -shared -o $@ $(LDFLAGS) $(SONAME_FLAG) $^ $(LIBS)
 	cp $(OBJ_DIR)/$(DICT_PCM_FILENAME) $(BIN_DIR)/$(DICT_PCM_FILENAME)
+	@echo "ROOT_VERSION=$$(root-config --version)" > $(BUILD_INFO)
+	@echo "ROOT_PREFIX=$$(root-config --prefix)" >> $(BUILD_INFO)
 
 # Target for linking the production executable (main only, rest from the library)
 $(EXECUTABLE): $(MAIN_OBJECT) $(SHARED_LIBRARY_PATH)

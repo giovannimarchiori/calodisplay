@@ -14,7 +14,8 @@ Setup ROOT and the environment with:
 ```
 source setup.sh
 ```
-(on machines where ROOT is set up via key4hep or LCG, setup ROOT first, then source `setup.sh`).
+(if ROOT is already set up, i.e. `ROOTSYS` is set, it is used as is; otherwise, on lxplus and fcc-ironic ROOT is set up from the nightly key4hep stack).
+`setup.sh` also checks whether calodisplay is compiled, up to date with the sources, and built with a ROOT version compatible with the one set up, and tells you whether to run `make -j8` or `make clean` followed by `make -j8`.
 
 Compile:
 ```
@@ -75,7 +76,7 @@ The event file is a podio/EDM4hep ROOT file, e.g. produced by the ALLEGRO simula
 
 ### Detector geometry
 To create the root file with the detector geometry (if that on the website is outdated):
-- create the GDML file from Geant4 with ddsim (see `run_all_chain.sh` or do `ddsim --numberOfEvents 0 --enableGun --compactFile $K4GEO/FCCee/ALLEGRO/compact/ALLEGRO_o1_v03/ALLEGRO_o1_v03.xml  --geometry.dumpGDML ALLEGRO_o1_v03.gdml --runType run`)
+- create the GDML file from Geant4 with ddsim (do e.g. `ddsim --numberOfEvents 0 --enableGun --compactFile $K4GEO/FCCee/ALLEGRO/compact/ALLEGRO_o1_v03/ALLEGRO_o1_v03.xml  --geometry.dumpGDML ALLEGRO_o1_v03.gdml --runType run`)
 - convert the GDML to ROOT with `util/gdmltoroot.C`:
 ```
 cd util
