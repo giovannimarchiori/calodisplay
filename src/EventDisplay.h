@@ -360,7 +360,7 @@ public:
       // skip hit if energy branch is not nullptr and E<threshold
       if (hit_energy) {
         float E = (*hit_energy)[i];
-        if (E < HitEnergyThreshold)
+        if (E < Ethr)
           continue;
       }
       hitSet->SetNextPoint((*hit_position_x)[i] * mm,
