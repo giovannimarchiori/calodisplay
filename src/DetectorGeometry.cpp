@@ -184,7 +184,7 @@ void DetectorGeometry::calcGeom(int version) {
 
 bool DetectorGeometry::isInECalBarrel(double r, double z) {
   if ( (r>=rMin) && (r<=rMax) &&
-       (z>=zMin) && (z<=rMax) )
+       (z>=zMin) && (z<=zMax) )
     return true;
   else
     return false;
