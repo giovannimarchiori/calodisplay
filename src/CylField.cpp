@@ -238,6 +238,9 @@ void CylField::DrawFieldMap(const std::string& canvasName,
   TH2D* hMag = new TH2D("hMag", "|B|;z;r",
                         fBz->GetNbinsY(), fZmin - fDz/2., fZmax + fDz/2.,   // x = z
                         fBr->GetNbinsX(), fRmin - fDr/2., fRmax + fDr/2.);  // y = r
+  // owned by the canvas (deleted with it), not by the current directory
+  hMag->SetDirectory(nullptr);
+  hMag->SetBit(kCanDelete);
   const int nx = fBr->GetNbinsX();
   const int ny = fBr->GetNbinsY();
 
@@ -286,10 +289,12 @@ void CylField::DrawFieldMap(const std::string& canvasName,
       TArrow* arrow = new TArrow(z, r, z2, r2, 0.015, "|>");
       arrow->SetLineColor(kBlack);
       arrow->SetFillColor(kBlack);
+      arrow->SetBit(kCanDelete);
       arrow->Draw();
     }
   }
   c->Update();
   c->SaveAs(canvasName.c_str());
-  c->Close();
+  // deletes also the histogram and the arrows (kCanDelete)
+  delete c;
 }
