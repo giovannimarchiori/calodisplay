@@ -187,7 +187,27 @@ public:
   // HELPER FUNCTIONS related to the readout
   /******************************************************************************/
 
-  // extract number encoded in N bits starting at bit M from cellID  
+  // a field of the cellID: bit offset and width (negative width: signed
+  // field), as in the DD4hep CellIDEncoding strings
+  struct CellIDField
+  {
+    int offset;
+    int width;
+  };
+
+  // the calorimeter readouts for which the cellID is decoded
+  enum class Readout { ECalBarrel, ECalEndcap, HCalBarrel, HCalEndcap };
+
+  // set the cellID fields of a calorimeter readout from its CellIDEncoding
+  // string (e.g. "system:0:4,layer:4:5,..."), as stored in the metadata of
+  // the event file. Until this is called, default encodings are used.
+  // Returns false (and keeps the current fields) if a needed field is missing
+  static bool SetCellIDEncoding(Readout readout, const std::string& encoding);
+
+  // extract the value of a field from cellID
+  static Long64_t ReadField(const CellIDField& field, ULong_t cellID);
+
+  // extract number encoded in N bits starting at bit M from cellID
   static ULong_t ReadNbitsAtPositionMFromCellID(int n, int m, ULong_t cellID);
 
   // extract system number from cellID
@@ -198,12 +218,11 @@ public:
   static ULong_t ECalBarrelModule(ULong_t cellID);
   static ULong_t ECalBarrelThetaBin(ULong_t cellID);
 
-  // HCal barrel: extract layer, row, theta, phi bin from cellID
+  // HCal barrel: extract layer, theta, phi bin from cellID
   static ULong_t HCalBarrelLayer(ULong_t cellID);
-  // static ULong_t HCalBarrelRow(ULong_t cellID);
   static ULong_t HCalBarrelThetaBin(ULong_t cellID);
   static ULong_t HCalBarrelPhiBin(ULong_t cellID);
- 
+
   // ECal endcap: extract side, wheel, layer, module, rho, z
   static Long_t ECalEndCapSide(ULong_t cellID);
   static ULong_t ECalEndCapWheel(ULong_t cellID);
@@ -212,11 +231,19 @@ public:
   static ULong_t ECalEndCapRhoBin(ULong_t cellID);
   static ULong_t ECalEndCapZBin(ULong_t cellID);
 
-  // HCal endcap: extract layer, row, theta, phi bin from cellID
+  // HCal endcap: extract layer, theta, phi bin from cellID
   static ULong_t HCalEndCapLayer(ULong_t cellID);
-  // static ULong_t HCalEndCapRow(ULong_t cellID);
   static ULong_t HCalEndCapThetaBin(ULong_t cellID);
   static ULong_t HCalEndCapPhiBin(ULong_t cellID);
+
+private:
+  // the cellID fields used by the functions above
+  static CellIDField fSystem;
+  static CellIDField fECalBarrelLayer, fECalBarrelModule, fECalBarrelTheta;
+  static CellIDField fHCalBarrelLayer, fHCalBarrelTheta, fHCalBarrelPhi;
+  static CellIDField fECalEndCapSide, fECalEndCapWheel, fECalEndCapLayer,
+                     fECalEndCapModule, fECalEndCapRho, fECalEndCapZ;
+  static CellIDField fHCalEndCapLayer, fHCalEndCapTheta, fHCalEndCapPhi;
 
   //ClassDef(DetectorGeometry, 0)
 };

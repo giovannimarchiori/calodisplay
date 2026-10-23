@@ -389,6 +389,9 @@ private:
 
   SubDetector* findSubDetector(TString const& s);
 
+  // decode the cellIDs with the CellIDEncoding stored in the event file
+  void setCellIDEncodings();
+
   void addSimpleElement(TEveElement* element, SubDetector&);
   void addVertex(TEveElement* element, SubDetector&);
   void addDCH(TEveElement* element, SubDetector&);

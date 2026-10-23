@@ -9,6 +9,10 @@
 #include "DetectorGeometry.h"
 
 #include <iostream>
+#include <map>
+#include <sstream>
+#include <stdexcept>
+#include <cstdlib>
 using std::cout;
 using std::endl;
 
@@ -204,110 +208,190 @@ bool DetectorGeometry::isInECalEndCap(double r, double z) {
 // HELPER FUNCTIONS related to the readout
 /******************************************************************************/
 
-ULong_t DetectorGeometry::ReadNbitsAtPositionMFromCellID(int n, int m, ULong_t cellID) {
-  const ULong_t mask = (1<<n) - 1;
-  return (cellID >> m) & mask;
-}
+// default cellID encodings, used if the event file has no CellIDEncoding
+// metadata for the readout
+// ECal barrel: system:0:4,cryo:4:1,type:5:3,subtype:8:3,layer:11:8,module:19:11,theta:30:10
+// HCal barrel: system:0:4,layer:4:5,theta:9:9,phi:18:10
+// ECal endcap: system:0:4,cryo:4:1,type:5:3,subtype:8:3,side:11:-2,wheel:13:3,layer:16:12,module:28:11,rho:39:8,z:47:8
+// HCal endcap: system:0:4,type:4:3,layer:7:6,row:13:11,theta:24:11,phi:35:10
+DetectorGeometry::CellIDField DetectorGeometry::fSystem = {0, 4};
+DetectorGeometry::CellIDField DetectorGeometry::fECalBarrelLayer = {11, 8};
+DetectorGeometry::CellIDField DetectorGeometry::fECalBarrelModule = {19, 11};
+DetectorGeometry::CellIDField DetectorGeometry::fECalBarrelTheta = {30, 10};
+DetectorGeometry::CellIDField DetectorGeometry::fHCalBarrelLayer = {4, 5};
+DetectorGeometry::CellIDField DetectorGeometry::fHCalBarrelTheta = {9, 9};
+DetectorGeometry::CellIDField DetectorGeometry::fHCalBarrelPhi = {18, 10};
+DetectorGeometry::CellIDField DetectorGeometry::fECalEndCapSide = {11, -2};
+DetectorGeometry::CellIDField DetectorGeometry::fECalEndCapWheel = {13, 3};
+DetectorGeometry::CellIDField DetectorGeometry::fECalEndCapLayer = {16, 12};
+DetectorGeometry::CellIDField DetectorGeometry::fECalEndCapModule = {28, 11};
+DetectorGeometry::CellIDField DetectorGeometry::fECalEndCapRho = {39, 8};
+DetectorGeometry::CellIDField DetectorGeometry::fECalEndCapZ = {47, 8};
+DetectorGeometry::CellIDField DetectorGeometry::fHCalEndCapLayer = {7, 6};
+DetectorGeometry::CellIDField DetectorGeometry::fHCalEndCapTheta = {24, 11};
+DetectorGeometry::CellIDField DetectorGeometry::fHCalEndCapPhi = {35, 10};
 
-// ECal barrel: system:4,cryo:1,type:3,subtype:3,layer:8,module:11,theta:10
-// HCal barrel: system:4,layer:5,theta:9,phi:10
-// ECal endcap: system:4,cryo:1,type:3,subtype:3,side:-2,wheel:3,layer:12,module:11,rho:8,z:8
-// HCal endcap: system:4,type:3,layer:6,row:11,theta:11,phi:10
+bool DetectorGeometry::SetCellIDEncoding(Readout readout, const std::string& encoding)
+{
+  // parse the fields "name:offset:width" (or "name:width", with the offset
+  // following the previous field), separated by commas
+  std::map<std::string, CellIDField> fields;
+  std::stringstream ss(encoding);
+  std::string item;
+  int nextOffset = 0;
+  while (std::getline(ss, item, ','))
+  {
+    std::vector<std::string> parts;
+    std::stringstream itemss(item);
+    std::string part;
+    while (std::getline(itemss, part, ':'))
+      parts.push_back(part);
+    try
+    {
+      CellIDField field;
+      if (parts.size() == 3)
+        field = {std::stoi(parts[1]), std::stoi(parts[2])};
+      else if (parts.size() == 2)
+        field = {nextOffset, std::stoi(parts[1])};
+      else
+        throw std::invalid_argument(item);
+      fields[parts[0]] = field;
+      nextOffset = field.offset + std::abs(field.width);
+    }
+    catch (const std::exception&)
+    {
+      cout << "WARNING: cannot parse field '" << item << "' of CellIDEncoding " << encoding << ", ignoring the encoding" << endl;
+      return false;
+    }
+  }
 
-// extract system ID from cellID
-ULong_t DetectorGeometry::SystemID(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(4, 0, cellID);
-}
-
-// extract ECal barrel layer number from cellID
-ULong_t DetectorGeometry::ECalBarrelLayer(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(8, 11, cellID);
-}
-
-// extract ECal barrel module number from cellID
-ULong_t DetectorGeometry::ECalBarrelModule(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(11, 19, cellID);
-}
-
-// extract ECal barrel theta bin from cellID
-ULong_t DetectorGeometry::ECalBarrelThetaBin(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(10, 30, cellID);
-}
-
-// extract HCal barrel layer number from cellID
-ULong_t DetectorGeometry::HCalBarrelLayer(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(5, 4, cellID);
-}
-
-// extract HCal barrel row number from cellID
-//ULong_t DetectorGeometry::HCalBarrelRow(ULong_t cellID) {
-//  return ReadNbitsAtPositionMFromCellID(9, 9, cellID);
-//}
-
-// extract HCal barrel theta bin from cellID
-ULong_t DetectorGeometry::HCalBarrelThetaBin(ULong_t cellID) {
-  //return ReadNbitsAtPositionMFromCellID(9, 18, cellID);
-  return ReadNbitsAtPositionMFromCellID(9, 9, cellID);
-}
-
-// extract HCal barrel phi bin from cellID
-ULong_t DetectorGeometry::HCalBarrelPhiBin(ULong_t cellID) {
-  //return ReadNbitsAtPositionMFromCellID(10, 27, cellID);
-  return ReadNbitsAtPositionMFromCellID(10, 18, cellID);
-}
-
-// extract ECal endcap side from cellID
-Long_t DetectorGeometry::ECalEndCapSide(ULong_t cellID) {
-  ULong_t side = ReadNbitsAtPositionMFromCellID(2, 11, cellID);
-  if (side == 1)
-    return 1;
+  // the fields needed for each readout, and where to store them
+  std::vector<std::pair<std::string, CellIDField*>> needed = {{"system", &fSystem}};
+  std::string readoutName;
+  switch (readout)
+  {
+  case Readout::ECalBarrel:
+    readoutName = "ECal barrel";
+    needed.insert(needed.end(), {{"layer", &fECalBarrelLayer}, {"module", &fECalBarrelModule}, {"theta", &fECalBarrelTheta}});
+    break;
+  case Readout::HCalBarrel:
+    readoutName = "HCal barrel";
+    needed.insert(needed.end(), {{"layer", &fHCalBarrelLayer}, {"theta", &fHCalBarrelTheta}, {"phi", &fHCalBarrelPhi}});
+    break;
+  case Readout::ECalEndcap:
+    readoutName = "ECal endcap";
+    needed.insert(needed.end(), {{"side", &fECalEndCapSide}, {"wheel", &fECalEndCapWheel}, {"layer", &fECalEndCapLayer},
+                                 {"module", &fECalEndCapModule}, {"rho", &fECalEndCapRho}, {"z", &fECalEndCapZ}});
+    break;
+  case Readout::HCalEndcap:
+    readoutName = "HCal endcap";
+    needed.insert(needed.end(), {{"layer", &fHCalEndCapLayer}, {"theta", &fHCalEndCapTheta}, {"phi", &fHCalEndCapPhi}});
+    break;
+  }
+  for (const auto& [name, field] : needed)
+  {
+    if (fields.find(name) == fields.end())
+    {
+      cout << "WARNING: field " << name << " missing in CellIDEncoding " << encoding
+           << " of the " << readoutName << ", using the default encoding" << endl;
+      return false;
+    }
+  }
+  // the system field is used to find the readout of a cell, so it must be the
+  // same for all the readouts: keep the first one and warn if they differ
+  static bool systemSet = false;
+  const CellIDField& system = fields["system"];
+  if (systemSet && (system.offset != fSystem.offset || system.width != fSystem.width))
+    cout << "WARNING: the system field (" << system.offset << ":" << system.width << ") in the CellIDEncoding of the "
+         << readoutName << " differs from the one of the other readouts (" << fSystem.offset << ":" << fSystem.width
+         << "), keeping the latter" << endl;
   else
-    return -1;
+  {
+    fSystem = system;
+    systemSet = true;
+  }
+  for (const auto& [name, field] : needed)
+    if (field != &fSystem)
+      *field = fields[name];
+  cout << "Using CellIDEncoding " << encoding << " for the " << readoutName << endl;
+  return true;
 }
 
-// extract ECal endcap wheel from cellID
+Long64_t DetectorGeometry::ReadField(const CellIDField& field, ULong_t cellID)
+{
+  const int width = std::abs(field.width);
+  const ULong64_t mask = (width < 64) ? ((1ULL << width) - 1) : ~0ULL;
+  const ULong64_t value = ((ULong64_t) cellID >> field.offset) & mask;
+  // signed field: extend the sign
+  if (field.width < 0 && ((value >> (width - 1)) & 1))
+    return (Long64_t) value - (Long64_t) (1ULL << width);
+  return (Long64_t) value;
+}
+
+ULong_t DetectorGeometry::ReadNbitsAtPositionMFromCellID(int n, int m, ULong_t cellID) {
+  return ReadField({m, n}, cellID);
+}
+
+ULong_t DetectorGeometry::SystemID(ULong_t cellID) {
+  return ReadField(fSystem, cellID);
+}
+
+ULong_t DetectorGeometry::ECalBarrelLayer(ULong_t cellID) {
+  return ReadField(fECalBarrelLayer, cellID);
+}
+
+ULong_t DetectorGeometry::ECalBarrelModule(ULong_t cellID) {
+  return ReadField(fECalBarrelModule, cellID);
+}
+
+ULong_t DetectorGeometry::ECalBarrelThetaBin(ULong_t cellID) {
+  return ReadField(fECalBarrelTheta, cellID);
+}
+
+ULong_t DetectorGeometry::HCalBarrelLayer(ULong_t cellID) {
+  return ReadField(fHCalBarrelLayer, cellID);
+}
+
+ULong_t DetectorGeometry::HCalBarrelThetaBin(ULong_t cellID) {
+  return ReadField(fHCalBarrelTheta, cellID);
+}
+
+ULong_t DetectorGeometry::HCalBarrelPhiBin(ULong_t cellID) {
+  return ReadField(fHCalBarrelPhi, cellID);
+}
+
+Long_t DetectorGeometry::ECalEndCapSide(ULong_t cellID) {
+  return ReadField(fECalEndCapSide, cellID);
+}
+
 ULong_t DetectorGeometry::ECalEndCapWheel(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(3, 13, cellID);
+  return ReadField(fECalEndCapWheel, cellID);
 }
 
-// extract ECal endcap layer from cellID
 ULong_t DetectorGeometry::ECalEndCapLayer(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(12, 16, cellID);
+  return ReadField(fECalEndCapLayer, cellID);
 }
 
-// extract ECal endcap module from cellID
 ULong_t DetectorGeometry::ECalEndCapModule(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(11, 28, cellID);
+  return ReadField(fECalEndCapModule, cellID);
 }
 
-// extract ECal endcap rho bin from cellID
 ULong_t DetectorGeometry::ECalEndCapRhoBin(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(8, 39, cellID);
+  return ReadField(fECalEndCapRho, cellID);
 }
 
-// extract ECal endcap z bin from cellID
 ULong_t DetectorGeometry::ECalEndCapZBin(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(8, 47, cellID);
+  return ReadField(fECalEndCapZ, cellID);
 }
 
-// HCal endcap: system:4,type:3,layer:6,row:11,theta:11,phi:10
-
-// extract HCal endcap layer number from cellID
 ULong_t DetectorGeometry::HCalEndCapLayer(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(6, 7, cellID);
+  return ReadField(fHCalEndCapLayer, cellID);
 }
 
-// extract HCal endcap row number from cellID
-//ULong_t DetectorGeometry::HCalEndCapRow(ULong_t cellID) {
-//  return ReadNbitsAtPositionMFromCellID(11, 13, cellID);
-//}
-
-// extract HCal endcap theta bin from cellID
 ULong_t DetectorGeometry::HCalEndCapThetaBin(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(11, 24, cellID);
+  return ReadField(fHCalEndCapTheta, cellID);
 }
 
-// extract HCal endcap phi bin from cellID
 ULong_t DetectorGeometry::HCalEndCapPhiBin(ULong_t cellID) {
-  return ReadNbitsAtPositionMFromCellID(10, 35, cellID);
+  return ReadField(fHCalEndCapPhi, cellID);
 }

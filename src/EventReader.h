@@ -15,6 +15,7 @@
 #include <TFile.h>
 #include <TTreeReader.h>
 #include <TTreeReaderArray.h>
+#include <TTreeReaderValue.h>
 #include <map>
 #include <memory>
 #include <set>
@@ -375,6 +376,8 @@ public:
                         TTreeReaderArray<Float_t>* z,
                         TTreeReaderArray<Int_t>* linkIndex,
                         TTreeReaderArray<UInt_t>* linkCollectionID);
+  // the CellIDEncoding strings stored in the metadata of the file, by collection name
+  std::map<std::string, std::string> readCellIDEncodings();
   void loadEvent(int event);
   bool m_doHCal;
   bool m_doSW;

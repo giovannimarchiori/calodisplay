@@ -783,6 +783,32 @@ EventReader::~EventReader() {
 }
 
 
+std::map<std::string, std::string> EventReader::readCellIDEncodings()
+{
+  // podio stores the file metadata as parameters (keys and values) in the
+  // "metadata" tree, with keys <collection>__CellIDEncoding
+  std::map<std::string, std::string> encodings;
+  TFile* file = fReader->GetTree()->GetCurrentFile();
+  TTree* tree = file ? dynamic_cast<TTree*>(file->Get("metadata")) : nullptr;
+  if (!tree || !tree->GetBranch("GPStringKeys") || !tree->GetBranch("GPStringValues"))
+    return encodings;
+
+  TTreeReader reader(tree);
+  TTreeReaderValue<std::vector<std::string>> keys(reader, "GPStringKeys");
+  TTreeReaderValue<std::vector<std::vector<std::string>>> values(reader, "GPStringValues");
+  if (!reader.Next())
+    return encodings;
+
+  const std::string suffix = "__CellIDEncoding";
+  for (size_t i = 0; i < keys->size() && i < values->size(); i++) {
+    const std::string& key = (*keys)[i];
+    if (key.size() > suffix.size() && key.compare(key.size() - suffix.size(), suffix.size(), suffix) == 0
+        && !(*values)[i].empty())
+      encodings[key.substr(0, key.size() - suffix.size())] = (*values)[i][0];
+  }
+  return encodings;
+}
+
 void EventReader::loadEvent(int event) {
   if (event<0 || event>=nEvents) {
     cout << "Event number " << event << " out of range : [0, " << nEvents-1 << "]" << endl;

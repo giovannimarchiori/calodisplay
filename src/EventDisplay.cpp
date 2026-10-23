@@ -39,6 +39,8 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <map>
+#include <tuple>
 #include <unordered_map>
 #include <iostream>
 
@@ -48,6 +50,21 @@ using Units::mm;
 
 namespace
 {
+// identifies a cell of a cluster in a 2D projection: the system, the index of
+// the cluster, the layer, and the bin in the projected view (theta bin for
+// rho-z; module for the ECAL and phi bin for the HCAL for rho-phi)
+struct ProjectedCellKey
+{
+  int system;
+  int cluster;
+  int layer;
+  int bin;
+  bool operator<(const ProjectedCellKey &other) const
+  {
+    return std::tie(system, cluster, layer, bin) < std::tie(other.system, other.cluster, other.layer, other.bin);
+  }
+};
+
 // find the first element (depth-first) whose name begins with prefix
 TEveElement *findElementBeginningWith(TEveElement *el, const char *prefix)
 {
@@ -1484,8 +1501,8 @@ void EventDisplay::drawClusters(std::string clusterType)
     }
   }
   // loop over cells
-  std::unordered_map<ULong64_t, double> cellEnergies_rhoz;
-  std::unordered_map<ULong64_t, double> cellEnergies_rhophi;
+  std::map<ProjectedCellKey, double> cellEnergies_rhoz;
+  std::map<ProjectedCellKey, double> cellEnergies_rhophi;
   // if the cells of the clusters are not available, the clusters are
   // drawn without their cells (barycenter and direction only)
   unsigned int nCells = cells.size();
@@ -1528,31 +1545,20 @@ void EventDisplay::drawClusters(std::string clusterType)
     z_center = cells.z[i] * mm;
     float r_center = sqrt(x_center * x_center + y_center * y_center);
     int systemID = (int)DetectorGeometry::SystemID(cellID);
-    // for 2D projections, assign unique ID
-    // based on
+    // for 2D projections, identify the projected cell by
     // ECAL: layer-theta for rho-z, layer-module for rho-phi
     // HCAL: layer-theta for rho-z, layer-phi for rho-phi
-    // layer = 0..11 fits in 4 bits (0..15)
-    // theta = 0..800 fits in 10 bits (0..1023)
-    // module = 0..1535 fits in 11 bits (0..2043)
-    // cluster = assume < 512 (9 bits)
-    // so both IDs can fit in a 32-bit integer
-    // but could even play it safer and just use cellID and remove unused fields
     float r_in(0.), r_out(0.);
     int layer(0), thetaID(0), moduleID(0), phiID(0);
-    ULong64_t rhophiID(0), rhozID(0);
-
-    // temporary
-    // rhophiID = cellID;
-    // rhozID = cellID;
+    ProjectedCellKey rhophiID{}, rhozID{};
 
     if (systemID == 4)
     {
       layer = (int)DetectorGeometry::ECalBarrelLayer(cellID);
       thetaID = (int)DetectorGeometry::ECalBarrelThetaBin(cellID);
       moduleID = (int)DetectorGeometry::ECalBarrelModule(cellID);
-      rhophiID = systemID + 16 * (icl + 512 * layer + 512 * 16 * moduleID);
-      rhozID = systemID + 16 * (icl + 512 * layer + 512 * 16 * thetaID);
+      rhophiID = {systemID, icl, layer, moduleID};
+      rhozID = {systemID, icl, layer, thetaID};
       r_in = geomReader->r[layer];
       r_out = geomReader->r[layer + 1];
     }
@@ -1561,8 +1567,8 @@ void EventDisplay::drawClusters(std::string clusterType)
       layer = (int)DetectorGeometry::HCalBarrelLayer(cellID);
       thetaID = (int)DetectorGeometry::HCalBarrelThetaBin(cellID);
       phiID = (int)DetectorGeometry::HCalBarrelPhiBin(cellID);
-      rhophiID = systemID + 16 * (icl + 512 * layer + 512 * 16 * phiID);
-      rhozID = systemID + 16 * (icl + 512 * layer + 512 * 16 * thetaID);
+      rhophiID = {systemID, icl, layer, phiID};
+      rhozID = {systemID, icl, layer, thetaID};
       r_in = geomReader->rHCal[layer];
       r_out = geomReader->rHCal[layer + 1];
     }
@@ -1775,13 +1781,13 @@ void EventDisplay::drawClusters(std::string clusterType)
 
     int system = (int)DetectorGeometry::SystemID(cellID);
     int layer(0), thetaID(0);
-    long rhozID(0);
+    ProjectedCellKey rhozID{};
     float r_in(0.), r_out(0.), thetaMin(0.), thetaMax(0.);
     if (system == 4)
     {
       layer = (int)DetectorGeometry::ECalBarrelLayer(cellID);
       thetaID = (int)DetectorGeometry::ECalBarrelThetaBin(cellID);
-      rhozID = system + 16 * (icl + 512 * layer + 512 * 16 * thetaID);
+      rhozID = {system, icl, layer, thetaID};
       r_in = geomReader->r[layer];
       r_out = geomReader->r[layer + 1];
     }
@@ -1789,7 +1795,7 @@ void EventDisplay::drawClusters(std::string clusterType)
     {
       layer = (int)DetectorGeometry::HCalBarrelLayer(cellID);
       thetaID = (int)DetectorGeometry::HCalBarrelThetaBin(cellID);
-      rhozID = system + 16 * (icl + 512 * layer + 512 * 16 * thetaID);
+      rhozID = {system, icl, layer, thetaID};
       r_in = geomReader->rHCal[layer];
       r_out = geomReader->rHCal[layer + 1];
     }
@@ -1840,15 +1846,12 @@ void EventDisplay::drawClusters(std::string clusterType)
     std::cout << "  Draw rho-phi view of clustered cells" << std::endl;
   for (auto &[key, energy] : cellEnergies_rhophi)
   {
-    // continue;  // GM FIXME!!!! WHY SYSTEM IS 8????
-    ULong64_t ikey = (ULong64_t)key;
-    int system = ikey % 16;
-    ikey = ikey / 16;
-    int icl = ikey % 512;
+    int system = key.system;
+    int icl = key.cluster;
     if (system == 4)
     {
-      int layer = (ikey / 512) % 16;
-      int moduleID = ikey / (512 * 16);
+      int layer = key.layer;
+      int moduleID = key.bin;
       // std::cout << "cluster layer module = " << icl << " " << layer << " " << moduleID << std::endl;
       float r_in = geomReader->r[layer];
       float r_out = geomReader->r[layer + 1];
@@ -1876,8 +1879,8 @@ void EventDisplay::drawClusters(std::string clusterType)
     }
     else if (system==8)
     {
-      int layer = (ikey / 512) % 16;
-      int phiID = ikey / (512 * 16);
+      int layer = key.layer;
+      int phiID = key.bin;
       // std::cout << "cluster layer module = " << icl << " " << layer << " " << moduleID << std::endl;
       float r_in = geomReader->rHCal[layer];
       float r_out = geomReader->rHCal[layer + 1];
@@ -3031,6 +3034,9 @@ void EventDisplay::startDisplay(int initialEvent)
     // setup the branches
     eventReader->setBranches();
 
+    // decode the cellIDs with the CellIDEncoding stored in the file
+    setCellIDEncodings();
+
     // print updated draw settings based on info found in ROOT file
     displayConfig.print();
 
@@ -3463,6 +3469,42 @@ void EventDisplay::createElementList(TEveElementList*& list, const std::string& 
   {
     list = new TEveElementList(listName.c_str());
     gEve->AddElement(list);
+  }
+}
+
+void EventDisplay::setCellIDEncodings()
+{
+  std::map<std::string, std::string> encodings = eventReader->readCellIDEncodings();
+  if (encodings.empty())
+  {
+    std::cout << "WARNING: no CellIDEncoding in the metadata of the event file, using the default cellID encodings" << std::endl;
+    return;
+  }
+
+  // the encoding of each calorimeter readout is taken from its cell collection
+  const std::vector<std::pair<std::string, DetectorGeometry::Readout>> readouts = {
+    {"ecalBarrelCells", DetectorGeometry::Readout::ECalBarrel},
+    {"ecalEndcapCells", DetectorGeometry::Readout::ECalEndcap},
+    {"hcalBarrelCells", DetectorGeometry::Readout::HCalBarrel},
+    {"hcalEndcapCells", DetectorGeometry::Readout::HCalEndcap}};
+  for (const auto& [key, readout] : readouts)
+  {
+    std::string collection = displayConfig.getStringConfig(key);
+    if (collection == "")
+      continue;
+    auto it = encodings.find(collection);
+    // the encoding is also stored for the readout, i.e. without "Positioned"
+    const std::string positioned = "Positioned";
+    if (it == encodings.end() && collection.size() > positioned.size() &&
+        collection.compare(collection.size() - positioned.size(), positioned.size(), positioned) == 0)
+      it = encodings.find(collection.substr(0, collection.size() - positioned.size()));
+    if (it == encodings.end())
+    {
+      std::cout << "WARNING: no CellIDEncoding for " << key << " (" << collection
+                << ") in the metadata of the event file, using the default encoding" << std::endl;
+      continue;
+    }
+    DetectorGeometry::SetCellIDEncoding(readout, it->second);
   }
 }
 
