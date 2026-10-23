@@ -2956,6 +2956,8 @@ void EventDisplay::projectGeometryRhoZ()
           if (!projbarrel)
             continue;
           projbarrel->SetMainTransparency(useTransparencies ? 60 : 0);
+          // do not draw the envelope, which would cover the layers, but its content
+          projbarrel->SetRnrSelfChildren(false, true);
           TPRegexp rebath("LAr_bath(\\w+)");
           TEveElement *projbath = projbarrel->FindChild(rebath);
           if (projbath) {
