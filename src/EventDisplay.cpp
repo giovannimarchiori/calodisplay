@@ -2071,6 +2071,8 @@ void EventDisplay::drawEvent(int event)
   else {
     eventLabel->SetText(Form("Event %d", eventId));
   }
+  // the labels are not elements of the scene: changing them does not trigger a redraw
+  mainGLView->RequestDraw();
 
   TEveElement *top = (TEveElement *)gEve->GetCurrentEvent();
   // if nothing is drawn, top is null
@@ -3882,12 +3884,13 @@ void EventDisplay::setCellIDEncodings()
   }
 
   // the encoding of each calorimeter readout is taken from its cell collection
-  const std::vector<std::pair<std::string, DetectorGeometry::Readout>> readouts = {
-    {"ecalBarrelCells", DetectorGeometry::Readout::ECalBarrel},
-    {"ecalEndcapCells", DetectorGeometry::Readout::ECalEndcap},
-    {"hcalBarrelCells", DetectorGeometry::Readout::HCalBarrel},
-    {"hcalEndcapCells", DetectorGeometry::Readout::HCalEndcap}};
-  for (const auto& [key, readoutType] : readouts)
+  // (also when its cells are not drawn, as they can be in the clusters)
+  const std::vector<std::tuple<std::string, std::string, DetectorGeometry::Readout>> readouts = {
+    {"ecalBarrelCells", "drawECalBarrelCells", DetectorGeometry::Readout::ECalBarrel},
+    {"ecalEndcapCells", "drawECalEndcapCells", DetectorGeometry::Readout::ECalEndcap},
+    {"hcalBarrelCells", "drawHCalBarrelCells", DetectorGeometry::Readout::HCalBarrel},
+    {"hcalEndcapCells", "drawHCalEndcapCells", DetectorGeometry::Readout::HCalEndcap}};
+  for (const auto& [key, drawFlag, readoutType] : readouts)
   {
     std::string collection = displayConfig.getStringConfig(key);
     if (collection == "")
@@ -3900,8 +3903,10 @@ void EventDisplay::setCellIDEncodings()
       it = encodings.find(collection.substr(0, collection.size() - positioned.size()));
     if (it == encodings.end())
     {
-      std::cout << "WARNING: no CellIDEncoding for " << key << " (" << collection
-                << ") in the metadata of the event file, using the default encoding" << std::endl;
+      // (the detector might not be in the file: warn only if its cells are drawn)
+      if (displayConfig.getBoolConfig(drawFlag))
+        std::cout << "WARNING: no CellIDEncoding for " << key << " (" << collection
+                  << ") in the metadata of the event file, using the default encoding" << std::endl;
       continue;
     }
     DetectorGeometry::SetCellIDEncoding(readoutType, it->second);

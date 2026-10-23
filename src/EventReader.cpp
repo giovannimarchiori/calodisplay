@@ -195,15 +195,13 @@ void EventReader::setBranches()
       setHits(hcalEndcapCells, collection, "energy", "position", true);
   }
   else {
+    // the names of the collections are kept: the cellID encoding of the HCal
+    // cells is still needed to draw the HCal cells of the (topo) clusters
     std::cout << "doHCal is false, setting drawHCal*Hits and drawHCal*Cells to false" << std::endl;
     displayConfig.setBoolConfig("drawHCalBarrelHits", false);
-    displayConfig.setStringConfig("hcalBarrelHits", "");
     displayConfig.setBoolConfig("drawHCalBarrelCells", false);
-    displayConfig.setStringConfig("hcalBarrelCells", "");
     displayConfig.setBoolConfig("drawHCalEndcapHits", false);
-    displayConfig.setStringConfig("hcalEndcapHits", "");
     displayConfig.setBoolConfig("drawHCalEndcapCells", false);
-    displayConfig.setStringConfig("hcalEndcapCells", "");
   }
 
   // hits and cells in the muon tagger
