@@ -380,9 +380,9 @@ public:
         if (E < Ethr)
           continue;
       }
-      hitSet->SetNextPoint((*hit_position_x)[i] * mm,
-                           (*hit_position_y)[i] * mm,
-                           (*hit_position_z)[i] * mm);
+      hitSet->SetNextPoint((*hit_position_x)[i] * Units::mm,
+                           (*hit_position_y)[i] * Units::mm,
+                           (*hit_position_z)[i] * Units::mm);
     }
   }
 

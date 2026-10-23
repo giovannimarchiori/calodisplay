@@ -17,9 +17,6 @@
 #include <string>
 #include <vector>
 #include "Units.h"
-using Units::units;
-using Units::cm;
-using Units::mm;
 
 class DetectorGeometry {
 public:
@@ -39,12 +36,12 @@ public:
   // ECAL barrel
 
   // z extension
-  const double zMin = -3100.*mm;
-  const double zMax =  3100.*mm;
+  const double zMin = -3100.*Units::mm;
+  const double zMax =  3100.*Units::mm;
   
   // radial extension
-  const double rMin = 217.28*cm;
-  const double rMax = 257.83*cm;
+  const double rMin = 217.28*Units::cm;
+  const double rMax = 257.83*Units::cm;
 
   // nominal radial thickness of layers in barrel
   std::vector<double> drNom;
@@ -76,10 +73,10 @@ public:
   // ECAL endcap
 
   // z extent
-  const double rMinEndCap = 350.0*mm;
-  const double rMaxEndCap = 2900.0*cm;
-  const double zMinEndCap = 3200.*mm;
-  const double zMaxEndCap = 3850.*mm;
+  const double rMinEndCap = 350.0*Units::mm;
+  const double rMaxEndCap = 2900.0*Units::cm;
+  const double zMinEndCap = 3200.*Units::mm;
+  const double zMaxEndCap = 3850.*Units::mm;
 
   // number of layers
   const int nLayersECalEndCap = 10;
@@ -89,17 +86,17 @@ public:
 
   // radial positions of layer boundaries
   const std::vector<double> rHCal = {
-    281.05*cm, 286.05*cm, 291.05*cm, 296.05*cm, 301.05*cm,
-    311.05*cm, 321.05*cm, 331.05*cm, 341.05*cm, 351.05*cm,
-    361.05*cm, 381.05*cm, 401.05*cm, 421.05*cm};
+    281.05*Units::cm, 286.05*Units::cm, 291.05*Units::cm, 296.05*Units::cm, 301.05*Units::cm,
+    311.05*Units::cm, 321.05*Units::cm, 331.05*Units::cm, 341.05*Units::cm, 351.05*Units::cm,
+    361.05*Units::cm, 381.05*Units::cm, 401.05*Units::cm, 421.05*Units::cm};
 
   // z: envelope up to +-280*cm
   //    end plates between +-279.05 and +-279.55*cm
   //    detector between -279.05cm and 279.05cm
-  const double zMaxHCal =  280.0*cm;
-  const double zMinHCal = -280.0*cm;
-  const double dzHCalEndPlate = -0.45*cm; // distance of end plate from envelope
-  const double thicknessHCalEndPlate = 0.5*cm; // thickness of endplate
+  const double zMaxHCal =  280.0*Units::cm;
+  const double zMinHCal = -280.0*Units::cm;
+  const double dzHCalEndPlate = -0.45*Units::cm; // distance of end plate from envelope
+  const double thicknessHCalEndPlate = 0.5*Units::cm; // thickness of endplate
 
   //const double etaGridHCal = 0.025;
   //const double etaOffsetHCal = -0.9;

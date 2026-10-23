@@ -15,6 +15,9 @@
 #include <cstdlib>
 using std::cout;
 using std::endl;
+using Units::units;
+using Units::cm;
+using Units::mm;
 
 DetectorGeometry::DetectorGeometry(int version) {
   calcGeom(version);
