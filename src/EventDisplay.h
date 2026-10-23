@@ -40,7 +40,6 @@
 #include "GraphicUtils.h"
 #include "Globals.h"
 
-using namespace std;
 
 /******************************************************************************/
 // auxiliary classes/functions

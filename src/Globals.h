@@ -6,6 +6,9 @@
 //
 /******************************************************************************/
 
+#ifndef GLOBALS_H
+#define GLOBALS_H
+
 #include "DisplayConfig.h"
 
 #include "TStyle.h"
@@ -22,3 +25,5 @@ extern Style_t digiMarkerStyle;
 extern Color_t digiMarkerColor;
 
 extern bool overrideDetectorColors;
+
+#endif

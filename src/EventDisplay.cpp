@@ -13,6 +13,7 @@
 #include "MagField.h"
 #include "CylField.h"
 #include "Units.h"
+#include "PathUtils.h"
 
 // ROOT core
 #include <TMath.h>
@@ -563,11 +564,11 @@ void EventDisplay::drawParticles()
         m = (*eventReader->SimParticleSecondaries_mass)[i];
         p = sqrt(px * px + py * py + pz * pz);
         float e = sqrt(p * p + m * m);
-        // cout << "p = "<< p << endl;
+        // std::cout << "p = "<< p << std::endl;
         if (p < ParticleEnergyThreshold)
           continue;
 
-        // cout << "PDG = "<< pdgID << endl;
+        // std::cout << "PDG = "<< pdgID << std::endl;
         t = (*eventReader->SimParticleSecondaries_time)[i];
         x1 = (*eventReader->SimParticleSecondaries_vertex_x)[i] * mm;
         y1 = (*eventReader->SimParticleSecondaries_vertex_y)[i] * mm;
@@ -585,9 +586,9 @@ void EventDisplay::drawParticles()
         // double y2 = (* eventReader->SimParticleSecondaries_endpoint_y)[i] * mm;
         // double z2 = (* eventReader->SimParticleSecondaries_endpoint_z)[i] * mm;
         // double r2 = sqrt(x2*x2+y2*y2);
-        // cout << "x1 y1 z1 x2 y2 z2 = "
+        // std::cout << "x1 y1 z1 x2 y2 z2 = "
         //      << x1 << " " << y1 << " " << z1 << " "
-        //      << x2 << " " << y2 << " " << z2 << endl;
+        //      << x2 << " " << y2 << " " << z2 << std::endl;
         // set pi0 decay point
         if (!decayVtxSet)
         {
@@ -1934,7 +1935,7 @@ void EventDisplay::drawEvent(int event)
     float _py = (*eventReader->genParticles_momentum_y)[i];
     float _pz = (*eventReader->genParticles_momentum_z)[i];
     float _p = sqrt(_px * _px + _py * _py + _pz * _pz);
-    // cout << p << endl;
+    // std::cout << p << std::endl;
     if (_p == 0.)
       continue;
     if (_p > pmax)
@@ -2031,24 +2032,33 @@ void EventDisplay::startDisplay(int initialEvent)
 
   // create magnetic field
   std::string bFieldType = displayConfig.getStringConfig("bField");
-  if (bFieldType == "GlobalSolenoid") {
-    std::cout << "Using ideal solenoid magnetic field" << std::endl;
-    magField = new MagField(geomReader->Bin, geomReader->Bout, geomReader->zMax, geomReader->rMax);
-
-    // Note: field is reversed in EVE (see https://root.cern/doc/v636/classTEveTrackPropagator.html)
-    ((MagField*) magField)->setReverseState(true);
+  if (bFieldType != "GlobalSolenoid") {
+    std::string fieldMapFile = PathUtils::findFile(displayConfig.getStringConfig("bFieldMap"));
+    std::cout << "Using magnetic field map " << fieldMapFile << std::endl;
+    try {
+      CylField* fieldMap = new CylField(fieldMapFile, "fieldmap");
+      // Note: field is reversed in EVE (see https://root.cern/doc/v636/classTEveTrackPropagator.html)
+      fieldMap->setReverseState(true);
+      magField = fieldMap;
+    }
+    catch (const std::exception& e) {
+      std::cerr << "ERROR: cannot read the magnetic field map " << fieldMapFile << " (" << e.what()
+                << "), using the ideal solenoid magnetic field instead" << std::endl;
+    }
   }
-  else {
-    std::cout << "Using magnetic field map" << std::endl;
-    magField = new CylField("data/ALLEGRO_fieldmap_2T_20260424.root", "fieldmap");
-    ((CylField*) magField)->setReverseState(true);
+  if (!magField) {
+    std::cout << "Using ideal solenoid magnetic field" << std::endl;
+    MagField* solenoid = new MagField(geomReader->Bin, geomReader->Bout, geomReader->zMax, geomReader->rMax);
+    // Note: field is reversed in EVE (see https://root.cern/doc/v636/classTEveTrackPropagator.html)
+    solenoid->setReverseState(true);
+    magField = solenoid;
   }
   std::cout << "\n" << std::endl;
 
   std::cout << "******************************************************************************" << std::endl;
   std::cout << "Displaying the geometry" << std::endl;
   std::cout << "******************************************************************************" << std::endl
-            << endl;
+            << std::endl;
 
   // create the eve manageer
   TEveManager::Create();
@@ -3044,11 +3054,11 @@ void EventDisplay::startDisplay(int initialEvent)
     nEvents = eventReader->nEvents;
 
     // load and display the requested event
-    cout << endl;
-    cout << "******************************************************************************" << endl;
-    cout << "Reading the events" << endl;
-    cout << "******************************************************************************" << endl
-         << endl;
+    std::cout << std::endl;
+    std::cout << "******************************************************************************" << std::endl;
+    std::cout << "Reading the events" << std::endl;
+    std::cout << "******************************************************************************" << std::endl
+         << std::endl;
     drawEvent(initialEvent);
   }
 
@@ -3155,7 +3165,7 @@ void EventDisplay::takeScreenshot()
   else if (activeGLViewer == mainGLView)
     view = "3d";
   else
-    cout << "Unknown view!!" << endl;
+    std::cout << "Unknown view!!" << std::endl;
 
   TTimeStamp ts;
   TString tss(ts.AsString("s"));
@@ -3183,24 +3193,32 @@ void EventDisplay::makeGui()
     TGCompositeFrame* frm = tab->GetTabContainer(i);
 
     TGHorizontalFrame* hf = new TGHorizontalFrame(frm);
-    TGPictureButton* b = 0;
+    // picture button with the icon from the installation directory, or a text
+    // button if the icon is not found
+    auto makeButton = [hf](const char* icon, const char* label) -> TGButton* {
+      const TGPicture* picture = gClient->GetPicture(PathUtils::findFile(std::string("icons/") + icon).c_str());
+      if (picture)
+        return new TGPictureButton(hf, picture);
+      return new TGTextButton(hf, label);
+    };
+    TGButton* b = nullptr;
 
-    b = new TGPictureButton(hf, gClient->GetPicture("icons/TakeScreenshot.png"));
+    b = makeButton("TakeScreenshot.png", "Screenshot");
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "takeScreenshot()");
     b->SetToolTipText("Take a screenshot of the selected view");
 
-    b = new TGPictureButton(hf, gClient->GetPicture("icons/GoBack.gif"));
+    b = makeButton("GoBack.gif", "<");
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "bck()");
     b->SetToolTipText("Go to previous event");
 
-    b = new TGPictureButton(hf, gClient->GetPicture("icons/GoForward.gif"));
+    b = makeButton("GoForward.gif", ">");
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
     b->SetToolTipText("Go to next event");
     b->Connect("Clicked()", "EventDisplay", this, "fwd()");
 
-    b = new TGPictureButton(hf, gClient->GetPicture("icons/grid_icon.png"));
+    b = makeButton("grid_icon.png", "Readout");
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "toggleReadout()");
     b->SetToolTipText("Hide/Show readouts");
@@ -3533,7 +3551,7 @@ void EventDisplay::addSimpleElement(TEveElement* el, SubDetector& det)
       det.list->SetRnrSelfChildren(false, false);
   }
   if (debug) {
-    cout << "Adding " << el->GetElementName() << " to " << det.name << endl;
+    std::cout << "Adding " << el->GetElementName() << " to " << det.name << std::endl;
   }
   det.list->AddElement(el);
   ((TEveGeoShape *)el)->SetDrawFrame(false);
@@ -3549,7 +3567,7 @@ void EventDisplay::addVertex(TEveElement* el, SubDetector& det)
   // for vertex, loop over children to add them either to barrel or endcap
   TString s(el->GetElementName());
   if (debug) {
-    cout << "Found " << s << ", looping over its children" << endl;
+    std::cout << "Found " << s << ", looping over its children" << std::endl;
   }
   for (TEveElement::List_i itr = el->BeginChildren(); itr != el->EndChildren(); ++itr)
   {
@@ -3557,7 +3575,7 @@ void EventDisplay::addVertex(TEveElement* el, SubDetector& det)
     TString name(child->GetElementName());
     if (name.Contains("VertexBarrel") || name.Contains("VertexInnerBarrel"))
     {
-      if (debug) cout << "Adding " << name << " to vertex barrel" << endl;
+      if (debug) std::cout << "Adding " << name << " to vertex barrel" << std::endl;
       // barrel->AddElement(child);
       // child->SetMainColor(kRed);
       // rather than the assembly we add directly the layers
@@ -3584,7 +3602,7 @@ void EventDisplay::addVertex(TEveElement* el, SubDetector& det)
     }
     else if (name.Contains("VertexDisks"))
     {
-      if (debug) cout << "Adding " << name << " to vertex endcap" << endl;
+      if (debug) std::cout << "Adding " << name << " to vertex endcap" << std::endl;
       endcap->AddElement(child);
       if (overrideDetectorColors) child->SetMainColor(kRed);
       ((TEveGeoShape *)child)->SetDrawFrame(false);
@@ -3623,7 +3641,7 @@ void EventDisplay::addWrapper(TEveElement* el, SubDetector& det)
       det.list->SetRnrSelfChildren(false, false);
   }
   if (debug) {
-    cout << "Adding " << el->GetElementName() << " to " << det.name << endl;
+    std::cout << "Adding " << el->GetElementName() << " to " << det.name << std::endl;
   }
 
   // rather than the assembly we add directly the layers

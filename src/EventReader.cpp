@@ -811,7 +811,7 @@ std::map<std::string, std::string> EventReader::readCellIDEncodings()
 
 void EventReader::loadEvent(int event) {
   if (event<0 || event>=nEvents) {
-    cout << "Event number " << event << " out of range : [0, " << nEvents-1 << "]" << endl;
+    std::cout << "Event number " << event << " out of range : [0, " << nEvents-1 << "]" << std::endl;
   }
   fReader->SetEntry(event);
 
