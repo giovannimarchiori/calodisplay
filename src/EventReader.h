@@ -29,280 +29,61 @@
 class EventReader
 {
 public:
+  // a branch of the events tree, read for the current event
+  // (null if the collection is not read)
+  template <typename T>
+  using Array = std::unique_ptr<TTreeReaderArray<T>>;
+
+  // the reader of the events tree: declared first, so that it is destroyed
+  // after the arrays, which deregister from it
+  std::unique_ptr<TTreeReader> fReader;
+
   Int_t nEvents = 0; // Number of events in file
-  Int_t eventId = 0; // Current event id
 
-  //private:
-  TTreeReader* fReader = nullptr;
+  // a collection of hits, digis or cells: their cellID (not read for the
+  // simulated calorimeter hits and the merged ECal cells), energy and position
+  // (double for the tracker hits and digis, float for the calorimeter ones)
+  template <typename PositionT>
+  struct HitCollection
+  {
+    Array<ULong_t> cellID;
+    Array<Float_t> energy;
+    Array<PositionT> x, y, z;
+    bool isSet() const { return x != nullptr; }
+    unsigned int size() const { return x ? x->GetSize() : 0; }
+  };
+  using TrackerHits = HitCollection<Double_t>;
+  using CaloHits = HitCollection<Float_t>;
 
-  // 1a. - primary particles
-  TTreeReaderArray<Int_t> *genParticles_PDG = nullptr;
-  TTreeReaderArray<Int_t> *genParticles_generatorStatus = nullptr;
-  TTreeReaderArray<Int_t> *genParticles_simulatorStatus = nullptr;
-  TTreeReaderArray<Float_t> *genParticles_charge = nullptr;
-  TTreeReaderArray<Float_t> *genParticles_time = nullptr;
-  TTreeReaderArray<Double_t> *genParticles_mass = nullptr;
-  TTreeReaderArray<Double_t> *genParticles_vertex_x = nullptr;
-  TTreeReaderArray<Double_t> *genParticles_vertex_y = nullptr;
-  TTreeReaderArray<Double_t> *genParticles_vertex_z = nullptr;
-  TTreeReaderArray<Double_t> *genParticles_endpoint_x = nullptr;
-  TTreeReaderArray<Double_t> *genParticles_endpoint_y = nullptr;
-  TTreeReaderArray<Double_t> *genParticles_endpoint_z = nullptr;
-  TTreeReaderArray<Double_t> *genParticles_momentum_x = nullptr;
-  TTreeReaderArray<Double_t> *genParticles_momentum_y = nullptr;
-  TTreeReaderArray<Double_t> *genParticles_momentum_z = nullptr;
-  TTreeReaderArray<UInt_t> *genParticles_parents_begin = nullptr;
-  TTreeReaderArray<UInt_t> *genParticles_parents_end = nullptr;
-  TTreeReaderArray<Int_t> *genParticles_parents_index = nullptr;
-  TTreeReaderArray<UInt_t> *genParticles_daughters_begin = nullptr;
-  TTreeReaderArray<UInt_t> *genParticles_daughters_end = nullptr;
-  TTreeReaderArray<Int_t> *genParticles_daughters_index = nullptr;
+  // MC particles
+  struct Particles
+  {
+    Array<Int_t> PDG, generatorStatus, simulatorStatus;
+    Array<Float_t> charge, time;
+    Array<Double_t> mass;
+    Array<Double_t> vertex_x, vertex_y, vertex_z;
+    Array<Double_t> endpoint_x, endpoint_y, endpoint_z;
+    Array<Double_t> momentum_x, momentum_y, momentum_z;
+    Array<UInt_t> parents_begin, parents_end, daughters_begin, daughters_end;
+    Array<Int_t> parents_index, daughters_index;
+    bool isSet() const { return PDG != nullptr; }
+    unsigned int size() const { return PDG ? PDG->GetSize() : 0; }
+  };
 
-  // 1a. - secondary particles
-  TTreeReaderArray<Int_t> *SimParticleSecondaries_PDG = nullptr;
-  //TTreeReaderArray<Int_t> *SimParticleSecondaries_generatorStatus = nullptr;
-  //TTreeReaderArray<Int_t> *SimParticleSecondaries_simulatorStatus = nullptr;
-  //TTreeReaderArray<Float_t> *SimParticleSecondaries_charge = nullptr;
-  TTreeReaderArray<Float_t> *SimParticleSecondaries_time = nullptr;
-  TTreeReaderArray<Double_t> *SimParticleSecondaries_mass = nullptr;
-  TTreeReaderArray<Double_t> *SimParticleSecondaries_vertex_x = nullptr;
-  TTreeReaderArray<Double_t> *SimParticleSecondaries_vertex_y = nullptr;
-  TTreeReaderArray<Double_t> *SimParticleSecondaries_vertex_z = nullptr;
-  TTreeReaderArray<Double_t> *SimParticleSecondaries_endpoint_x = nullptr;
-  TTreeReaderArray<Double_t> *SimParticleSecondaries_endpoint_y = nullptr;
-  TTreeReaderArray<Double_t> *SimParticleSecondaries_endpoint_z = nullptr;
-  // these variables are double in latest versions
-  // TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_x = nullptr;
-  // TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_y = nullptr;
-  // TTreeReaderArray<Float_t> *SimParticleSecondaries_momentum_z = nullptr;
-  TTreeReaderArray<Double_t> *SimParticleSecondaries_momentum_x = nullptr;
-  TTreeReaderArray<Double_t> *SimParticleSecondaries_momentum_y = nullptr;
-  TTreeReaderArray<Double_t> *SimParticleSecondaries_momentum_z = nullptr;
-
-  // the tracks
-  TTreeReaderArray<UInt_t> *Tracks_trackStates_begin = nullptr;
-  TTreeReaderArray<UInt_t> *Tracks_trackStates_end = nullptr;
-  TTreeReaderArray<UInt_t> *Tracks_subdetectorHitNumbers_begin = nullptr;
-  TTreeReaderArray<UInt_t> *Tracks_subdetectorHitNumbers_end = nullptr;
-  TTreeReaderArray<Int_t> *_Tracks_trackStates_location = nullptr;
-  TTreeReaderArray<Float_t> *_Tracks_trackStates_omega = nullptr;
-  TTreeReaderArray<Float_t> *_Tracks_trackStates_phi = nullptr;
-  TTreeReaderArray<Float_t> *_Tracks_trackStates_tanLambda = nullptr;
-  TTreeReaderArray<Float_t> *_Tracks_trackStates_referencePoint_x = nullptr;
-  TTreeReaderArray<Float_t> *_Tracks_trackStates_referencePoint_y = nullptr;
-  TTreeReaderArray<Float_t> *_Tracks_trackStates_referencePoint_z = nullptr;
-  TTreeReaderArray<Int_t> *_Tracks_subdetectorHitNumbers = nullptr;
-  
-  // the hits in the vertex (barrel)
-  TTreeReaderArray<ULong_t> *VertexBarrelHits_cellID = nullptr;
-  TTreeReaderArray<Float_t> *VertexBarrelHits_energy = nullptr;
-  TTreeReaderArray<Double_t> *VertexBarrelHits_position_x = nullptr;
-  TTreeReaderArray<Double_t> *VertexBarrelHits_position_y = nullptr;
-  TTreeReaderArray<Double_t> *VertexBarrelHits_position_z = nullptr;
-
-  // the hits in the vertex (endcap)
-  TTreeReaderArray<ULong_t> *VertexEndcapHits_cellID = nullptr;
-  TTreeReaderArray<Float_t> *VertexEndcapHits_energy = nullptr;
-  TTreeReaderArray<Double_t> *VertexEndcapHits_position_x = nullptr;
-  TTreeReaderArray<Double_t> *VertexEndcapHits_position_y = nullptr;
-  TTreeReaderArray<Double_t> *VertexEndcapHits_position_z = nullptr;
-
-  // the hits in the DCH/STT
-  TTreeReaderArray<ULong_t> *MainTrackerHits_cellID = nullptr;
-  TTreeReaderArray<Float_t> *MainTrackerHits_energy = nullptr;
-  TTreeReaderArray<Double_t> *MainTrackerHits_position_x = nullptr;
-  TTreeReaderArray<Double_t> *MainTrackerHits_position_y = nullptr;
-  TTreeReaderArray<Double_t> *MainTrackerHits_position_z = nullptr;
-
-  // the hits in the Si wrapper (barrel)
-  TTreeReaderArray<ULong_t> *SiWrapperBarrelHits_cellID = nullptr;
-  TTreeReaderArray<Float_t> *SiWrapperBarrelHits_energy = nullptr;
-  TTreeReaderArray<Double_t> *SiWrapperBarrelHits_position_x = nullptr;
-  TTreeReaderArray<Double_t> *SiWrapperBarrelHits_position_y = nullptr;
-  TTreeReaderArray<Double_t> *SiWrapperBarrelHits_position_z = nullptr;
-
-  // the hits in the Si wrapper (endcap)
-  TTreeReaderArray<ULong_t> *SiWrapperEndcapHits_cellID = nullptr;
-  TTreeReaderArray<Float_t> *SiWrapperEndcapHits_energy = nullptr;
-  TTreeReaderArray<Double_t> *SiWrapperEndcapHits_position_x = nullptr;
-  TTreeReaderArray<Double_t> *SiWrapperEndcapHits_position_y = nullptr;
-  TTreeReaderArray<Double_t> *SiWrapperEndcapHits_position_z = nullptr;
-
-  // the digis in the vertex (barrel)
-  TTreeReaderArray<ULong_t> *VertexBarrelDigis_cellID = nullptr;
-  TTreeReaderArray<Float_t> *VertexBarrelDigis_energy = nullptr;
-  TTreeReaderArray<Double_t> *VertexBarrelDigis_position_x = nullptr;
-  TTreeReaderArray<Double_t> *VertexBarrelDigis_position_y = nullptr;
-  TTreeReaderArray<Double_t> *VertexBarrelDigis_position_z = nullptr;
-
-  // the digis in the vertex (endcap)
-  TTreeReaderArray<ULong_t> *VertexEndcapDigis_cellID = nullptr;
-  TTreeReaderArray<Float_t> *VertexEndcapDigis_energy = nullptr;
-  TTreeReaderArray<Double_t> *VertexEndcapDigis_position_x = nullptr;
-  TTreeReaderArray<Double_t> *VertexEndcapDigis_position_y = nullptr;
-  TTreeReaderArray<Double_t> *VertexEndcapDigis_position_z = nullptr;
-
-  // the digis in the DCH/STT
-  TTreeReaderArray<ULong_t> *MainTrackerDigis_cellID = nullptr;
-  TTreeReaderArray<Float_t> *MainTrackerDigis_energy = nullptr;
-  TTreeReaderArray<Double_t> *MainTrackerDigis_position_x = nullptr;
-  TTreeReaderArray<Double_t> *MainTrackerDigis_position_y = nullptr;
-  TTreeReaderArray<Double_t> *MainTrackerDigis_position_z = nullptr;
-
-  // the digis in the Si wrapper (barrel)
-  TTreeReaderArray<ULong_t> *SiWrapperBarrelDigis_cellID = nullptr;
-  TTreeReaderArray<Float_t> *SiWrapperBarrelDigis_energy = nullptr;
-  TTreeReaderArray<Double_t> *SiWrapperBarrelDigis_position_x = nullptr;
-  TTreeReaderArray<Double_t> *SiWrapperBarrelDigis_position_y = nullptr;
-  TTreeReaderArray<Double_t> *SiWrapperBarrelDigis_position_z = nullptr;
-
-  // the digis in the Si wrapper (endcap)
-  TTreeReaderArray<ULong_t> *SiWrapperEndcapDigis_cellID = nullptr;
-  TTreeReaderArray<Float_t> *SiWrapperEndcapDigis_energy = nullptr;
-  TTreeReaderArray<Double_t> *SiWrapperEndcapDigis_position_x = nullptr;
-  TTreeReaderArray<Double_t> *SiWrapperEndcapDigis_position_y = nullptr;
-  TTreeReaderArray<Double_t> *SiWrapperEndcapDigis_position_z = nullptr;
-
-  // the digis in ECal barrel
-  TTreeReaderArray<Float_t> *ECalBarrelHits_energy = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelHits_position_x = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelHits_position_y = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelHits_position_z = nullptr;
-
-  // the cells in ECal barrel
-  TTreeReaderArray<ULong_t> *ECalBarrelCells_cellID = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelCells_energy = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelCells_position_x = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelCells_position_y = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelCells_position_z = nullptr;
-
-  // the cells in ECal barrel with coarser merging
-  TTreeReaderArray<ULong_t> *ECalBarrelCells2_cellID = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelCells2_energy = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelCells2_position_x = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelCells2_position_y = nullptr;
-  TTreeReaderArray<Float_t> *ECalBarrelCells2_position_z = nullptr;
-
-  // the hits in ECal endcap
-  TTreeReaderArray<Float_t> *ECalEndcapHits_energy = nullptr;
-  TTreeReaderArray<Float_t> *ECalEndcapHits_position_x = nullptr;
-  TTreeReaderArray<Float_t> *ECalEndcapHits_position_y = nullptr;
-  TTreeReaderArray<Float_t> *ECalEndcapHits_position_z = nullptr;
-
-  // the cells in ECal endcap
-  TTreeReaderArray<ULong_t> *ECalEndcapCells_cellID = nullptr;
-  TTreeReaderArray<Float_t> *ECalEndcapCells_energy = nullptr;
-  TTreeReaderArray<Float_t> *ECalEndcapCells_position_x = nullptr;
-  TTreeReaderArray<Float_t> *ECalEndcapCells_position_y = nullptr;
-  TTreeReaderArray<Float_t> *ECalEndcapCells_position_z = nullptr;
-
-  // the hits in HCal barrel
-  TTreeReaderArray<Float_t> *HCalBarrelHits_energy = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelHits_position_x = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelHits_position_y = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelHits_position_z = nullptr;
-
-  // the cells in HCal barrel
-  TTreeReaderArray<ULong_t> *HCalBarrelCells_cellID = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelCells_energy = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelCells_position_x = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelCells_position_y = nullptr;
-  TTreeReaderArray<Float_t> *HCalBarrelCells_position_z = nullptr;
-
-  // the hits in HCal endcap
-  TTreeReaderArray<Float_t> *HCalEndcapHits_energy = nullptr;
-  TTreeReaderArray<Float_t> *HCalEndcapHits_position_x = nullptr;
-  TTreeReaderArray<Float_t> *HCalEndcapHits_position_y = nullptr;
-  TTreeReaderArray<Float_t> *HCalEndcapHits_position_z = nullptr;
-
-  // the cells in HCal endcap
-  TTreeReaderArray<ULong_t> *HCalEndcapCells_cellID = nullptr;
-  TTreeReaderArray<Float_t> *HCalEndcapCells_energy = nullptr;
-  TTreeReaderArray<Float_t> *HCalEndcapCells_position_x = nullptr;
-  TTreeReaderArray<Float_t> *HCalEndcapCells_position_y = nullptr;
-  TTreeReaderArray<Float_t> *HCalEndcapCells_position_z = nullptr;
-
-  // the hits in muon barrel
-  TTreeReaderArray<ULong_t> *MuonBarrelHits_cellID = nullptr;
-  TTreeReaderArray<Float_t> *MuonBarrelHits_energy = nullptr;
-  // TTreeReaderArray<Double_t> *MuonBarrelHits_position_x = nullptr;
-  // TTreeReaderArray<Double_t> *MuonBarrelHits_position_y = nullptr;
-  // TTreeReaderArray<Double_t> *MuonBarrelHits_position_z = nullptr;
-  TTreeReaderArray<Float_t> *MuonBarrelHits_position_x = nullptr;
-  TTreeReaderArray<Float_t> *MuonBarrelHits_position_y = nullptr;
-  TTreeReaderArray<Float_t> *MuonBarrelHits_position_z = nullptr;
-
-  // the cells in muon barrel
-  TTreeReaderArray<ULong_t> *MuonBarrelCells_cellID = nullptr;
-  TTreeReaderArray<Float_t> *MuonBarrelCells_energy = nullptr;
-  TTreeReaderArray<Float_t> *MuonBarrelCells_position_x = nullptr;
-  TTreeReaderArray<Float_t> *MuonBarrelCells_position_y = nullptr;
-  TTreeReaderArray<Float_t> *MuonBarrelCells_position_z = nullptr;
-
-  // the hits in muon endcap
-  TTreeReaderArray<ULong_t> *MuonEndcapHits_cellID = nullptr;
-  TTreeReaderArray<Float_t> *MuonEndcapHits_energy = nullptr;
-  // TTreeReaderArray<Double_t> *MuonEndcapHits_position_x = nullptr;
-  // TTreeReaderArray<Double_t> *MuonEndcapHits_position_y = nullptr;
-  // TTreeReaderArray<Double_t> *MuonEndcapHits_position_z = nullptr;
-  TTreeReaderArray<Float_t> *MuonEndcapHits_position_x = nullptr;
-  TTreeReaderArray<Float_t> *MuonEndcapHits_position_y = nullptr;
-  TTreeReaderArray<Float_t> *MuonEndcapHits_position_z = nullptr;
-
-  // the cells in muon endcap
-  TTreeReaderArray<ULong_t> *MuonEndcapCells_cellID = nullptr;
-  TTreeReaderArray<Float_t> *MuonEndcapCells_energy = nullptr;
-  TTreeReaderArray<Float_t> *MuonEndcapCells_position_x = nullptr;
-  TTreeReaderArray<Float_t> *MuonEndcapCells_position_y = nullptr;
-  TTreeReaderArray<Float_t> *MuonEndcapCells_position_z = nullptr;
-
-  // IF WE ARE SURE THAT WE DO NOT PLOT BOTH SW AND TOPOCLUSTERS AT THE SAME TIME
-  // we could simplify the code of the EventDisplay class by having a single
-  // cluster reader, that points to either SW or topo clusters based on the clusters
-  // that we want to draw
-  // For the moment keep both (we might want to have SW clusters in ECAL for
-  // EM objects and topoclusters for ECAL+HCAL for jets)
-  
-  // the (corrected) calo topo clusters
-  TTreeReaderArray<Float_t> *CaloTopoClusters_energy = nullptr;
-  TTreeReaderArray<Float_t> *CaloTopoClusters_position_x = nullptr;
-  TTreeReaderArray<Float_t> *CaloTopoClusters_position_y = nullptr;
-  TTreeReaderArray<Float_t> *CaloTopoClusters_position_z = nullptr;
-  TTreeReaderArray<Float_t> *CaloTopoClusters_theta = nullptr;
-  TTreeReaderArray<Float_t> *CaloTopoClusters_phi = nullptr;
-  TTreeReaderArray<UInt_t> *CaloTopoClusters_hits_begin = nullptr;
-  TTreeReaderArray<UInt_t> *CaloTopoClusters_hits_end = nullptr;  
-  
-  // the (positioned) cells in the topo clusters
-  TTreeReaderArray<ULong_t> *CaloTopoClusterCells_cellID = nullptr;
-  TTreeReaderArray<Float_t> *CaloTopoClusterCells_energy = nullptr;
-  TTreeReaderArray<Float_t> *CaloTopoClusterCells_position_x = nullptr;
-  TTreeReaderArray<Float_t> *CaloTopoClusterCells_position_y = nullptr;
-  TTreeReaderArray<Float_t> *CaloTopoClusterCells_position_z = nullptr;
-
-  // the (corrected) sliding window clusters
-  TTreeReaderArray<Float_t> *CaloClusters_energy = nullptr;
-  TTreeReaderArray<Float_t> *CaloClusters_position_x = nullptr;
-  TTreeReaderArray<Float_t> *CaloClusters_position_y = nullptr;
-  TTreeReaderArray<Float_t> *CaloClusters_position_z = nullptr;
-  TTreeReaderArray<Float_t> *CaloClusters_theta = nullptr;
-  TTreeReaderArray<Float_t> *CaloClusters_phi = nullptr;
-  TTreeReaderArray<UInt_t> *CaloClusters_hits_begin = nullptr;
-  TTreeReaderArray<UInt_t> *CaloClusters_hits_end = nullptr;
-
-  // the (positioned) cells in the sliding window clusters
-  TTreeReaderArray<ULong_t> *CaloClusterCells_cellID = nullptr;
-  TTreeReaderArray<Float_t> *CaloClusterCells_energy = nullptr;
-  TTreeReaderArray<Float_t> *CaloClusterCells_position_x = nullptr;
-  TTreeReaderArray<Float_t> *CaloClusterCells_position_y = nullptr;
-  TTreeReaderArray<Float_t> *CaloClusterCells_position_z = nullptr;
-
-  // the links from the clusters to their cells (podio ObjectIDs), used when
-  // there is no dedicated collection with the cells of the clusters
-  TTreeReaderArray<Int_t> *CaloTopoClusters_hits_index = nullptr;
-  TTreeReaderArray<UInt_t> *CaloTopoClusters_hits_collectionID = nullptr;
-  TTreeReaderArray<Int_t> *CaloClusters_hits_index = nullptr;
-  TTreeReaderArray<UInt_t> *CaloClusters_hits_collectionID = nullptr;
+  // reconstructed tracks: the track states of track i are
+  // [trackStates_begin[i], trackStates_end[i]), and its numbers of hits per
+  // subdetector [subdetectorHitNumbers_begin[i], subdetectorHitNumbers_end[i])
+  struct Tracks
+  {
+    Array<UInt_t> trackStates_begin, trackStates_end;
+    Array<UInt_t> subdetectorHitNumbers_begin, subdetectorHitNumbers_end;
+    Array<Int_t> trackState_location;
+    Array<Float_t> trackState_omega, trackState_phi, trackState_tanLambda;
+    Array<Float_t> trackState_referencePoint_x, trackState_referencePoint_y, trackState_referencePoint_z;
+    Array<Int_t> subdetectorHitNumbers;
+    bool isSet() const { return trackStates_begin != nullptr; }
+    unsigned int size() const { return trackStates_begin ? trackStates_begin->GetSize() : 0; }
+  };
 
   // the cells of the clusters in the current event, in the order of the
   // cluster hits: the cells of cluster i are [hits_begin[i], hits_end[i]).
@@ -314,25 +95,67 @@ public:
     std::vector<Float_t> x, y, z;
     size_t size() const { return energy.size(); }
   };
-  ClusterCells topoClusterCells;
-  ClusterCells swClusterCells;
+
+  // calorimeter clusters (topo or sliding window) and their cells
+  struct Clusters
+  {
+    Array<Float_t> energy;
+    Array<Float_t> x, y, z;
+    Array<Float_t> theta, phi;
+    Array<UInt_t> hits_begin, hits_end;
+    // the dedicated collection with the cells of the clusters, if any
+    CaloHits cellCollection;
+    // otherwise, the links from the clusters to their cells (podio ObjectIDs)
+    Array<Int_t> hits_index;
+    Array<UInt_t> hits_collectionID;
+    // the cells of the clusters in the current event
+    ClusterCells cells;
+    bool isSet() const { return energy != nullptr; }
+    unsigned int size() const { return x ? x->GetSize() : 0; }
+  };
+
+  // particles and tracks
+  Particles genParticles;
+  Particles simParticles;
+  Tracks tracks;
+
+  // hits and digis in the tracker
+  TrackerHits vertexBarrelHits, vertexEndcapHits;
+  TrackerHits mainTrackerHits;
+  TrackerHits siWrapperBarrelHits, siWrapperEndcapHits;
+  TrackerHits vertexBarrelDigis, vertexEndcapDigis;
+  TrackerHits mainTrackerDigis;
+  TrackerHits siWrapperBarrelDigis, siWrapperEndcapDigis;
+
+  // hits and cells in the calorimeters and the muon tagger
+  CaloHits ecalBarrelHits, ecalEndcapHits;
+  CaloHits hcalBarrelHits, hcalEndcapHits;
+  CaloHits muonBarrelHits, muonEndcapHits;
+  CaloHits ecalBarrelCells, ecalEndcapCells;
+  // the cells in ECal barrel with coarser merging
+  CaloHits ecalBarrelMergedCells;
+  CaloHits hcalBarrelCells, hcalEndcapCells;
+  CaloHits muonBarrelCells, muonEndcapCells;
+
+  // the clusters
+  // (both the topo clusters, e.g. for ECAL+HCAL jets, and the sliding-window
+  // clusters, e.g. in ECAL for EM objects, can be drawn at the same time)
+  Clusters topoClusters;
+  Clusters swClusters;
 
   // the calorimeter cell collections in the file, by podio collection ID,
   // used to follow the links
   struct CellCollection
   {
     std::string name;
-    std::unique_ptr<TTreeReaderArray<ULong_t>> cellID;
-    std::unique_ptr<TTreeReaderArray<Float_t>> energy, x, y, z;
+    CaloHits cells;
   };
   std::map<UInt_t, CellCollection> cellCollections;
   // collection IDs pointed to by links but not found in the file (warned once)
   std::set<UInt_t> missingCellCollections;
 
-  
  public:
   EventReader(TFile* f, bool doHCal=false);
-  ~EventReader();
   bool checkCollection(const std::string& drawFlag,
 		       const std::string& flagName,
 		       const std::string& requiredBranch,
@@ -344,37 +167,38 @@ public:
 			std::string& collectionName1,
 			std::string& collectionName2);
   template<class T>
-  TTreeReaderArray<T>* makeArray(const std::string& collection, const std::string& branch)
+  Array<T> makeArray(const std::string& collection, const std::string& branch)
   {
     if (collection == "")
-      return new TTreeReaderArray<T>(*fReader, branch.c_str());
+      return std::make_unique<TTreeReaderArray<T>>(*fReader, branch.c_str());
     else
-      return new TTreeReaderArray<T>(*fReader, Form("%s.%s", collection.c_str(), branch.c_str()));
+      return std::make_unique<TTreeReaderArray<T>>(*fReader, Form("%s.%s", collection.c_str(), branch.c_str()));
   }
+  // set up the reading of a collection of hits, digis or cells, with the
+  // energy in branch energyBranch and the position in positionBranch.x/y/z
+  template<typename PositionT>
+  void setHits(HitCollection<PositionT>& hits, const std::string& collection,
+               const std::string& energyBranch, const std::string& positionBranch,
+               bool readCellID)
+  {
+    if (readCellID)
+      hits.cellID = makeArray<ULong_t>(collection, "cellID");
+    hits.energy = makeArray<Float_t>(collection, energyBranch);
+    hits.x = makeArray<PositionT>(collection, positionBranch + ".x");
+    hits.y = makeArray<PositionT>(collection, positionBranch + ".y");
+    hits.z = makeArray<PositionT>(collection, positionBranch + ".z");
+  }
+  void setParticles(Particles& particles, const std::string& collection);
+  void setClusters(Clusters& clusters, const std::string& collection);
   void setBranches();
   // set up the reading of the cells of the clusters, from the cell collection
   // (if present) or from the links of the clusters to the cell collections
   // returns false if neither is available
-  bool setClusterCells(const std::string& clustersKey,
-                       const std::string& cellsKey,
-                       TTreeReaderArray<ULong_t>*& cellID,
-                       TTreeReaderArray<Float_t>*& energy,
-                       TTreeReaderArray<Float_t>*& x,
-                       TTreeReaderArray<Float_t>*& y,
-                       TTreeReaderArray<Float_t>*& z,
-                       TTreeReaderArray<Int_t>*& linkIndex,
-                       TTreeReaderArray<UInt_t>*& linkCollectionID);
+  bool setClusterCells(Clusters& clusters, const std::string& clustersKey, const std::string& cellsKey);
   // find all the calorimeter cell collections in the file
   void setCellCollections();
   // fill the cells of the clusters for the current event
-  void fillClusterCells(ClusterCells& cells,
-                        TTreeReaderArray<ULong_t>* cellID,
-                        TTreeReaderArray<Float_t>* energy,
-                        TTreeReaderArray<Float_t>* x,
-                        TTreeReaderArray<Float_t>* y,
-                        TTreeReaderArray<Float_t>* z,
-                        TTreeReaderArray<Int_t>* linkIndex,
-                        TTreeReaderArray<UInt_t>* linkCollectionID);
+  void fillClusterCells(Clusters& clusters);
   // the CellIDEncoding strings stored in the metadata of the file, by collection name
   std::map<std::string, std::string> readCellIDEncodings();
   // the options of the Gaudi job that produced the file, stored in the
@@ -382,9 +206,6 @@ public:
   std::map<std::string, std::string> readGaudiOptions();
   void loadEvent(int event);
   bool m_doHCal;
-  bool m_doSW;
-  bool m_doTopo;
-  bool m_readMergedCells;
 };
 
 #endif

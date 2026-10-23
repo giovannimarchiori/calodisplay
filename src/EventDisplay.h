@@ -352,11 +352,10 @@ public:
 
   void createElementList(TEveElementList*& list, const std::string& listName);
 
+  // draw a collection of hits, digis or cells with energy above Ethr
+  // (negative for no threshold in the name of the collection)
   template <typename T> void drawHitCollection(MyPointSet*& hitSet, const std::string& name,
-                                               const TTreeReaderArray<T> *hit_position_x,
-                                               const TTreeReaderArray<T> *hit_position_y,
-                                               const TTreeReaderArray<T> *hit_position_z,
-                                               const TTreeReaderArray<Float_t> *hit_energy,
+                                               const EventReader::HitCollection<T>& hitCollection,
                                                const float Ethr,
                                                bool digi = false,    // if true, use style for digis instead of hits
                                                bool addTooltips = false,  // if true, add tooltips (do it only for debug!)
@@ -388,17 +387,14 @@ public:
         hitSet->Reset();
     }
 
-    for (unsigned int i = 0; i < hit_position_x->GetSize(); i++)
+    for (unsigned int i = 0; i < hitCollection.size(); i++)
     {
-      // skip hit if energy branch is not nullptr and E<threshold
-      if (hit_energy) {
-        float E = (*hit_energy)[i];
-        if (E < Ethr)
-          continue;
-      }
-      hitSet->SetNextPoint((*hit_position_x)[i] * Units::mm,
-                           (*hit_position_y)[i] * Units::mm,
-                           (*hit_position_z)[i] * Units::mm);
+      // skip hit if E<threshold
+      if (hitCollection.energy && (*hitCollection.energy)[i] < Ethr)
+        continue;
+      hitSet->SetNextPoint((*hitCollection.x)[i] * Units::mm,
+                           (*hitCollection.y)[i] * Units::mm,
+                           (*hitCollection.z)[i] * Units::mm);
     }
   }
 

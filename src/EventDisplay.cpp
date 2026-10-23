@@ -245,8 +245,9 @@ int countECalBarrelLayers(TEveElement *world)
 
 void EventDisplay::fillClusters(std::string clusterType)
 {
-  // the cells of the clusters of the current event
-  const EventReader::ClusterCells &cells = (clusterType == "topo") ? eventReader->topoClusterCells : eventReader->swClusterCells;
+  // the clusters and their cells in the current event
+  const EventReader::Clusters &clusters = (clusterType == "topo") ? eventReader->topoClusters : eventReader->swClusters;
+  const EventReader::ClusterCells &cells = clusters.cells;
   // read once, not in the loop over the clusters
   const bool calculateBaryCenters = displayConfig.getBoolConfig("calculateClusterBaryCenters");
 
@@ -257,13 +258,13 @@ void EventDisplay::fillClusters(std::string clusterType)
   {
     std::cout << "Creating topo clusters" << std::endl;
     clusterData = &topoclusterData;
-    nClusters = eventReader->CaloTopoClusters_position_x->GetSize();
+    nClusters = clusters.size();
   }
   else if (clusterType == "sw")
   {
     std::cout << "Creating SW clusters" << std::endl;
     clusterData = &swclusterData;
-    nClusters = eventReader->CaloClusters_position_x->GetSize();
+    nClusters = clusters.size();
   }
   else
   {
@@ -296,7 +297,7 @@ void EventDisplay::fillClusters(std::string clusterType)
   for (unsigned int i = 0; i < nClusters; i++)
   {
     // keep only those above threshold
-    float E = (clusterType == "topo") ? (*eventReader->CaloTopoClusters_energy)[i] : (*eventReader->CaloClusters_energy)[i];
+    float E = (*clusters.energy)[i];
     if (E < ClusterEnergyThreshold)
     {
       if (debug)
@@ -316,18 +317,9 @@ void EventDisplay::fillClusters(std::string clusterType)
     // set barycenter
     if (debug)
       std::cout << "  Setting cluster barycenter position .." << std::endl;
-    if (clusterType == "topo")
-    {
-      cluster->setBarycenterXYZ((*eventReader->CaloTopoClusters_position_x)[i] * mm,
-                                (*eventReader->CaloTopoClusters_position_y)[i] * mm,
-                                (*eventReader->CaloTopoClusters_position_z)[i] * mm);
-    }
-    else
-    {
-      cluster->setBarycenterXYZ((*eventReader->CaloClusters_position_x)[i] * mm,
-                                (*eventReader->CaloClusters_position_y)[i] * mm,
-                                (*eventReader->CaloClusters_position_z)[i] * mm);
-    }
+    cluster->setBarycenterXYZ((*clusters.x)[i] * mm,
+                              (*clusters.y)[i] * mm,
+                              (*clusters.z)[i] * mm);
 
     // set cluster barycenters layer-by-layer
 
@@ -338,19 +330,10 @@ void EventDisplay::fillClusters(std::string clusterType)
       {
         std::cout << "  Retrieving cluster cells and calculating energy per layer .." << std::endl;
       }
-      unsigned int first_hit, last_hit;
       // (no cells if the cells of the clusters are not available)
       const unsigned int nCells = cells.size();
-      if (clusterType == "topo")
-      {
-        first_hit = (*eventReader->CaloTopoClusters_hits_begin)[i];
-        last_hit = (*eventReader->CaloTopoClusters_hits_end)[i];
-      }
-      else
-      {
-        first_hit = (*eventReader->CaloClusters_hits_begin)[i];
-        last_hit = (*eventReader->CaloClusters_hits_end)[i];
-      }
+      unsigned int first_hit = (*clusters.hits_begin)[i];
+      unsigned int last_hit = (*clusters.hits_end)[i];
 
       // loop over cells to calculate energy per layer
       std::vector<float> energyVsECalBarrelLayer(nECalBarrelLayers, 0.);
@@ -575,53 +558,53 @@ void EventDisplay::drawParticles()
       particles->DestroyElements();
 
     // loop over the MC particles to create the particle tracks
-    for (unsigned int ip = 0; ip < eventReader->genParticles_generatorStatus->GetSize(); ip++)
+    for (unsigned int ip = 0; ip < eventReader->genParticles.generatorStatus->GetSize(); ip++)
     {
-      float m = (*eventReader->genParticles_mass)[ip];
-      float px = (*eventReader->genParticles_momentum_x)[ip];
-      float py = (*eventReader->genParticles_momentum_y)[ip];
-      float pz = (*eventReader->genParticles_momentum_z)[ip];
+      float m = (*eventReader->genParticles.mass)[ip];
+      float px = (*eventReader->genParticles.momentum_x)[ip];
+      float py = (*eventReader->genParticles.momentum_y)[ip];
+      float pz = (*eventReader->genParticles.momentum_z)[ip];
       float p = sqrt(px * px + py * py + pz * pz);
       if (p < ParticleEnergyThreshold)
         continue;
 
-      double t = (*eventReader->genParticles_time)[ip];
-      double x1 = (*eventReader->genParticles_vertex_x)[ip] * mm;
-      double y1 = (*eventReader->genParticles_vertex_y)[ip] * mm;
-      double z1 = (*eventReader->genParticles_vertex_z)[ip] * mm;
+      double t = (*eventReader->genParticles.time)[ip];
+      double x1 = (*eventReader->genParticles.vertex_x)[ip] * mm;
+      double y1 = (*eventReader->genParticles.vertex_y)[ip] * mm;
+      double z1 = (*eventReader->genParticles.vertex_z)[ip] * mm;
 
       TEveMCTrack mct;
-      mct.SetPdgCode((*eventReader->genParticles_PDG)[ip]);
+      mct.SetPdgCode((*eventReader->genParticles.PDG)[ip]);
       mct.SetMomentum(px, py, pz, sqrt(p * p + m * m));
       mct.SetProductionVertex(x1, y1, z1, t);
 
       TEveVectorF v;
-      v[0] = (*eventReader->genParticles_endpoint_x)[ip] * mm;
-      v[1] = (*eventReader->genParticles_endpoint_y)[ip] * mm;
-      v[2] = (*eventReader->genParticles_endpoint_z)[ip] * mm;
+      v[0] = (*eventReader->genParticles.endpoint_x)[ip] * mm;
+      v[1] = (*eventReader->genParticles.endpoint_y)[ip] * mm;
+      v[2] = (*eventReader->genParticles.endpoint_z)[ip] * mm;
 
       // for electrons, for which there could be some hard bremsstrahlung, we
       // split the trajectory into pieces between photon emissions
-      if (std::abs((*eventReader->genParticles_PDG)[ip]) == 11)
+      if (std::abs((*eventReader->genParticles.PDG)[ip]) == 11)
       {
         // retrieve the various splittings
         auto segments = getElectronBremsstrahlungSegments(
                                                           ip,
-                                                          *eventReader->genParticles_daughters_index,
-                                                          *eventReader->genParticles_PDG,
-                                                          *eventReader->genParticles_vertex_x,
-                                                          *eventReader->genParticles_vertex_y,
-                                                          *eventReader->genParticles_vertex_z,
-                                                          *eventReader->genParticles_momentum_x,
-                                                          *eventReader->genParticles_momentum_y,
-                                                          *eventReader->genParticles_momentum_z,
-                                                          *eventReader->genParticles_daughters_begin,
-                                                          *eventReader->genParticles_daughters_end);
+                                                          *eventReader->genParticles.daughters_index,
+                                                          *eventReader->genParticles.PDG,
+                                                          *eventReader->genParticles.vertex_x,
+                                                          *eventReader->genParticles.vertex_y,
+                                                          *eventReader->genParticles.vertex_z,
+                                                          *eventReader->genParticles.momentum_x,
+                                                          *eventReader->genParticles.momentum_y,
+                                                          *eventReader->genParticles.momentum_z,
+                                                          *eventReader->genParticles.daughters_begin,
+                                                          *eventReader->genParticles.daughters_end);
         // create a track for each segment
         for(const auto& seg : segments)
         {
           TEveMCTrack mctSegment;
-          mctSegment.SetPdgCode((*eventReader->genParticles_PDG)[ip]);
+          mctSegment.SetPdgCode((*eventReader->genParticles.PDG)[ip]);
           double pSeg = seg.momentum.Mag();
           double pxSeg = seg.momentum.X();
           double pySeg = seg.momentum.Y();
@@ -629,7 +612,7 @@ void EventDisplay::drawParticles()
           double xSeg = seg.start.X();
           double ySeg = seg.start.Y();
           double zSeg = seg.start.Z();
-          double mSeg = (*eventReader->genParticles_mass)[ip];
+          double mSeg = (*eventReader->genParticles.mass)[ip];
           mctSegment.SetMomentum(pxSeg, pySeg, pzSeg, sqrt(pSeg*pSeg+mSeg*mSeg));
           mctSegment.SetProductionVertex(xSeg, ySeg, zSeg, 0);
           TEveTrackPropagator* prop = new TEveTrackPropagator("electron_brem_segment",
@@ -694,17 +677,17 @@ void EventDisplay::drawParticles()
     if ((pdgID == 111) && (displayConfig.getBoolConfig("drawSimParticles")))
     {
       bool decayVtxSet = false;
-      for (unsigned int i = 0; i < eventReader->SimParticleSecondaries_PDG->GetSize(); i++)
+      for (unsigned int i = 0; i < eventReader->simParticles.PDG->GetSize(); i++)
       {
-        pdgID = (*eventReader->SimParticleSecondaries_PDG)[i];
+        pdgID = (*eventReader->simParticles.PDG)[i];
         // keep only photons
         if (pdgID != 22)
           continue;
-        // if ( (* eventReader->SimParticleSecondaries_generatorStatus)[i] != 1 ) continue;
-        px = (*eventReader->SimParticleSecondaries_momentum_x)[i];
-        py = (*eventReader->SimParticleSecondaries_momentum_y)[i];
-        pz = (*eventReader->SimParticleSecondaries_momentum_z)[i];
-        m = (*eventReader->SimParticleSecondaries_mass)[i];
+        // if ( (* eventReader->simParticles.generatorStatus)[i] != 1 ) continue;
+        px = (*eventReader->simParticles.momentum_x)[i];
+        py = (*eventReader->simParticles.momentum_y)[i];
+        pz = (*eventReader->simParticles.momentum_z)[i];
+        m = (*eventReader->simParticles.mass)[i];
         p = sqrt(px * px + py * py + pz * pz);
         float e = sqrt(p * p + m * m);
         // std::cout << "p = "<< p << std::endl;
@@ -712,10 +695,10 @@ void EventDisplay::drawParticles()
           continue;
 
         // std::cout << "PDG = "<< pdgID << std::endl;
-        t = (*eventReader->SimParticleSecondaries_time)[i];
-        x1 = (*eventReader->SimParticleSecondaries_vertex_x)[i] * mm;
-        y1 = (*eventReader->SimParticleSecondaries_vertex_y)[i] * mm;
-        z1 = (*eventReader->SimParticleSecondaries_vertex_z)[i] * mm;
+        t = (*eventReader->simParticles.time)[i];
+        x1 = (*eventReader->simParticles.vertex_x)[i] * mm;
+        y1 = (*eventReader->simParticles.vertex_y)[i] * mm;
+        z1 = (*eventReader->simParticles.vertex_z)[i] * mm;
         double r1 = sqrt(x1 * x1 + y1 * y1);
         // the two photons from a pi0 in the origin must come from small R
         // TODO IMPROVE FOR DDSIM FILES - WHERE PARTICLES PARENTS ARE STORED!
@@ -725,9 +708,9 @@ void EventDisplay::drawParticles()
         x2 = x1 + px / p * rMax / sintheta;
         y2 = y1 + py / p * rMax / sintheta;
         z2 = z1 + pz / p * rMax / sintheta;
-        // double x2 = (* eventReader->SimParticleSecondaries_endpoint_x)[i] * mm;
-        // double y2 = (* eventReader->SimParticleSecondaries_endpoint_y)[i] * mm;
-        // double z2 = (* eventReader->SimParticleSecondaries_endpoint_z)[i] * mm;
+        // double x2 = (* eventReader->simParticles.endpoint_x)[i] * mm;
+        // double y2 = (* eventReader->simParticles.endpoint_y)[i] * mm;
+        // double z2 = (* eventReader->simParticles.endpoint_z)[i] * mm;
         // double r2 = sqrt(x2*x2+y2*y2);
         // std::cout << "x1 y1 z1 x2 y2 z2 = "
         //      << x1 << " " << y1 << " " << z1 << " "
@@ -777,16 +760,12 @@ void EventDisplay::drawHits()
   {
     std::cout << "Creating vertex barrel hits" << std::endl;
     drawHitCollection(vtxHits, "VTX",
-                      eventReader->VertexBarrelHits_position_x,
-                      eventReader->VertexBarrelHits_position_y,
-                      eventReader->VertexBarrelHits_position_z,
-                      nullptr, -9999.);
+                      eventReader->vertexBarrelHits,
+                      -9999.);
     std::cout << "Creating vertex endcap hits" << std::endl;
     drawHitCollection(vtxHits, "VTX",
-                      eventReader->VertexEndcapHits_position_x,
-                      eventReader->VertexEndcapHits_position_y,
-                      eventReader->VertexEndcapHits_position_z,
-                      nullptr, -9999., false, false, true);
+                      eventReader->vertexEndcapHits,
+                      -9999., false, false, true);
   }
 
   // hits in DCH/STT
@@ -794,10 +773,8 @@ void EventDisplay::drawHits()
   {
     std::cout << "Creating main tracker hits" << std::endl;
     drawHitCollection(dchHits, "DCH",  // TODO modify for STT
-                      eventReader->MainTrackerHits_position_x,
-                      eventReader->MainTrackerHits_position_y,
-                      eventReader->MainTrackerHits_position_z,
-                      nullptr, -9999.);
+                      eventReader->mainTrackerHits,
+                      -9999.);
   }
 
   // hits in Si wrapper
@@ -805,15 +782,11 @@ void EventDisplay::drawHits()
   {
     std::cout << "Creating Si wrapper hits" << std::endl;
     drawHitCollection(siwrHits, "Si wrapper",
-                      eventReader->SiWrapperBarrelHits_position_x,
-                      eventReader->SiWrapperBarrelHits_position_y,
-                      eventReader->SiWrapperBarrelHits_position_z,
-                      nullptr, -9999.);
+                      eventReader->siWrapperBarrelHits,
+                      -9999.);
     drawHitCollection(siwrHits, "Si wrapper",
-                      eventReader->SiWrapperEndcapHits_position_x,
-                      eventReader->SiWrapperEndcapHits_position_y,
-                      eventReader->SiWrapperEndcapHits_position_z,
-                      nullptr, -9999., false, false, true);
+                      eventReader->siWrapperEndcapHits,
+                      -9999., false, false, true);
   }
 
   // hits in ECAL
@@ -821,10 +794,7 @@ void EventDisplay::drawHits()
   {
     std::cout << "Creating ecal barrel hits" << std::endl;
     drawHitCollection(ecalHits, "ECAL",
-                      eventReader->ECalBarrelHits_position_x,
-                      eventReader->ECalBarrelHits_position_y,
-                      eventReader->ECalBarrelHits_position_z,
-                      eventReader->ECalBarrelHits_energy,
+                      eventReader->ecalBarrelHits,
                       HitEnergyThreshold);
   }
 
@@ -832,10 +802,7 @@ void EventDisplay::drawHits()
   {
     std::cout << "Creating ecal endcap hits" << std::endl;
     drawHitCollection(ecalHits, "ECAL",
-                      (eventReader->ECalEndcapHits_position_x),
-                      (eventReader->ECalEndcapHits_position_y),
-                      (eventReader->ECalEndcapHits_position_z),
-                      (eventReader->ECalEndcapHits_energy),
+                      eventReader->ecalEndcapHits,
                       HitEnergyThreshold, false, false, true);
   }
 
@@ -844,20 +811,14 @@ void EventDisplay::drawHits()
   {
     std::cout << "Creating hcal barrel hits" << std::endl;
     drawHitCollection(hcalHits, "HCAL",
-                      eventReader->HCalBarrelHits_position_x,
-                      eventReader->HCalBarrelHits_position_y,
-                      eventReader->HCalBarrelHits_position_z,
-                      eventReader->HCalBarrelHits_energy,
+                      eventReader->hcalBarrelHits,
                       HitEnergyThreshold);
   }
   if (displayConfig.getBoolConfig("drawHCalEndcapHits"))
   {
     std::cout << "Creating hcal endcap hits" << std::endl;
     drawHitCollection(hcalHits, "HCAL",
-                      eventReader->HCalEndcapHits_position_x,
-                      eventReader->HCalEndcapHits_position_y,
-                      eventReader->HCalEndcapHits_position_z,
-                      eventReader->HCalEndcapHits_energy,
+                      eventReader->hcalEndcapHits,
                       HitEnergyThreshold, false, false, true);
   }
 
@@ -866,16 +827,12 @@ void EventDisplay::drawHits()
   {
     std::cout << "Creating muon barrel hits" << std::endl;
     drawHitCollection(muonHits, "MUON",
-                      eventReader->MuonBarrelHits_position_x,
-                      eventReader->MuonBarrelHits_position_y,
-                      eventReader->MuonBarrelHits_position_z,
-                      nullptr, -9999.);
+                      eventReader->muonBarrelHits,
+                      -9999.);
     std::cout << "Creating muon endcap hits" << std::endl;
     drawHitCollection(muonHits, "MUON",
-                      eventReader->MuonEndcapHits_position_x,
-                      eventReader->MuonEndcapHits_position_y,
-                      eventReader->MuonEndcapHits_position_z,
-                      nullptr, -9999., false, false, true);
+                      eventReader->muonEndcapHits,
+                      -9999., false, false, true);
   }
 }
 
@@ -894,16 +851,12 @@ void EventDisplay::drawDigis()
   {
     std::cout << "Creating vertex barrel digis" << std::endl;
     drawHitCollection(vtxDigis, "VTX",
-                      eventReader->VertexBarrelDigis_position_x,
-                      eventReader->VertexBarrelDigis_position_y,
-                      eventReader->VertexBarrelDigis_position_z,
-                      nullptr, -9999., true);
+                      eventReader->vertexBarrelDigis,
+                      -9999., true);
     std::cout << "Creating vertex endcap digis" << std::endl;
     drawHitCollection(vtxDigis, "VTX",
-                      eventReader->VertexEndcapDigis_position_x,
-                      eventReader->VertexEndcapDigis_position_y,
-                      eventReader->VertexEndcapDigis_position_z,
-                      nullptr, -9999., true, false, true);
+                      eventReader->vertexEndcapDigis,
+                      -9999., true, false, true);
   }
 
   // digis in DCH/STT
@@ -911,10 +864,8 @@ void EventDisplay::drawDigis()
   {
     std::cout << "Creating main tracker digis" << std::endl;
     drawHitCollection(dchDigis, "DCH",  // TODO modify for STT
-                      eventReader->MainTrackerDigis_position_x,
-                      eventReader->MainTrackerDigis_position_y,
-                      eventReader->MainTrackerDigis_position_z,
-                      nullptr, -9999., true);
+                      eventReader->mainTrackerDigis,
+                      -9999., true);
   }
 
   // digis in Si wrapper
@@ -922,15 +873,11 @@ void EventDisplay::drawDigis()
   {
     std::cout << "Creating Si wrapper digis" << std::endl;
     drawHitCollection(siwrDigis, "Si wrapper",
-                      eventReader->SiWrapperBarrelDigis_position_x,
-                      eventReader->SiWrapperBarrelDigis_position_y,
-                      eventReader->SiWrapperBarrelDigis_position_z,
-                      nullptr, -9999., true);
+                      eventReader->siWrapperBarrelDigis,
+                      -9999., true);
     drawHitCollection(siwrDigis, "Si wrapper",
-                      eventReader->SiWrapperEndcapDigis_position_x,
-                      eventReader->SiWrapperEndcapDigis_position_y,
-                      eventReader->SiWrapperEndcapDigis_position_z,
-                      nullptr, -9999., true, false, true);
+                      eventReader->siWrapperEndcapDigis,
+                      -9999., true, false, true);
   }
 
   // digis (cells) in ECAL
@@ -938,19 +885,16 @@ void EventDisplay::drawDigis()
   {
     std::cout << "Creating ecal barrel cells" << std::endl;
     drawHitCollection(ecalCells, "ECAL",
-                      eventReader->ECalBarrelCells_position_x,
-                      eventReader->ECalBarrelCells_position_y,
-                      eventReader->ECalBarrelCells_position_z,
-                      eventReader->ECalBarrelCells_energy,
+                      eventReader->ecalBarrelCells,
                       CellEnergyThreshold,
                       true, debug, false);
     // add tool tips
     if (debug) {
-      for (unsigned int i = 0; i < eventReader->ECalBarrelCells_position_x->GetSize(); i++) {
-        float E = (*eventReader->ECalBarrelCells_energy)[i];
+      for (unsigned int i = 0; i < eventReader->ecalBarrelCells.size(); i++) {
+        float E = (*eventReader->ecalBarrelCells.energy)[i];
         if (E < CellEnergyThreshold)
           continue;
-        ULong_t cellID = (*eventReader->ECalBarrelCells_cellID)[i];
+        ULong_t cellID = (*eventReader->ecalBarrelCells.cellID)[i];
         ULong_t system = geomReader->SystemID(cellID);
         ULong_t layer = geomReader->ECalBarrelLayer(cellID);
         ULong_t module = geomReader->ECalBarrelModule(cellID);
@@ -964,20 +908,17 @@ void EventDisplay::drawDigis()
   {
     std::cout << "Creating ecal endcap cells" << std::endl;
     drawHitCollection(ecalCells, "ECAL",
-                      eventReader->ECalEndcapCells_position_x,
-                      eventReader->ECalEndcapCells_position_y,
-                      eventReader->ECalEndcapCells_position_z,
-                      eventReader->ECalEndcapCells_energy,
+                      eventReader->ecalEndcapCells,
                       CellEnergyThreshold,
                       true, debug, true);
     // add tool tips
     if (debug) {
-      for (unsigned int i = 0; i < eventReader->ECalEndcapCells_position_x->GetSize(); i++)
+      for (unsigned int i = 0; i < eventReader->ecalEndcapCells.size(); i++)
       {
-        float E = (*eventReader->ECalEndcapCells_energy)[i];
+        float E = (*eventReader->ecalEndcapCells.energy)[i];
         if (E < CellEnergyThreshold)
           continue;
-        ULong_t cellID = (*eventReader->ECalEndcapCells_cellID)[i];
+        ULong_t cellID = (*eventReader->ecalEndcapCells.cellID)[i];
         ULong_t system = geomReader->SystemID(cellID);
         Long_t side = geomReader->ECalEndCapSide(cellID);
         ULong_t wheel = geomReader->ECalEndCapWheel(cellID);
@@ -995,20 +936,17 @@ void EventDisplay::drawDigis()
   {
     std::cout << "Creating hcal barrel cells" << std::endl;
     drawHitCollection(hcalCells, "HCAL",
-                      eventReader->HCalBarrelCells_position_x,
-                      eventReader->HCalBarrelCells_position_y,
-                      eventReader->HCalBarrelCells_position_z,
-                      eventReader->HCalBarrelCells_energy,
+                      eventReader->hcalBarrelCells,
                       CellEnergyThreshold,
                       true, debug, false);
     // add tool tips
     if (debug) {
-      for (unsigned int i = 0; i < eventReader->HCalBarrelCells_position_x->GetSize(); i++)
+      for (unsigned int i = 0; i < eventReader->hcalBarrelCells.size(); i++)
       {
-        float E = (*eventReader->HCalBarrelCells_energy)[i];
+        float E = (*eventReader->hcalBarrelCells.energy)[i];
         if (E < CellEnergyThreshold)
           continue;
-        ULong_t cellID = (*eventReader->HCalBarrelCells_cellID)[i];
+        ULong_t cellID = (*eventReader->hcalBarrelCells.cellID)[i];
         ULong_t system = geomReader->SystemID(cellID);
         ULong_t layer = geomReader->HCalBarrelLayer(cellID);
         ULong_t phi = geomReader->HCalBarrelPhiBin(cellID);
@@ -1022,20 +960,17 @@ void EventDisplay::drawDigis()
   {
     std::cout << "Creating hcal endcap cells" << std::endl;
     drawHitCollection(hcalCells, "HCAL",
-                      eventReader->HCalEndcapCells_position_x,
-                      eventReader->HCalEndcapCells_position_y,
-                      eventReader->HCalEndcapCells_position_z,
-                      eventReader->HCalEndcapCells_energy,
+                      eventReader->hcalEndcapCells,
                       CellEnergyThreshold,
                       true, debug, true);
     // add tool tips
     if (debug) {
-      for (unsigned int i = 0; i < eventReader->HCalEndcapCells_position_x->GetSize(); i++)
+      for (unsigned int i = 0; i < eventReader->hcalEndcapCells.size(); i++)
       {
-        float E = (*eventReader->HCalEndcapCells_energy)[i];
+        float E = (*eventReader->hcalEndcapCells.energy)[i];
         if (E < CellEnergyThreshold)
           continue;
-        ULong_t cellID = (*eventReader->HCalEndcapCells_cellID)[i];
+        ULong_t cellID = (*eventReader->hcalEndcapCells.cellID)[i];
         ULong_t system = geomReader->SystemID(cellID);
         ULong_t layer = geomReader->HCalEndCapLayer(cellID);
         ULong_t phi = geomReader->HCalEndCapPhiBin(cellID);
@@ -1050,19 +985,13 @@ void EventDisplay::drawDigis()
   {
     std::cout << "Creating muon barrel cells" << std::endl;
     drawHitCollection(muonCells, "MUON",
-                      eventReader->MuonBarrelCells_position_x,
-                      eventReader->MuonBarrelCells_position_y,
-                      eventReader->MuonBarrelCells_position_z,
-                      eventReader->MuonBarrelCells_energy,
+                      eventReader->muonBarrelCells,
                       CellEnergyThreshold,
                       true, false);
 
     std::cout << "Creating muon endcap cells" << std::endl;
     drawHitCollection(muonCells, "MUON",
-                      eventReader->MuonEndcapCells_position_x,
-                      eventReader->MuonEndcapCells_position_y,
-                      eventReader->MuonEndcapCells_position_z,
-                      eventReader->MuonEndcapCells_energy,
+                      eventReader->muonEndcapCells,
                       CellEnergyThreshold,
                       true, false, true);
   }
@@ -1072,10 +1001,8 @@ void EventDisplay::drawDigis()
   {
     std::cout << "Creating merged ecal barrel cells" << std::endl;
     drawHitCollection(cells_merged, "ECAL merged",
-                      eventReader->ECalBarrelCells2_position_x,
-                      eventReader->ECalBarrelCells2_position_y,
-                      eventReader->ECalBarrelCells2_position_z,
-                      nullptr, -9999.);
+                      eventReader->ecalBarrelMergedCells,
+                      -9999.);
     // override default size and color
     cells_merged->SetMarkerSize(3);
     cells_merged->SetMarkerColor(kBlue);
@@ -1105,11 +1032,11 @@ void EventDisplay::drawTracks()
     else
       tracks->DestroyElements();
 
-    for (unsigned int ip = 0; ip < eventReader->Tracks_subdetectorHitNumbers_begin->GetSize(); ip++)
+    for (unsigned int ip = 0; ip < eventReader->tracks.subdetectorHitNumbers_begin->GetSize(); ip++)
     {
       if (debug) std::cout << "Track " << ip << std::endl;
-      unsigned int trackStates_begin = (*eventReader->Tracks_trackStates_begin)[ip];
-      unsigned int trackStates_end = (*eventReader->Tracks_trackStates_end)[ip];
+      unsigned int trackStates_begin = (*eventReader->tracks.trackStates_begin)[ip];
+      unsigned int trackStates_end = (*eventReader->tracks.trackStates_end)[ip];
       if (debug) std::cout << "  trackStates begin , end = " << trackStates_begin << " , " << trackStates_end << std::endl;
       // store in vectors the track state positions and momenta
       unsigned int nTrackStates = 0;
@@ -1118,18 +1045,18 @@ void EventDisplay::drawTracks()
       float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5];
       for (unsigned int i=0; i<5; i++) x[i]=-1e9; // set to some large value to check later if track state has been filled
       for (unsigned int its = trackStates_begin; its < trackStates_end; its++) {
-        int location = (*eventReader->_Tracks_trackStates_location)[its];
+        int location = (*eventReader->tracks.trackState_location)[its];
         if (debug) {
           std::cout << "Trackstate " << its << std::endl;
           std::cout << "  location = " << location << std::endl;
         }
         if (location>4) continue;
-        x[location] = (*eventReader->_Tracks_trackStates_referencePoint_x)[its];
-        y[location] = (*eventReader->_Tracks_trackStates_referencePoint_y)[its];
-        z[location] = (*eventReader->_Tracks_trackStates_referencePoint_z)[its];
-        omega[location] = (*eventReader->_Tracks_trackStates_omega)[its];
-        tanLambda[location] = (*eventReader->_Tracks_trackStates_tanLambda)[its];
-        phi[location] = (*eventReader->_Tracks_trackStates_phi)[its];
+        x[location] = (*eventReader->tracks.trackState_referencePoint_x)[its];
+        y[location] = (*eventReader->tracks.trackState_referencePoint_y)[its];
+        z[location] = (*eventReader->tracks.trackState_referencePoint_z)[its];
+        omega[location] = (*eventReader->tracks.trackState_omega)[its];
+        tanLambda[location] = (*eventReader->tracks.trackState_tanLambda)[its];
+        phi[location] = (*eventReader->tracks.trackState_phi)[its];
         if (debug) {
           std::cout << "  x = " << x[location] << std::endl;
           std::cout << "  y = " << y[location] << std::endl;
@@ -1150,11 +1077,11 @@ void EventDisplay::drawTracks()
       const int nSubDetectors(5);
       int nhits[nSubDetectors];
       for (int ihit = 0 ; ihit < nSubDetectors; ++ihit) nhits[ihit]=0;
-      unsigned int hits_begin = (*eventReader->Tracks_subdetectorHitNumbers_begin)[ip];
-      unsigned int hits_end = (*eventReader->Tracks_subdetectorHitNumbers_end)[ip];
+      unsigned int hits_begin = (*eventReader->tracks.subdetectorHitNumbers_begin)[ip];
+      unsigned int hits_end = (*eventReader->tracks.subdetectorHitNumbers_end)[ip];
       if (debug) std::cout << "  subdetectorHitNumbers_begin , end = " << hits_begin << " , " << hits_end << std::endl;
       for (unsigned int ih = hits_begin; ih < hits_end; ih++) {
-        nhits[ih-hits_begin] = (*eventReader->_Tracks_subdetectorHitNumbers)[ih];
+        nhits[ih-hits_begin] = (*eventReader->tracks.subdetectorHitNumbers)[ih];
       }
 
       // const int tsOrig=2; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
@@ -1217,8 +1144,9 @@ void EventDisplay::drawTracks()
 
 void EventDisplay::drawClusters(std::string clusterType)
 {
-  // the cells of the clusters of the current event
-  const EventReader::ClusterCells &cells = (clusterType == "topo") ? eventReader->topoClusterCells : eventReader->swClusterCells;
+  // the clusters and their cells in the current event
+  const EventReader::Clusters &clusters = (clusterType == "topo") ? eventReader->topoClusters : eventReader->swClusters;
+  const EventReader::ClusterCells &cells = clusters.cells;
   // read once, not in the loop over the clusters
   const bool drawDirection = displayConfig.getBoolConfig("drawClusterDirection");
 
@@ -1366,7 +1294,7 @@ void EventDisplay::drawClusters(std::string clusterType)
   {
     std::cout << "  Filling the containers" << std::endl;
   }
-  unsigned int nClusters = (clusterType == "topo") ? eventReader->CaloTopoClusters_position_x->GetSize() : eventReader->CaloClusters_position_x->GetSize();
+  unsigned int nClusters = clusters.size();
   if (debug)
   {
     std::cout << "  n(clusters) = " << nClusters << std::endl;
@@ -1428,30 +1356,19 @@ void EventDisplay::drawClusters(std::string clusterType)
   }
 
   for (unsigned int i = 0; i < nClusters; i++) {
-    float E = (clusterType == "topo") ? (*eventReader->CaloTopoClusters_energy)[i] : (*eventReader->CaloClusters_energy)[i];
+    float E = (*clusters.energy)[i];
     if (E < ClusterEnergyThreshold)
       continue;
 
     float x0(0.), y0(0.), z0(0.);
     float theta(0.), phi(0.);
     // topo cluster positions are in cm while calo clusters and hits/cells in mm ... ?
-    if (clusterType == "topo") {
-      x0 = (*eventReader->CaloTopoClusters_position_x)[i] * mm;
-      y0 = (*eventReader->CaloTopoClusters_position_y)[i] * mm;
-      z0 = (*eventReader->CaloTopoClusters_position_z)[i] * mm;
-      if (drawDirection) {
-        theta = (*eventReader->CaloTopoClusters_theta)[i];
-        phi = (*eventReader->CaloTopoClusters_phi)[i];
-      }
-    }
-    else {
-      x0 = (*eventReader->CaloClusters_position_x)[i] * mm;
-      y0 = (*eventReader->CaloClusters_position_y)[i] * mm;
-      z0 = (*eventReader->CaloClusters_position_z)[i] * mm;
-      if (drawDirection) {
-        theta = (*eventReader->CaloClusters_theta)[i];
-        phi = (*eventReader->CaloClusters_phi)[i];
-      }
+    x0 = (*clusters.x)[i] * mm;
+    y0 = (*clusters.y)[i] * mm;
+    z0 = (*clusters.z)[i] * mm;
+    if (drawDirection) {
+      theta = (*clusters.theta)[i];
+      phi = (*clusters.phi)[i];
     }
 
     clustersCenter->SetNextPoint(x0, y0, z0);
@@ -1515,21 +1432,10 @@ void EventDisplay::drawClusters(std::string clusterType)
   int iclAboveThreshold = 0;
   for (unsigned int i = 0; i < nClusters; i++)
   {
-    float energy, xcl, ycl, zcl;
-    if (clusterType == "topo")
-    {
-      energy = (*eventReader->CaloTopoClusters_energy)[i];
-      xcl = (*eventReader->CaloTopoClusters_position_x)[i];
-      ycl = (*eventReader->CaloTopoClusters_position_y)[i];
-      zcl = (*eventReader->CaloTopoClusters_position_z)[i];
-    }
-    else
-    {
-      energy = (*eventReader->CaloClusters_energy)[i];
-      xcl = (*eventReader->CaloClusters_position_x)[i];
-      ycl = (*eventReader->CaloClusters_position_y)[i];
-      zcl = (*eventReader->CaloClusters_position_z)[i];
-    }
+    float energy = (*clusters.energy)[i];
+    float xcl = (*clusters.x)[i];
+    float ycl = (*clusters.y)[i];
+    float zcl = (*clusters.z)[i];
     float rcl = sqrt(xcl * xcl + ycl * ycl);
     float phicl = atan2(ycl, xcl);
     float thetacl = atan2(rcl, zcl);
@@ -1656,17 +1562,8 @@ void EventDisplay::drawClusters(std::string clusterType)
   std::vector<int> cellCluster(nCells, -1);
   for (unsigned int j = 0; j < nClusters; j++)
   {
-    unsigned int first_hit, last_hit;
-    if (clusterType == "topo")
-    {
-      first_hit = (*eventReader->CaloTopoClusters_hits_begin)[j];
-      last_hit = (*eventReader->CaloTopoClusters_hits_end)[j];
-    }
-    else
-    {
-      first_hit = (*eventReader->CaloClusters_hits_begin)[j];
-      last_hit = (*eventReader->CaloClusters_hits_end)[j];
-    }
+    unsigned int first_hit = (*clusters.hits_begin)[j];
+    unsigned int last_hit = (*clusters.hits_end)[j];
     // in case of overlapping ranges, keep the first cluster
     for (unsigned int i = first_hit; i < std::min(last_hit, nCells); i++)
       if (cellCluster[i] == -1)
@@ -1683,9 +1580,9 @@ void EventDisplay::drawClusters(std::string clusterType)
       if (icl == -1)
         continue;
       double thetaLow, thetaHigh, phiLow, phiHigh;
-      getSlidingWindowRange((*eventReader->CaloClusters_position_x)[icl],
-                            (*eventReader->CaloClusters_position_y)[icl],
-                            (*eventReader->CaloClusters_position_z)[icl],
+      getSlidingWindowRange((*clusters.x)[icl],
+                            (*clusters.y)[icl],
+                            (*clusters.z)[icl],
                             thetaLow, thetaHigh, phiLow, phiHigh);
       const double theta = std::atan2(std::sqrt(cells.x[i] * cells.x[i] + cells.y[i] * cells.y[i]), cells.z[i]);
       // phi of the cell in the range of the window
@@ -2103,14 +2000,14 @@ void EventDisplay::drawEvent(int event)
   // the collection is missing from the file)
   double pmax = 0.0;
   int ipmax = -1;
-  unsigned int nGenParticles = eventReader->genParticles_generatorStatus ? eventReader->genParticles_generatorStatus->GetSize() : 0;
+  unsigned int nGenParticles = eventReader->genParticles.generatorStatus ? eventReader->genParticles.generatorStatus->GetSize() : 0;
   for (unsigned int i = 0; i < nGenParticles; i++)
   {
-    if ((*eventReader->genParticles_generatorStatus)[i] != 1)
+    if ((*eventReader->genParticles.generatorStatus)[i] != 1)
       continue;
-    float _px = (*eventReader->genParticles_momentum_x)[i];
-    float _py = (*eventReader->genParticles_momentum_y)[i];
-    float _pz = (*eventReader->genParticles_momentum_z)[i];
+    float _px = (*eventReader->genParticles.momentum_x)[i];
+    float _py = (*eventReader->genParticles.momentum_y)[i];
+    float _pz = (*eventReader->genParticles.momentum_z)[i];
     float _p = sqrt(_px * _px + _py * _py + _pz * _pz);
     // std::cout << p << std::endl;
     if (_p == 0.)
@@ -2121,7 +2018,7 @@ void EventDisplay::drawEvent(int event)
       ipmax = i;
     }
   }
-  int pdgID = (ipmax >= 0) ? (*eventReader->genParticles_PDG)[ipmax] : 0;
+  int pdgID = (ipmax >= 0) ? (*eventReader->genParticles.PDG)[ipmax] : 0;
 
   // draw the various event elements
   drawParticles();
@@ -3791,9 +3688,9 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
   }
 
   // Add final electron segment
-  TVector3 endpoint((*eventReader->genParticles_endpoint_x)[electronIndex]*mm,
-                    (*eventReader->genParticles_endpoint_y)[electronIndex]*mm,
-                    (*eventReader->genParticles_endpoint_z)[electronIndex]*mm);
+  TVector3 endpoint((*eventReader->genParticles.endpoint_x)[electronIndex]*mm,
+                    (*eventReader->genParticles.endpoint_y)[electronIndex]*mm,
+                    (*eventReader->genParticles.endpoint_z)[electronIndex]*mm);
   segments.push_back({
       TVector3(currentVertex.X(), currentVertex.Y(), currentVertex.Z()),
       TVector3(endpoint.X(), endpoint.Y(), endpoint.Z()),

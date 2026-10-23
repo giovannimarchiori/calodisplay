@@ -1,0 +1,4 @@
+convert -size 10x20 gradient:'#e8dccb'-'#5a1a0a' \
+    -bordercolor black -border 1 \
+    -background none -gravity center -extent 24x24 \
+    -depth 8 palette_icon.png
