@@ -62,29 +62,50 @@ CylField::CylField(const std::string& filename,
   if (nr < 2 || nz < 2) {
     throw std::runtime_error("Grid must have at least 2x2 points");
   }
+  fNr = nr;
+  fNz = nz;
   fRmin = rvals.front();
   fRmax = rvals.back();
   fZmin = zvals.front();
   fZmax = zvals.back();
+  fDr = (fRmax - fRmin) / (nr - 1);
+  fDz = (fZmax - fZmin) / (nz - 1);
+  fMirrorZ = (fZmin >= 0.);
   std::cout << "r: min, max, npoints = " << fRmin << " " << fRmax << " " << nr << std::endl;
   std::cout << "z: min, max, npoints = " << fZmin << " " << fZmax << " " << nz << std::endl;
+  if (fMirrorZ)
+    std::cout << "Map covers only z>=0: field at z<0 obtained by symmetry" << std::endl;
 
-  // Create histograms (regular grid assumed)
-  fBr = new TH2D("hBr", "Br", nr, fRmin, fRmax, nz, fZmin, fZmax);
-  fBz = new TH2D("hBz", "Bz", nr, fRmin, fRmax, nz, fZmin, fZmax);
+  // Create histograms with bin centres on the grid points (regular grid assumed)
+  fBr = new TH2D("hBr", "Br", nr, fRmin - fDr/2., fRmax + fDr/2., nz, fZmin - fDz/2., fZmax + fDz/2.);
+  fBz = new TH2D("hBz", "Bz", nr, fRmin - fDr/2., fRmax + fDr/2., nz, fZmin - fDz/2., fZmax + fDz/2.);
 
-  // Fill histograms and calculate max field
+  // Fill grid and histograms and calculate max field
+  fBrGrid.assign(nr * nz, 0.);
+  fBzGrid.assign(nr * nz, 0.);
+  std::vector<bool> filled(nr * nz, false);
   fMaxFieldMag = 0.0;
   for (Long64_t i = 0; i < n; ++i) {
     tree->GetEntry(i);
-    int binx = fBr->GetXaxis()->FindBin(r*m);
-    int biny = fBr->GetYaxis()->FindBin(z*m);
-    fBr->SetBinContent(binx, biny, (double) Br);
-    fBz->SetBinContent(binx, biny, (double) Bz);
+    const double rr = (double) r*m;
+    const double zz = (double) z*m;
+    const long ir = std::lround((rr - fRmin) / fDr);
+    const long iz = std::lround((zz - fZmin) / fDz);
+    if (std::fabs(rr - (fRmin + ir*fDr)) > 1e-3*fDr || std::fabs(zz - (fZmin + iz*fDz)) > 1e-3*fDz) {
+      throw std::runtime_error("Field map points are not on a regular grid");
+    }
+    fBrGrid[ir*nz + iz] = Br;
+    fBzGrid[ir*nz + iz] = Bz;
+    filled[ir*nz + iz] = true;
+    fBr->SetBinContent(ir+1, iz+1, (double) Br);
+    fBz->SetBinContent(ir+1, iz+1, (double) Bz);
     const double mag = std::sqrt(Br*Br + Bz*Bz);
     if (mag > fMaxFieldMag) {
       fMaxFieldMag = mag;
     }
+  }
+  if (std::find(filled.begin(), filled.end(), false) != filled.end()) {
+    throw std::runtime_error("Field map grid is incomplete");
   }
 
   fBr->SetDirectory(0);
@@ -142,13 +163,31 @@ TEveVectorD CylField::GetFieldD(Double_t x, Double_t y, Double_t z) const
 
   const double r = std::sqrt(x*x + y*y);
 
+  // use symmetry for z<0 if the map only covers z>=0
+  double zMap = z;
+  double signBr = 1.0;
+  if (fMirrorZ && z < 0.) {
+    zMap = -z;
+    signBr = -1.0;
+  }
+
   // Outside map return zero field
-  if (r < fRmin || r > fRmax || z < fZmin || z > fZmax) {
+  if (r < fRmin || r > fRmax || zMap < fZmin || zMap > fZmax) {
     return TEveVectorD(0.0, 0.0, 0.0);
   }
 
-  const double Br = fBr->Interpolate(r, z);
-  const double Bz = fBz->Interpolate(r, z);
+  // bilinear interpolation between the 4 surrounding grid points
+  const double ur = (r - fRmin) / fDr;
+  const double uz = (zMap - fZmin) / fDz;
+  const int ir = std::min((int) ur, fNr - 2);
+  const int iz = std::min((int) uz, fNz - 2);
+  const double tr = ur - ir;
+  const double tz = uz - iz;
+  const int i00 = ir*fNz + iz;
+  const int i10 = i00 + fNz;
+  const double w00 = (1-tr)*(1-tz), w10 = tr*(1-tz), w01 = (1-tr)*tz, w11 = tr*tz;
+  const double Br = signBr * (w00*fBrGrid[i00] + w10*fBrGrid[i10] + w01*fBrGrid[i00+1] + w11*fBrGrid[i10+1]);
+  const double Bz = w00*fBzGrid[i00] + w10*fBzGrid[i10] + w01*fBzGrid[i00+1] + w11*fBzGrid[i10+1];
 
   double Bx = 0.0;
   double By = 0.0;
@@ -162,7 +201,7 @@ TEveVectorD CylField::GetFieldD(Double_t x, Double_t y, Double_t z) const
   }
 
   if (m_reverse)
-    return TEveVectorD(Bx, By, -Bz);
+    return TEveVectorD(-Bx, -By, -Bz);
   return TEveVectorD(Bx, By, Bz);
 }
 
@@ -197,8 +236,8 @@ void CylField::DrawFieldMap(const std::string& canvasName,
 {
     // Create magnitude histogram with swapped axes: (z, r)
   TH2D* hMag = new TH2D("hMag", "|B|;z;r",
-                        fBz->GetNbinsY(), fZmin, fZmax,   // x = z
-                        fBr->GetNbinsX(), fRmin, fRmax);  // y = r
+                        fBz->GetNbinsY(), fZmin - fDz/2., fZmax + fDz/2.,   // x = z
+                        fBr->GetNbinsX(), fRmin - fDr/2., fRmax + fDr/2.);  // y = r
   const int nx = fBr->GetNbinsX();
   const int ny = fBr->GetNbinsY();
 

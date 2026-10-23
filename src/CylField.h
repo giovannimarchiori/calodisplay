@@ -4,6 +4,7 @@
 #include "TEveTrackPropagator.h"
 #include <TH2D.h>
 #include <string>
+#include <vector>
 
 class CylField : public TEveMagField
 {
@@ -11,11 +12,20 @@ private:
   bool m_magnetIsOn;
   bool m_reverse;
 
-  TH2D* fBr;  // Br(r,z)
-  TH2D* fBz;  // Bz(r,z)
+  TH2D* fBr;  // Br(r,z), bin centres on the grid points (for printing/drawing)
+  TH2D* fBz;  // Bz(r,z), bin centres on the grid points (for printing/drawing)
+
+  // regular grid used for the field lookup, indexed as [ir*fNz + iz]
+  std::vector<double> fBrGrid;
+  std::vector<double> fBzGrid;
+  int fNr, fNz;
+  double fDr, fDz;
 
   double fRmin, fRmax;
   double fZmin, fZmax;
+
+  // if the map only covers z>=0, use Br(r,-z) = -Br(r,z), Bz(r,-z) = Bz(r,z)
+  bool fMirrorZ;
 
   double fMaxFieldMag;
 
