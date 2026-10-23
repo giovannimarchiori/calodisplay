@@ -2155,7 +2155,8 @@ void EventDisplay::startDisplay(int initialEvent)
   }
   if (!magField) {
     // the return field outside the solenoid scales with the field inside
-    const double bOut = bSolenoid * geomReader->Bout / geomReader->Bin;
+    // (+ 0. avoids printing -0 when there is no field)
+    const double bOut = bSolenoid * geomReader->Bout / geomReader->Bin + 0.;
     std::cout << "Using ideal solenoid magnetic field, B = " << bSolenoid << " T inside, "
               << bOut << " T outside" << std::endl;
     MagField* solenoid = new MagField(bSolenoid, bOut, geomReader->zMax, geomReader->rMax);
