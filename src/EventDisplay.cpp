@@ -82,7 +82,7 @@ int countECalBarrelLayers(TEveElement *world)
 
 void EventDisplay::fillClusters(std::string clusterType)
 {
-  std::vector<CaloCluster *> *clusterData = nullptr;
+  std::vector<std::unique_ptr<CaloCluster>> *clusterData = nullptr;
   unsigned int nClusters = 0;
 
   if (clusterType == "topo")
@@ -116,11 +116,7 @@ void EventDisplay::fillClusters(std::string clusterType)
     {
       std::cout << "  Deleting old cluster data" << std::endl;
     }
-    for (CaloCluster *cluster : *clusterData)
-    {
-      delete cluster;
-    }
-    clusterData->resize(0);
+    clusterData->clear();
   }
 
   // loop over clusters and fill the relevant info
@@ -142,8 +138,8 @@ void EventDisplay::fillClusters(std::string clusterType)
       continue;
     }
     // create empty cluster object
-    CaloCluster *cluster = new CaloCluster;
-    clusterData->emplace_back(cluster);
+    clusterData->emplace_back(std::make_unique<CaloCluster>());
+    CaloCluster *cluster = clusterData->back().get();
 
     // set index and energy
     cluster->setIndex(i);
@@ -1076,7 +1072,7 @@ void EventDisplay::drawTracks()
 
 void EventDisplay::drawClusters(std::string clusterType)
 {
-  std::vector<CaloCluster *> *clusterData = nullptr;
+  std::vector<std::unique_ptr<CaloCluster>> *clusterData = nullptr;
   if (clusterType == "topo")
   {
     std::cout << "Drawing topo clusters" << std::endl;
@@ -1111,7 +1107,10 @@ void EventDisplay::drawClusters(std::string clusterType)
   const double phiMinHCal = geomReader->phiMinHCal;
 
   // create the graphic containers
+  // the palette is ref-counted by the digit sets that use it: hold a reference
+  // while filling, released at the end (deletes it if no cluster uses it)
   TEveRGBAPalette *pal = new TEveRGBAPalette(0, 1000);
+  pal->IncRefCount();
 
   // first, create the containers
   // clusters in 3D
@@ -1450,7 +1449,7 @@ void EventDisplay::drawClusters(std::string clusterType)
         layerBarycenters->SetMarkerStyle(4);
         layerBarycenters->SetMarkerSize(3);
         clusters_3D->AddElement(layerBarycenters);
-        CaloCluster *clus = (*clusterData)[icl];
+        CaloCluster *clus = (*clusterData)[icl].get();
         for (unsigned int iLayer = 0; iLayer < clus->getNLayersECalBarrel(); iLayer++)
         {
           if (clus->getEnergyInECalBarrelLayer(iLayer) > 0)
@@ -1949,6 +1948,8 @@ void EventDisplay::drawClusters(std::string clusterType)
       qs_rhophi[icl]->QuadId(new TNamed(Form("%s %d cell L%d P%d", clusterType.c_str(), icl, layer, phiID), "Dong!"));
     }
   }
+
+  pal->DecRefCount();
 }
 
 void EventDisplay::drawEvent(int event)
@@ -2074,7 +2075,7 @@ void EventDisplay::startDisplay(int initialEvent)
     detectorVersion = 3;
   else
     detectorVersion = 2;
-  geomReader = new DetectorGeometry(detectorVersion);
+  geomReader = std::make_unique<DetectorGeometry>(detectorVersion);
 
   // create magnetic field
   std::string bFieldType = displayConfig.getStringConfig("bField");
@@ -2169,33 +2170,33 @@ void EventDisplay::startDisplay(int initialEvent)
       {
         addSimpleElement(e, d);
       };
-      m_subDetectors.push_back({"MDI", nullptr, {"ScreenSol","CompSol"}, nullptr, false,
+      m_subDetectors.push_back({"MDI", "", {"ScreenSol","CompSol"}, nullptr, false,
           simple});
-      m_subDetectors.push_back({"Beampipe", nullptr, {"BeamPipe","Beampipe"}, nullptr, false,
+      m_subDetectors.push_back({"Beampipe", "", {"BeamPipe","Beampipe"}, nullptr, false,
           simple});
-      m_subDetectors.push_back({"LumiCal", new TPRegexp("LumiCal_*"), {}, nullptr, false,
+      m_subDetectors.push_back({"LumiCal", "LumiCal_*", {}, nullptr, false,
             simple});
-      m_subDetectors.push_back({"Vertex", nullptr, {"Vertex"}, nullptr, true,
+      m_subDetectors.push_back({"Vertex", "", {"Vertex"}, nullptr, true,
         [this](TEveElement* e, SubDetector& d) { addVertex(e, d); }});
-      m_subDetectors.push_back({"Drift chamber", new TPRegexp("DCH_*"), {}, nullptr, true,
+      m_subDetectors.push_back({"Drift chamber", "DCH_*", {}, nullptr, true,
             [this](TEveElement* e, SubDetector& d) { addDCH(e, d); }});
-      m_subDetectors.push_back({"Straw tube tracker", new TPRegexp("STT_*"), {}, nullptr, true,
+      m_subDetectors.push_back({"Straw tube tracker", "STT_*", {}, nullptr, true,
                     [this](TEveElement* e, SubDetector& d) { addDCH(e, d); }});
-      m_subDetectors.push_back({"Si wrapper barrel", new TPRegexp("SiWrB_*"), {}, nullptr, true,
+      m_subDetectors.push_back({"Si wrapper barrel", "SiWrB_*", {}, nullptr, true,
             [this](TEveElement* e, SubDetector& d) { addWrapper(e, d); }});
-      m_subDetectors.push_back({"Si wrapper endcap", new TPRegexp("SiWrD_*"), {}, nullptr, true,
+      m_subDetectors.push_back({"Si wrapper endcap", "SiWrD_*", {}, nullptr, true,
             [this](TEveElement* e, SubDetector& d) { addWrapper(e, d); }});
-      m_subDetectors.push_back({"ECal barrel", new TPRegexp("ECalBarrel*"), {}, nullptr, true,
+      m_subDetectors.push_back({"ECal barrel", "ECalBarrel*", {}, nullptr, true,
             [this](TEveElement* e, SubDetector& d) { addECalB(e, d); }});
-      m_subDetectors.push_back({"ECal endcap", nullptr, {"ECalEndcaps"}, nullptr, true,
+      m_subDetectors.push_back({"ECal endcap", "", {"ECalEndcaps"}, nullptr, true,
             [this](TEveElement* e, SubDetector& d) { addECalEC(e, d); }});
-      m_subDetectors.push_back({"HCal barrel", new TPRegexp("HCalEnvelopeVolume*"), {}, nullptr, true,
+      m_subDetectors.push_back({"HCal barrel", "HCalEnvelopeVolume*", {}, nullptr, true,
             [this](TEveElement* e, SubDetector& d) { addHCalB(e, d); }});
-      m_subDetectors.push_back({"HCal endcap", new TPRegexp("HCal(\\w+)Endcap(\\w+)"), {}, nullptr, true,
+      m_subDetectors.push_back({"HCal endcap", "HCal(\\w+)Endcap(\\w+)", {}, nullptr, true,
             [this](TEveElement* e, SubDetector& d) { addHCalEC(e, d); }});
-      m_subDetectors.push_back({"Muon tagger barrel", new TPRegexp("MuonTaggerBarrel*"), {}, nullptr, true,
+      m_subDetectors.push_back({"Muon tagger barrel", "MuonTaggerBarrel*", {}, nullptr, true,
             [this](TEveElement* e, SubDetector& d) { addMuonB(e, d); }});
-      m_subDetectors.push_back({"Muon tagger endcap", new TPRegexp("MuonTaggerEndcap*"), {}, nullptr, true,
+      m_subDetectors.push_back({"Muon tagger endcap", "MuonTaggerEndcap*", {}, nullptr, true,
             [this](TEveElement* e, SubDetector& d) { addMuonEC(e, d); }});
 
       for (TEveElement::List_i itr = world->BeginChildren(); itr != world->EndChildren(); itr++)
@@ -3075,8 +3076,8 @@ void EventDisplay::startDisplay(int initialEvent)
               << std::endl;
 
     // open the file with the events and create the reader
-    TFile *f = TFile::Open(evtFile.c_str(), "READ");
-    eventReader = new EventReader(f, doHCal);
+    eventFile.reset(TFile::Open(evtFile.c_str(), "READ"));
+    eventReader = std::make_unique<EventReader>(eventFile.get(), doHCal);
 
     // setup the branches
     eventReader->setBranches();
@@ -3520,8 +3521,8 @@ EventDisplay::SubDetector* EventDisplay::findSubDetector(TString const& s)
 {
   for (auto& g : m_subDetectors)
   {
-    if (g.regex) {
-      if (g.regex->MatchB(s))
+    if (!g.regex.empty()) {
+      if (TPRegexp(g.regex.c_str()).MatchB(s))
         return &g;
     }
     for (auto const& c : g.contains)

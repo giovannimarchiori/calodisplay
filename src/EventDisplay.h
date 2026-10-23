@@ -32,6 +32,8 @@
 #include <TVector3.h>
 #include <TPRegexp.h>
 
+#include <memory>
+
 #include "DetectorGeometry.h"
 #include "EventReader.h"
 #include "CaloCluster.h"
@@ -223,10 +225,12 @@ public:
   TGLConstAnnotation *eventLabel = nullptr;
   TGTextEntry *textEntry = nullptr;
 
-  DetectorGeometry *geomReader = nullptr;
-  EventReader *eventReader = nullptr;
-  std::vector<CaloCluster *> topoclusterData;
-  std::vector<CaloCluster *> swclusterData;
+  std::unique_ptr<DetectorGeometry> geomReader;
+  // the file must be declared before the reader, so that the reader is destroyed first
+  std::unique_ptr<TFile> eventFile;
+  std::unique_ptr<EventReader> eventReader;
+  std::vector<std::unique_ptr<CaloCluster>> topoclusterData;
+  std::vector<std::unique_ptr<CaloCluster>> swclusterData;
 
   TGLViewer* activeGLViewer = nullptr;
 
@@ -373,7 +377,7 @@ private:
   struct SubDetector
   {
     std::string name;
-    TPRegexp* regex = nullptr;
+    std::string regex;  // regular expression for the volume name (empty: use contains)
     std::vector<std::string> contains;
     TEveElementList* list = nullptr;
     bool visibleByDefault = true;
