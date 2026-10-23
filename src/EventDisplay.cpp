@@ -3237,18 +3237,21 @@ void EventDisplay::startDisplay(int initialEvent)
     drawEvent(initialEvent);
   }
 
-  // vertical legend of the cluster cell energies in each view, on the right,
-  // inside the axis labels of the projections (palette values in MeV, shown in GeV)
+  // vertical legend of the cluster cell energies in the projections, on the
+  // right, inside the axis labels (palette values in MeV, shown in GeV)
   const std::vector<std::pair<TGLViewer *, TEveRGBAPalette *>> legends = {
-      {mainGLView, cellPalette3D}, {rhoPhiGLView, cellPaletteRhoPhi}, {rhoZGLView, cellPaletteRhoZ}};
+      {rhoPhiGLView, cellPaletteRhoPhi}, {rhoZGLView, cellPaletteRhoZ}};
   for (const auto &[viewer, palette] : legends)
   {
     if (!viewer)
       continue;
-    viewer->AddOverlayElement(new PaletteLegend(palette, 0.82, 0.30, 0.02, 0.45, 0.001));
+    PaletteLegend *legend = new PaletteLegend(palette, 0.82, 0.30, 0.02, 0.45, 0.001);
+    viewer->AddOverlayElement(legend);
     TGLConstAnnotation *title = new TGLConstAnnotation(viewer, "E [GeV]", 0.81, 0.80);
     title->SetTextSize(0.03);
     title->SetAllowClose(false);
+    paletteLegends.push_back(legend);
+    paletteLegends.push_back(title);
   }
 
   // Set the 3D view as the active tab and rotate the camera
@@ -3409,6 +3412,16 @@ void EventDisplay::toggleReadout()
   gEve->FullRedraw3D(false);
 }
 
+void EventDisplay::togglePaletteLegends()
+{
+  showPaletteLegends = !showPaletteLegends;
+  for (TGLOverlayElement *el : paletteLegends)
+    el->SetBinaryState(showPaletteLegends);
+  for (TGLViewer *viewer : {rhoPhiGLView, rhoZGLView})
+    if (viewer)
+      viewer->RequestDraw();
+}
+
 void EventDisplay::takeScreenshot()
 {
   TString view;
@@ -3485,6 +3498,11 @@ void EventDisplay::makeGui()
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "toggleReadout()");
     b->SetToolTipText("Hide/Show readouts");
+
+    b = makeButton("palette_icon.png", "Legend");
+    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
+    b->Connect("Clicked()", "EventDisplay", this, "togglePaletteLegends()");
+    b->SetToolTipText("Hide/Show the legend of the cluster cell energies in the projections");
 
     frm->AddFrame(hf);
     frm->Layout();
