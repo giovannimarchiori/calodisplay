@@ -295,7 +295,8 @@ void EventDisplay::fillClusters(ClusterSet &set)
   nLayers[CaloCluster::kECalEndcap] = geomReader->nLayersECalEndCap;
   nLayers[CaloCluster::kHCalBarrel] = geomReader->nLayersHCal;
   nLayers[CaloCluster::kHCalEndcap] = geomReader->nLayersHCalEndCap;
-  nLayers[CaloCluster::kMuon] = geomReader->nLayersMuon;
+  nLayers[CaloCluster::kMuonBarrel] = geomReader->nLayersMuonBarrel;
+  nLayers[CaloCluster::kMuonEndcap] = geomReader->nLayersMuonEndcap;
   // the part of the calorimeters and the layer of a cell (false if the system is unknown)
   auto cellPartAndLayer = [this](ULong_t cellID, CaloCluster::Part &part, ULong_t &layer) -> bool
   {
@@ -320,11 +321,15 @@ void EventDisplay::fillClusters(ClusterSet &set)
       part = CaloCluster::kHCalEndcap;
       layer = geomReader->HCalEndCapLayer(cellID);
     }
-    else if (systemID == DetectorGeometry::kMuonBarrel || systemID == DetectorGeometry::kMuonEndcap)
+    else if (systemID == DetectorGeometry::kMuonBarrel)
     {
-      // TODO: calculate properly muon barrel and endcap layer
-      part = CaloCluster::kMuon;
-      layer = 0;
+      part = CaloCluster::kMuonBarrel;
+      layer = geomReader->MuonBarrelLayer(cellID);
+    }
+    else if (systemID == DetectorGeometry::kMuonEndcap)
+    {
+      part = CaloCluster::kMuonEndcap;
+      layer = geomReader->MuonEndcapLayer(cellID);
     }
     else
       return false;
@@ -423,7 +428,7 @@ void EventDisplay::fillClusters(ClusterSet &set)
         ULong_t layer = 0;
         // the muon tagger and unknown systems are not used for the barycenter;
         // out-of-range layers were already reported in the first loop
-        if (!cellPartAndLayer(cellID, part, layer) || part == CaloCluster::kMuon ||
+        if (!cellPartAndLayer(cellID, part, layer) || part == CaloCluster::kMuonBarrel || part == CaloCluster::kMuonEndcap ||
             layer >= energyVsLayer[part].size())
           continue;
         if (energyVsLayer[part][layer] > 0)
@@ -439,7 +444,7 @@ void EventDisplay::fillClusters(ClusterSet &set)
 
       for (int part = 0; part < CaloCluster::kNParts; part++)
       {
-        if (part != CaloCluster::kMuon)
+        if (part != CaloCluster::kMuonBarrel && part != CaloCluster::kMuonEndcap)
         {
           for (int iLayer = 0; iLayer < nLayers[part]; iLayer++)
           {
@@ -3768,7 +3773,9 @@ void EventDisplay::setCellIDEncodings()
     {"ecalBarrelCells", "drawECalBarrelCells", DetectorGeometry::Readout::ECalBarrel},
     {"ecalEndcapCells", "drawECalEndcapCells", DetectorGeometry::Readout::ECalEndcap},
     {"hcalBarrelCells", "drawHCalBarrelCells", DetectorGeometry::Readout::HCalBarrel},
-    {"hcalEndcapCells", "drawHCalEndcapCells", DetectorGeometry::Readout::HCalEndcap}};
+    {"hcalEndcapCells", "drawHCalEndcapCells", DetectorGeometry::Readout::HCalEndcap},
+    {"muonBarrelCells", "drawMuonCells", DetectorGeometry::Readout::MuonBarrel},
+    {"muonEndcapCells", "drawMuonCells", DetectorGeometry::Readout::MuonEndcap}};
   for (const auto& [key, drawFlag, readoutType] : readouts)
   {
     std::string collection = displayConfig.getStringConfig(key);

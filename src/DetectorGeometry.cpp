@@ -233,6 +233,8 @@ DetectorGeometry::CellIDField DetectorGeometry::fECalEndCapZ = {47, 8};
 DetectorGeometry::CellIDField DetectorGeometry::fHCalEndCapLayer = {7, 6};
 DetectorGeometry::CellIDField DetectorGeometry::fHCalEndCapTheta = {24, 11};
 DetectorGeometry::CellIDField DetectorGeometry::fHCalEndCapPhi = {35, 10};
+DetectorGeometry::CellIDField DetectorGeometry::fMuonBarrelLayer = {5, 5};
+DetectorGeometry::CellIDField DetectorGeometry::fMuonEndcapLayer = {5, 5};
 
 bool DetectorGeometry::SetCellIDEncoding(Readout readout, const std::string& encoding)
 {
@@ -289,6 +291,14 @@ bool DetectorGeometry::SetCellIDEncoding(Readout readout, const std::string& enc
   case Readout::HCalEndcap:
     readoutName = "HCal endcap";
     needed.insert(needed.end(), {{"layer", &fHCalEndCapLayer}, {"theta", &fHCalEndCapTheta}, {"phi", &fHCalEndCapPhi}});
+    break;
+  case Readout::MuonBarrel:
+    readoutName = "muon tagger barrel";
+    needed.insert(needed.end(), {{"layer", &fMuonBarrelLayer}});
+    break;
+  case Readout::MuonEndcap:
+    readoutName = "muon tagger endcap";
+    needed.insert(needed.end(), {{"layer", &fMuonEndcapLayer}});
     break;
   }
   for (const auto& [name, field] : needed)
@@ -389,6 +399,14 @@ ULong_t DetectorGeometry::ECalEndCapZBin(ULong_t cellID) {
 
 ULong_t DetectorGeometry::HCalEndCapLayer(ULong_t cellID) {
   return ReadField(fHCalEndCapLayer, cellID);
+}
+
+ULong_t DetectorGeometry::MuonBarrelLayer(ULong_t cellID) {
+  return ReadField(fMuonBarrelLayer, cellID);
+}
+
+ULong_t DetectorGeometry::MuonEndcapLayer(ULong_t cellID) {
+  return ReadField(fMuonEndcapLayer, cellID);
 }
 
 ULong_t DetectorGeometry::HCalEndCapThetaBin(ULong_t cellID) {

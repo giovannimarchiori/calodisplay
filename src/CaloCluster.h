@@ -24,7 +24,7 @@ class CaloCluster
 public:
   // the parts of the calorimeters, with the energy and barycenter of the
   // cluster in each of their layers
-  enum Part { kECalBarrel, kECalEndcap, kHCalBarrel, kHCalEndcap, kMuon, kNParts };
+  enum Part { kECalBarrel, kECalEndcap, kHCalBarrel, kHCalEndcap, kMuonBarrel, kMuonEndcap, kNParts };
 
   // constructor
   CaloCluster() = default;
@@ -40,7 +40,7 @@ public:
   float getEnergy(Part part) const;
   float getEnergyECal() const { return getEnergy(kECalBarrel) + getEnergy(kECalEndcap); };
   float getEnergyHCal() const { return getEnergy(kHCalBarrel) + getEnergy(kHCalEndcap); };
-  float getEnergyMuon() const { return getEnergy(kMuon); };
+  float getEnergyMuon() const { return getEnergy(kMuonBarrel) + getEnergy(kMuonEndcap); };
 
   // get/set barycenter in part
   TVector3 getBarycenter() const { return m_barycenter; };

@@ -18,7 +18,7 @@ using std::endl;
 namespace
 {
 // names of the parts, for the printouts
-const char *partName[CaloCluster::kNParts] = {"ECAL barrel", "ECAL endcap", "HCAL barrel", "HCAL endcap", "MUON"};
+const char *partName[CaloCluster::kNParts] = {"ECAL barrel", "ECAL endcap", "HCAL barrel", "HCAL endcap", "MUON barrel", "MUON endcap"};
 }
 
 /******************************************************************************/

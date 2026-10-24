@@ -118,8 +118,10 @@ public:
   // TODO fix
   const int nLayersHCalEndCap = 50;
 
-  // muon
-  const int nLayersMuon = 2;
+  // muon tagger: radial layers in the barrel, layers in z in the endcaps
+  // (MuonTaggerBarrelLayers and MuonTaggerEndcapLayers in MuonTaggerPhiTheta.xml)
+  const int nLayersMuonBarrel = 2;
+  const int nLayersMuonEndcap = 2;
   
   /******************************************************************************/
   // GEOMETRY HELPER FUNCTIONS AND DERIVED GEOMETRY PARAMETERS
@@ -198,7 +200,7 @@ public:
   };
 
   // the calorimeter readouts for which the cellID is decoded
-  enum class Readout { ECalBarrel, ECalEndcap, HCalBarrel, HCalEndcap };
+  enum class Readout { ECalBarrel, ECalEndcap, HCalBarrel, HCalEndcap, MuonBarrel, MuonEndcap };
 
   // set the cellID fields of a calorimeter readout from its CellIDEncoding
   // string (e.g. "system:0:4,layer:4:5,..."), as stored in the metadata of
@@ -238,6 +240,10 @@ public:
   static ULong_t HCalEndCapThetaBin(ULong_t cellID);
   static ULong_t HCalEndCapPhiBin(ULong_t cellID);
 
+  // muon tagger: extract layer from cellID
+  static ULong_t MuonBarrelLayer(ULong_t cellID);
+  static ULong_t MuonEndcapLayer(ULong_t cellID);
+
 private:
   // the cellID fields used by the functions above
   static CellIDField fSystem;
@@ -246,6 +252,7 @@ private:
   static CellIDField fECalEndCapSide, fECalEndCapWheel, fECalEndCapLayer,
                      fECalEndCapModule, fECalEndCapRho, fECalEndCapZ;
   static CellIDField fHCalEndCapLayer, fHCalEndCapTheta, fHCalEndCapPhi;
+  static CellIDField fMuonBarrelLayer, fMuonEndcapLayer;
 
   //ClassDef(DetectorGeometry, 0)
 };
