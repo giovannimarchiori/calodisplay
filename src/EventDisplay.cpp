@@ -2497,7 +2497,7 @@ void EventDisplay::buildRhoPhiProjection()
   if (rhoPhiProjectionBuilt)
     return;
   rhoPhiProjectionBuilt = true;
-  buildProjection("Rho-Phi", [this]() {
+  buildProjection("Rho-Phi", rhoPhiScene, [this]() {
     projectGeometryRhoPhi();
     drawRhoPhiReadout();
   });
@@ -2508,13 +2508,13 @@ void EventDisplay::buildRhoZProjection()
   if (rhoZProjectionBuilt)
     return;
   rhoZProjectionBuilt = true;
-  buildProjection("Rho-Z", [this]() {
+  buildProjection("Rho-Z", rhoZScene, [this]() {
     projectGeometryRhoZ();
     drawRhoZReadout();
   });
 }
 
-void EventDisplay::buildProjection(const char *view, const std::function<void()> &build)
+void EventDisplay::buildProjection(const char *view, TEveScene *scene, const std::function<void()> &build)
 {
   std::cout << "Projecting the geometry in the " << view << " view" << std::endl;
   if (browser)
@@ -2529,6 +2529,9 @@ void EventDisplay::buildProjection(const char *view, const std::function<void()>
   for (TEveElement::List_i itr = readout->BeginChildren(); itr != readout->EndChildren(); ++itr, ++i)
     if (i >= nReadouts && !showReadout)
       (*itr)->SetRnrSelf(false);
+  // rebuild the GL representation of the scene (redrawing the viewer is not
+  // enough), as done for all the scenes by FullRedraw3D at startup
+  scene->Repaint(kTRUE);
   if (browser)
     browser->SetStatusText(evtFile != "" ? Form("Event %d loaded", eventId) : "", 0);
 }

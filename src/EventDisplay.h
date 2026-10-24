@@ -457,7 +457,7 @@ private:
   // first shown), showing the progress in the status bar
   void buildRhoPhiProjection();
   void buildRhoZProjection();
-  void buildProjection(const char *view, const std::function<void()> &build);
+  void buildProjection(const char *view, TEveScene *scene, const std::function<void()> &build);
   void projectGeometryRhoPhi();
   void drawRhoPhiReadout();
   void createRhoZView();
