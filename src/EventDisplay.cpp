@@ -67,6 +67,17 @@ using Units::mm;
 
 namespace
 {
+// name of the main tracker, from the name of its collection of hits or digis
+// (e.g. DCHCollection, STTDigis)
+std::string mainTrackerName(const std::string &collection)
+{
+  if (collection.find("STT") != std::string::npos)
+    return "STT";
+  if (collection.find("DCH") != std::string::npos)
+    return "DCH";
+  return "Main tracker";
+}
+
 // the code that decides which volumes of the G4 geometry are drawn is in this
 // file: the geometry cache is rebuilt when it is recompiled
 const std::string geometryCodeVersion = __DATE__ " " __TIME__;
@@ -677,7 +688,7 @@ void EventDisplay::drawHits()
 
   // clear the hits of the previous event: the endcap collections are appended
   // to the barrel ones, so they would accumulate if the barrel is not drawn
-  for (MyPointSet *hitSet : {vtxHits, dchHits, siwrHits, ecalHits, hcalHits, muonHits})
+  for (MyPointSet *hitSet : {vtxHits, mainTrkHits, siwrHits, ecalHits, hcalHits, muonHits})
     if (hitSet)
       hitSet->Reset();
 
@@ -694,11 +705,11 @@ void EventDisplay::drawHits()
                       -9999., false, false, true);
   }
 
-  // hits in DCH/STT
+  // hits in the main tracker (DCH or STT)
   if (displayConfig.getBoolConfig("drawMainTrackerHits"))
   {
     std::cout << "Creating main tracker hits" << std::endl;
-    drawHitCollection(dchHits, "DCH",  // TODO modify for STT
+    drawHitCollection(mainTrkHits, mainTrackerName(displayConfig.getStringConfig("mainTrackerHits")),
                       eventReader->mainTrackerHits,
                       -9999.);
   }
@@ -768,7 +779,7 @@ void EventDisplay::drawDigis()
 
   // clear the digis of the previous event: the endcap collections are appended
   // to the barrel ones, so they would accumulate if the barrel is not drawn
-  for (MyPointSet *digiSet : {vtxDigis, dchDigis, siwrDigis, ecalCells, hcalCells, muonCells, cells_merged})
+  for (MyPointSet *digiSet : {vtxDigis, mainTrkDigis, siwrDigis, ecalCells, hcalCells, muonCells, cells_merged})
     if (digiSet)
       digiSet->Reset();
 
@@ -785,11 +796,11 @@ void EventDisplay::drawDigis()
                       -9999., true, false, true);
   }
 
-  // digis in DCH/STT
+  // digis in the main tracker (DCH or STT)
   if (displayConfig.getBoolConfig("drawMainTrackerDigis"))
   {
     std::cout << "Creating main tracker digis" << std::endl;
-    drawHitCollection(dchDigis, "DCH",  // TODO modify for STT
+    drawHitCollection(mainTrkDigis, mainTrackerName(displayConfig.getStringConfig("mainTrackerDigis")),
                       eventReader->mainTrackerDigis,
                       -9999., true);
   }

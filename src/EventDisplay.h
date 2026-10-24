@@ -166,7 +166,7 @@ public:
   
   // Sim hits
   MyPointSet *vtxHits = nullptr;
-  MyPointSet *dchHits = nullptr;
+  MyPointSet *mainTrkHits = nullptr; // drift chamber (DCH) or straw tube tracker (STT)
   MyPointSet *siwrHits = nullptr;
   MyPointSet *ecalHits = nullptr;
   MyPointSet *hcalHits = nullptr;
@@ -175,7 +175,7 @@ public:
 
   // Digitised hits
   MyPointSet *vtxDigis = nullptr;
-  MyPointSet *dchDigis = nullptr;
+  MyPointSet *mainTrkDigis = nullptr;
   MyPointSet *siwrDigis = nullptr;
   MyPointSet *ecalCells = nullptr;
   MyPointSet *hcalCells = nullptr;

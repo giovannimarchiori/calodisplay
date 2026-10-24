@@ -32,6 +32,7 @@ public:
   unsigned int getIndex() const { return m_index; };
   void setIndex(unsigned int index) { m_index = index; };
 
+  // get/set total energy
   float getEnergy() const { return m_energy; };
   void setEnergy(float energy) { m_energy = energy; };
 
@@ -41,11 +42,13 @@ public:
   float getEnergyHCal() const { return getEnergy(kHCalBarrel) + getEnergy(kHCalEndcap); };
   float getEnergyMuon() const { return getEnergy(kMuon); };
 
+  // get/set barycenter in part
   TVector3 getBarycenter() const { return m_barycenter; };
   void setBarycenterXYZ(float x, float y, float z) { m_barycenter = TVector3(x, y, z); };
 
-  // energy and barycenter in each layer of a part
+  // get number of layers in part
   unsigned int getNLayers(Part part) const { return m_layers[part].energy.size(); };
+  // get/set energy and barycenter in each layer of a part
   // 0 if the layer is out of range
   float getEnergyInLayer(Part part, unsigned int layer) const;
   // the origin if the layer is out of range

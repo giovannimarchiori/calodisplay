@@ -98,11 +98,8 @@ public:
   const double dzHCalEndPlate = -0.45*Units::cm; // distance of end plate from envelope
   const double thicknessHCalEndPlate = 0.5*Units::cm; // thickness of endplate
 
-  //const double etaGridHCal = 0.025;
-  //const double etaOffsetHCal = -0.9;
   // might have to shift offset by half grid size.. will check
   const double thetaGridHCal = 0.02218;
-  //const double thetaOffsetHCal = 0.772316;
   const double thetaOffsetHCal = 0.783406;
   const int nThetaBinsHCal = 72;
   const int nPhiBinsHCal = 256;
@@ -111,9 +108,6 @@ public:
   const int nLayersHCal = rHCal.size()-1;
   const double rMinHCal = rHCal[0];
   const double rMaxHCal = rHCal[nLayersHCal];
-  //const double etaMinHCal = etaOffsetHCal - etaGridHCal/2.0;
-  //const double etaMaxHCal = -etaOffsetHCal + etaGridHCal/2.0;
-  //const int nEtaBinsHCal = (etaMaxHCal - etaMinHCal)/etaGridHCal;
   const double thetaMinHCal = thetaOffsetHCal - thetaGridHCal/2.0;
   const double thetaMaxHCal = thetaOffsetHCal + nThetaBinsHCal*thetaGridHCal;
   const double gridPhiHCal = TMath::TwoPi()/nPhiBinsHCal;

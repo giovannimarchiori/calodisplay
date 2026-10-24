@@ -32,7 +32,7 @@
     "ecalEndcapCells": "ECalEndcapTurbinePositioned",
     "ecalEndcapHits": "ECalEndcapTurbineContributions",
     "energyThresholdCells": "0.000000",
-    "energyThresholdClusters": "1.000000",
+    "energyThresholdClusters": "0.300000",
     "energyThresholdHits": "0.000000",
     "energyThresholdParticles": "0.000000",
     "genParticles": "MCParticles",
