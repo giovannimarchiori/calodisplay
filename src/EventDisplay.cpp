@@ -28,6 +28,8 @@
 #include <TGMsgBox.h>
 #include <TGNumberEntry.h>
 #include <TGLabel.h>
+#include <TGStatusBar.h>
+#include <TVirtualX.h>
 
 // TGeo
 #include <TGeoTube.h>
@@ -2520,7 +2522,10 @@ void EventDisplay::buildProjection(const char *view, TEveScene *scene, const std
   if (browser)
   {
     browser->SetStatusText(Form("Projecting the geometry in the %s view ...", view), 0);
-    gSystem->ProcessEvents();
+    // redraw only the status bar now: processing the events here (e.g. with
+    // gSystem->ProcessEvents) could run other commands in the middle
+    gClient->NeedRedraw(browser->GetStatusBar(), kTRUE);
+    gVirtualX->Update(1);
   }
   // the readouts added now follow the state of the readout button
   const int nReadouts = readout->NumChildren();
