@@ -9,9 +9,13 @@
 #ifndef __PARTICLEUTILS__
 #define __PARTICLEUTILS__
 
+#include <string>
+
 namespace ParticleUtils
 {
-  const char* name(int pdg);
+  // name of a particle, with greek letters and superscripts (unicode),
+  // or its PDG code if it is not known
+  std::wstring name(int pdg);
 }
 
 #endif

@@ -1809,26 +1809,22 @@ void EventDisplay::drawEvent(int event)
   setCellPaletteRange(cellPaletteRhoZ, maxCellValueRhoZ);
 
   // add process and event label
-  auto processStr = (ipmax >= 0) ? Form("%s, %.1f GeV", ParticleUtils::name(pdgID), pmax) : "no primary particle";
-  if (processLabel == nullptr) {
-    float x(0.05), y(0.95);
-    processLabel = new TGLConstAnnotation(mainGLView, processStr, x, y);
-    processLabel->SetTextSize(0.05); // % of window diagonal
-    processLabel->SetAllowClose(false);
+  std::wstring processStr = L"no primary particle";
+  if (ipmax >= 0)
+  {
+    wchar_t energy[32];
+    swprintf(energy, 32, L", %.1f GeV", pmax);
+    processStr = ParticleUtils::name(pdgID) + energy;
   }
-  else {
+  if (processLabel == nullptr)
+    processLabel = new TGLTextLabel(mainGLView, processStr, 0.05, 0.95, 0.05); // size: % of window height
+  else
     processLabel->SetText(processStr);
-  }
-  if (eventLabel == nullptr) {
-    auto eventStr = Form("Event %d", eventId);
-    float x(0.05), y(0.90);
-    eventLabel = new TGLConstAnnotation(mainGLView, eventStr, x, y);
-    eventLabel->SetTextSize(0.05); // % of window diagonal
-    eventLabel->SetAllowClose(false);
-  }
-  else {
-    eventLabel->SetText(Form("Event %d", eventId));
-  }
+  std::wstring eventStr = L"Event " + std::to_wstring(eventId);
+  if (eventLabel == nullptr)
+    eventLabel = new TGLTextLabel(mainGLView, eventStr, 0.05, 0.90, 0.05);
+  else
+    eventLabel->SetText(eventStr);
   // the labels are not elements of the scene: changing them does not trigger a redraw
   mainGLView->RequestDraw();
 

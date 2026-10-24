@@ -12,25 +12,25 @@
 
 namespace
 {
-const std::unordered_map<int, const char*> names =
+const std::unordered_map<int, std::wstring> names =
 {
-  {111,"pi0"},
-  {211,"pi+"},
-  {-211,"pi-"},
-  {22,"γ"},
-  {11,"e-"},
-  {-11,"e+"},
-  {13,"mu-"},
-  {-13,"mu+"}
+  {111, L"\u03c0\u2070"},  // pi0
+  {211, L"\u03c0\u207a"},  // pi+
+  {-211, L"\u03c0\u207b"}, // pi-
+  {22, L"\u03b3"},          // gamma
+  {11, L"e\u207b"},         // e-
+  {-11, L"e\u207a"},        // e+
+  {13, L"\u03bc\u207b"},   // mu-
+  {-13, L"\u03bc\u207a"}   // mu+
 };
 }
 
-const char* ParticleUtils::name(int pdg)
+std::wstring ParticleUtils::name(int pdg)
 {
   auto it = names.find(pdg);
 
   if (it != names.end())
     return it->second;
 
-  return "unknown";
+  return L"PDG " + std::to_wstring(pdg);
 }

@@ -241,7 +241,7 @@ public:
 
   // the list of the readout elements
   TEveElementList *readout = nullptr;
-  TGLConstAnnotation *processLabel = nullptr;
+  TGLTextLabel *processLabel = nullptr;
   // palettes for the energy of the cells in the clusters (values in MeV) in
   // each view, shared by all events, with a legend in the projections; their
   // range is set from the largest cell energy of the event in the view
@@ -254,7 +254,7 @@ public:
   // the legends of the palettes and their titles, that can be hidden
   std::vector<TGLOverlayElement *> paletteLegends;
   bool showPaletteLegends = true;
-  TGLConstAnnotation *eventLabel = nullptr;
+  TGLTextLabel *eventLabel = nullptr;
   // the event number entries and the labels with the range of the event
   // numbers in the navigation bar (one per tab)
   std::vector<TGNumberEntry *> eventEntries;
