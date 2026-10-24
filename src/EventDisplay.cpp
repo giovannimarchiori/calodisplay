@@ -478,6 +478,12 @@ void EventDisplay::drawParticles()
     // loop over the MC particles to create the particle tracks
     for (unsigned int ip = 0; ip < eventReader->genParticles.generatorStatus->GetSize(); ip++)
     {
+      // keep only the final-state particles of the generator (status 1) and
+      // the particles created in the simulation (status 0), not the
+      // intermediate particles of the generator (status > 1)
+      if ((*eventReader->genParticles.generatorStatus)[ip] > 1)
+        continue;
+
       float m = (*eventReader->genParticles.mass)[ip];
       float px = (*eventReader->genParticles.momentum_x)[ip];
       float py = (*eventReader->genParticles.momentum_y)[ip];
