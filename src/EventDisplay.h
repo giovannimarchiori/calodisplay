@@ -271,6 +271,9 @@ public:
 
   bool initRhoPhiView = false;
   bool initRhoZView = false;
+  // the geometry and the readout have been projected in the views
+  bool rhoPhiProjectionBuilt = false;
+  bool rhoZProjectionBuilt = false;
 
   bool showReadout = true;
 
@@ -450,6 +453,11 @@ private:
   void buildSimplifiedGeometry();
   // the rho-phi and rho-z views: the projection of the geometry and the readout
   void createRhoPhiView();
+  // project the geometry and the readout in the views (once, when they are
+  // first shown), showing the progress in the status bar
+  void buildRhoPhiProjection();
+  void buildRhoZProjection();
+  void buildProjection(const char *view, const std::function<void()> &build);
   void projectGeometryRhoPhi();
   void drawRhoPhiReadout();
   void createRhoZView();

@@ -1871,9 +1871,15 @@ void EventDisplay::startDisplay(int initialEvent)
   if (!buildGeometry())
     return;
 
-  // create the projections
+  // create the projections; the geometry is projected when they are first
+  // shown, but it is needed now to write the geometry cache
   createRhoPhiView();
   createRhoZView();
+  if (geometryExtract)
+  {
+    buildRhoPhiProjection();
+    buildRhoZProjection();
+  }
 
   gEve->DoRedraw3D();
   gEve->FullRedraw3D(true);
@@ -2482,8 +2488,49 @@ void EventDisplay::createRhoPhiView()
   axes->SetElementName("Rho-Phi projection axes");
   axes->SetDrawOrigin(true);
   rhoPhiScene->AddElement(axes);
-  projectGeometryRhoPhi();
-  drawRhoPhiReadout();
+  // the geometry and the readout are projected when the view is first shown
+  // (see buildRhoPhiProjection)
+}
+
+void EventDisplay::buildRhoPhiProjection()
+{
+  if (rhoPhiProjectionBuilt)
+    return;
+  rhoPhiProjectionBuilt = true;
+  buildProjection("Rho-Phi", [this]() {
+    projectGeometryRhoPhi();
+    drawRhoPhiReadout();
+  });
+}
+
+void EventDisplay::buildRhoZProjection()
+{
+  if (rhoZProjectionBuilt)
+    return;
+  rhoZProjectionBuilt = true;
+  buildProjection("Rho-Z", [this]() {
+    projectGeometryRhoZ();
+    drawRhoZReadout();
+  });
+}
+
+void EventDisplay::buildProjection(const char *view, const std::function<void()> &build)
+{
+  std::cout << "Projecting the geometry in the " << view << " view" << std::endl;
+  if (browser)
+  {
+    browser->SetStatusText(Form("Projecting the geometry in the %s view ...", view), 0);
+    gSystem->ProcessEvents();
+  }
+  // the readouts added now follow the state of the readout button
+  const int nReadouts = readout->NumChildren();
+  build();
+  int i = 0;
+  for (TEveElement::List_i itr = readout->BeginChildren(); itr != readout->EndChildren(); ++itr, ++i)
+    if (i >= nReadouts && !showReadout)
+      (*itr)->SetRnrSelf(false);
+  if (browser)
+    browser->SetStatusText(evtFile != "" ? Form("Event %d loaded", eventId) : "", 0);
 }
 
 void EventDisplay::projectGeometryRhoPhi()
@@ -2706,8 +2753,8 @@ void EventDisplay::createRhoZView()
   axes2->SetElementName("Rho-Z projection axes");
   axes2->SetDrawOrigin(true);
   rhoZScene->AddElement(axes2);
-  projectGeometryRhoZ();
-  drawRhoZReadout();
+  // the geometry and the readout are projected when the view is first shown
+  // (see buildRhoZProjection)
 }
 
 void EventDisplay::projectGeometryRhoZ()
@@ -3343,6 +3390,7 @@ void EventDisplay::onTabSelected(Int_t tab)
   else if (tab==1) {
     activeGLViewer = rhoPhiGLView;
     if (!initRhoPhiView) {
+      buildRhoPhiProjection();
       rhoPhiView->Redraw(true);
       initRhoPhiView = true;
     }
@@ -3350,6 +3398,7 @@ void EventDisplay::onTabSelected(Int_t tab)
   else if (tab==2) {
     activeGLViewer = rhoZGLView;
     if (!initRhoZView) {
+      buildRhoZProjection();
       rhoZView->Redraw(true);
       initRhoZView = true;
     }
