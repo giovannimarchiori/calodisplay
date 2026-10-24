@@ -2170,17 +2170,18 @@ bool EventDisplay::buildCalorimeters(TEveElement *world)
   // set transparency of the subvolumes of the bath
   re = TPRegexp("LAr_bath*");
   TEveElement *bath = ecalBarrelEl->FindChild(re);
-  TEveElement::List_t matches;
+  TEveElement::List_t cryoMatches;
   re = TPRegexp("ECAL_Cryo*");
-  ecalBarrelEl->FindChildren(matches, re);
-  for (TEveElement *a : matches)
+  ecalBarrelEl->FindChildren(cryoMatches, re);
+  for (TEveElement *a : cryoMatches)
   {
     a->SetMainTransparency(70);
     ((TEveGeoShape *)a)->SetNSegments(256);
   }
+  TEveElement::List_t servicesMatches;
   re = TPRegexp("services*");
-  ecalBarrelEl->FindChildren(matches, re);
-  for (auto a : matches)
+  ecalBarrelEl->FindChildren(servicesMatches, re);
+  for (auto a : servicesMatches)
   {
     a->SetMainTransparency(70);
     ((TEveGeoShape *)a)->SetNSegments(256);
@@ -2286,7 +2287,7 @@ bool EventDisplay::buildCalorimeters(TEveElement *world)
     re = TPRegexp("HCalEnvelopeVolume*");
     hcalBarrelEl = world->FindChild(re);
     if (!hcalBarrelEl)
-      std::cout << "WARNING: HCalEnvelopeVolume not found in geometry file, not drawing HCAL" << std::endl;
+      std::cout << "WARNING: HCalEnvelopeVolume not found in geometry file, not drawing the HCAL barrel" << std::endl;
   }
   if (hcalBarrelEl)
   {
@@ -2314,8 +2315,9 @@ bool EventDisplay::buildCalorimeters(TEveElement *world)
     }
 
     re = TPRegexp("HCal*Steel*");
-    hcalBarrelEl->FindChildren(matches, re);
-    for (auto a : matches)
+    TEveElement::List_t steelMatches;
+    hcalBarrelEl->FindChildren(steelMatches, re);
+    for (auto a : steelMatches)
     {
       a->SetMainTransparency(70);
       ((TEveGeoShape *)a)->SetNSegments(256);
@@ -2354,33 +2356,34 @@ bool EventDisplay::buildCalorimeters(TEveElement *world)
       }
       */
     }
-    //
-    // HCAL endcaps
-    //
-    if (doEndcaps)
-    {
-      hcalendcap = new TEveElementList("HCal endcap");
-      geom->AddElement(hcalendcap);
+  }
 
-      TPRegexp re_hcalec("HCal(\\w+)Endcap(\\w+)");
-      TEveElement::List_t matches_ec;
-      world->FindChildren(matches_ec, re_hcalec);
-      for (TEveElement *a : matches_ec)
+  //
+  // HCAL endcaps (also if the HCAL barrel is not found)
+  //
+  if (doHCal && doEndcaps)
+  {
+    hcalendcap = new TEveElementList("HCal endcap");
+    geom->AddElement(hcalendcap);
+
+    TPRegexp re_hcalec("HCal(\\w+)Endcap(\\w+)");
+    TEveElement::List_t matches_ec;
+    world->FindChildren(matches_ec, re_hcalec);
+    for (TEveElement *a : matches_ec)
+    {
+      hcalendcap->AddElement(a);
+      // do not draw envelope, only physical elements inside
+      a->SetRnrSelfChildren(false, true);
+      TEveElementList *hcalECLayers = new TEveElementList("HCalECLayers");
+      hcalendcap->AddElement(hcalECLayers);
+      re = TPRegexp("HCalECLayerVol*");
+      TEveElement::List_t matches_layer;
+      a->FindChildren(matches_layer, re);
+      for (TEveElement *l : matches_layer)
       {
-        hcalendcap->AddElement(a);
-        // do not draw envelope, only physical elements inside
-        a->SetRnrSelfChildren(false, true);
-        TEveElementList *hcalECLayers = new TEveElementList("HCalECLayers");
-        hcalendcap->AddElement(hcalECLayers);
-        re = TPRegexp("HCalECLayerVol*");
-        TEveElement::List_t matches_layer;
-        a->FindChildren(matches_layer, re);
-        for (TEveElement *l : matches_layer)
-        {
-          hcalECLayers->AddElement(l);
-          a->RemoveElement(l);
-          l->SetRnrSelfChildren(true, false);
-        }
+        hcalECLayers->AddElement(l);
+        a->RemoveElement(l);
+        l->SetRnrSelfChildren(true, false);
       }
     }
   }
