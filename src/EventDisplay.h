@@ -433,6 +433,26 @@ private:
   std::vector<SubDetector> m_subDetectors;
 
   SubDetector* findSubDetector(TString const& s);
+  // the list of the elements of a subdetector, created at the first call
+  TEveElementList *subDetectorList(SubDetector &det);
+  // style of a volume in 3D: drawn without its children, with the transparency
+  // of the detectors, the colour of the subdetector (if overrideDetectorColors),
+  // nSegments segments (if > 0) and without frame
+  void setVolumeStyle(TEveElement *el, Color_t color, int nSegments);
+  // in the projections: draw the content of an envelope instead of the
+  // envelope, with setChild called for each of its children
+  void showEnvelopeContent(TEveElement *envelope,
+                           const std::function<void(TEveElement *, const TString &)> &setChild);
+  // in the projections: the layers of the vertex barrel, without their envelopes
+  void showVertexBarrelLayers(TEveElement *vertexBarrel);
+  // in the projections: the active elements in the LAr bath of the ECAL barrel
+  // (calorimeters only mode), optionally without the cryostat side
+  void showECalBathCells(TEveElement *projectedGeometry, bool hideCryoSide);
+  // in the projections: the content of the ECAL barrel (full detector), with
+  // optionally transparent active layers
+  void showECalBarrelContent(TEveElement *ecalBarrel, bool transparentActiveLayers);
+  // in the projections: the layers of an envelope of the muon tagger
+  void showMuonLayers(TEveElement *envelope);
 
   // the steps of startDisplay
   // read the energy thresholds and the detector version

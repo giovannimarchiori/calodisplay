@@ -2555,135 +2555,57 @@ void EventDisplay::projectGeometryRhoPhi()
       rhoPhiProjManager->ImportElements(hcalbarrel, rhoPhiScene);
   }
 
+  TEveElement *element = rhoPhiScene->FindChild("Geometry [P]");
+  if (!element)
+    return;
+
+  // do not draw the cryo side in the rho-phi view as it renders poorly
+  // and turn on the active elements so we can see the cell edges
+  showECalBathCells(element, true);
+
+  // when drawing the full detector - do not draw endcap volumes in rho-phi view
+  // and show active volumes in ecal barrel
+  if (!showFullDetector)
+    return;
+  for (TEveElement::List_i itr = element->BeginChildren(); itr != element->EndChildren(); itr++)
   {
-    // do not draw the cryo side in the rho-phi view as it renders poorly
-    // and turn on the active elements so we can see the cell edges
-    TEveElement *element = rhoPhiScene->FindChild("Geometry [P]");
-    if (element)
+    TEveElement *a = *itr;
+    TString s(a->GetElementName());
+    // do not draw endcap volumes
+    if (s.Contains("endcap"))
+      a->SetRnrSelfChildren(false, false);
+
+    // turn off the envelopes of the vertex barrel
+    else if (s.BeginsWith("Vertex barrel"))
+      showVertexBarrelLayers(a);
+
+    // show active volumes in ecal barrel
+    else if (s.BeginsWith("ECal barrel"))
+      showECalBarrelContent(a, true);
+
+    // show layers in HCAL barrel
+    else if (s.BeginsWith("HCal barrel"))
     {
-      TPRegexp re("ECalBarrel_vol_(\\w+)");
-      TEveElement *projbarrel = element->FindChild(re);
-      if (projbarrel)
-      {
-        TPRegexp reCryo("ECAL_Cryo_side_(\\w+)");
-        TEveElement *projcryoside = projbarrel->FindChild(reCryo);
-        if (projcryoside)
-        {
-          projcryoside->SetRnrSelf(false);
+      if (a->NumChildren() == 0)
+        continue;
+      showEnvelopeContent(*(a->BeginChildren()), [](TEveElement *el, const TString &elname) {
+        if (elname.Contains("EndPlate"))
+          el->SetRnrSelfChildren(false, false);
+        else {
+          el->SetRnrSelfChildren(true, false);
+          if (elname.Contains("LayerVol"))
+            el->SetMainColor(kAzure-7);
+          el->SetMainTransparency(0); // check if this does not hide the hits
         }
-        TEveElementList *projbath = (TEveElementList *)projbarrel->FindChild("LAr_bath [P]");
-        if (projbath)
-        {
-          projbath->SetRnrSelfChildren(true, true);
-          TEveElementList *projpassives = (TEveElementList *)projbath->FindChild("Passive elements [P]");
-          if (projpassives)
-          {
-            projpassives->SetRnrSelfChildren(false, false);
-          }
-          TEveElementList *projpcbs = (TEveElementList *)projbath->FindChild("PCBs [P]");
-          if (projpcbs)
-          {
-            projpcbs->SetRnrSelfChildren(false, false);
-          }
-        }
-      }
+      });
     }
 
-    // when drawing the full detector - do not draw endcap volumes in rho-phi view
-    // and show active volumes in ecal barrel
-    if (showFullDetector && element)
+    // show layers in MUON barrel
+    else if (s.BeginsWith("Muon tagger barrel"))
     {
-      for (TEveElement::List_i itr = element->BeginChildren(); itr != element->EndChildren(); itr++)
-      {
-        TEveElement *a = *itr;
-        TString s(a->GetElementName());
-        // do not draw endcap volumes
-        if (s.Contains("endcap"))
-          a->SetRnrSelfChildren(false, false);
-
-        // turn off the envelopes of the vertex barrel
-        else if (s.BeginsWith("Vertex barrel")) {
-          a->SetRnrSelfChildren(false, true);
-          for (TEveElement::List_i itrChild = a->BeginChildren(); itrChild != a->EndChildren(); itrChild++) {
-            TEveElement *b = *itrChild;
-            TString childName(b->GetElementName());
-            if (childName.Contains("assembly")) {
-              b->SetRnrSelfChildren(false, true);
-            }
-          }
-        }
-
-        // show active volumes in ecal barrel
-        else if (s.BeginsWith("ECal barrel"))
-        {
-          TPRegexp re("ECalBarrel_vol_(\\w+)");
-          TEveElement *projbarrel = a->FindChild(re);
-          if (!projbarrel)
-            continue;
-          projbarrel->SetRnrSelfChildren(false, true);
-          TPRegexp rebath("LAr_bath(\\w+)");
-          TEveElement *projbath = projbarrel->FindChild(rebath);
-          if (projbath)
-          {
-            projbath->SetRnrSelfChildren(false, true);
-            for (TEveElement::List_i itr2 = projbath->BeginChildren(); itr2 != projbath->EndChildren(); itr2++)
-            {
-              TEveElement *el = *itr2;
-              TString s2(el->GetElementName());
-              if (s2.BeginsWith("passive_") || s2.BeginsWith("PCB_"))
-                el->SetRnrSelfChildren(false, false);
-              else if (s2.BeginsWith("active_"))
-              {
-                for (TEveElement::List_i itr3 = el->BeginChildren(); itr3 != el->EndChildren(); itr3++)
-                  (*itr3)->SetMainTransparency(100);
-              }
-            }
-          }
-        }
-
-        // show layers in HCAL barrel
-        else if (s.BeginsWith("HCal barrel"))
-        {
-          if (a->NumChildren() == 0)
-            continue;
-          TEveElement *envelope = *(a->BeginChildren());
-          envelope->SetRnrSelfChildren(false, true);
-          ((TEveGeoShape *)envelope)->SetDrawFrame(false);
-          for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
-          {
-            TEveElement *el = *itr2;
-            TString elname(el->GetElementName());
-            // std::cout << elname << std::endl;
-            if (elname.Contains("EndPlate"))
-              el->SetRnrSelfChildren(false, false);
-            else {
-              el->SetRnrSelfChildren(true, false);
-              if (elname.Contains("LayerVol"))
-                el->SetMainColor(kAzure-7);
-              el->SetMainTransparency(0); // check if this does not hide the hits
-            }
-          }
-        }
-
-        // show layers in MUON barrel
-        else if (s.BeginsWith("Muon tagger barrel"))
-        {
-          if (a->NumChildren() == 0)
-            continue;
-          TEveElement *envelope = *(a->BeginChildren());
-          envelope->SetRnrSelfChildren(false, true);
-          ((TEveGeoShape *)envelope)->SetDrawFrame(false);
-          for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
-          {
-            TEveElement *el = *itr2;
-            TString elname(el->GetElementName());
-            el->SetRnrSelfChildren(true, false);
-            if (overrideDetectorColors) el->SetMainColor(kOrange);
-            el->SetMainTransparency(0);
-            ((TEveGeoShape *)el)->SetDrawFrame(true);
-          }
-        }
-      }
+      if (a->NumChildren() == 0)
+        continue;
+      showMuonLayers(*(a->BeginChildren()));
     }
   }
 }
@@ -2779,183 +2701,190 @@ void EventDisplay::projectGeometryRhoZ()
       rhoZProjManager->ImportElements(hcalbarrel, rhoZScene);
   }
 
+  TEveElement *element = rhoZScene->FindChild("Geometry [P]");
+  if (!element)
+    return;
+
   // turn on the active elements in rho-Z so we can see the cell edges
-  {
-    TEveElement *element = rhoZScene->FindChild("Geometry [P]");
-    if (element)
-    {
-      TPRegexp re("ECalBarrel_vol_(\\w+)");
-      TEveElement *projbarrel = element->FindChild(re);
-      if (projbarrel)
-      {
-        TEveElementList *projbath = (TEveElementList *)projbarrel->FindChild("LAr_bath [P]");
-        if (projbath)
-        {
-          projbath->SetRnrSelfChildren(true, true);
-          TEveElementList *projpassives = (TEveElementList *)projbath->FindChild("Passive elements [P]");
-          if (projpassives)
-          {
-            projpassives->SetRnrSelfChildren(false, false);
-          }
-          TEveElementList *projpcbs = (TEveElementList *)projbath->FindChild("PCBs [P]");
-          if (projpcbs)
-          {
-            projpcbs->SetRnrSelfChildren(false, false);
+  showECalBathCells(element, false);
+
+  if (!showFullDetector)
+    return;
+  for (TEveElement::List_i itr = element->BeginChildren(); itr != element->EndChildren(); itr++) {
+    TEveElement *a = *itr;
+    TString s(a->GetElementName());
+
+    // MDI, beampipe, lumical can be enabled
+    if (s.BeginsWith("MDI") || s.BeginsWith("Beampipe") || s.BeginsWith("LumiCal")) {
+      a->SetRnrSelfChildren(true, true);
+    }
+    // turn off the envelopes of the vertex barrel
+    else if (s.BeginsWith("Vertex barrel")) {
+      showVertexBarrelLayers(a);
+    }
+    // show vessel and gas for DCH
+    else if (s.BeginsWith("Drift chamber")) {
+      a->SetRnrSelfChildren(false, true);
+      for (TEveElement::List_i itrChild = a->BeginChildren(); itrChild != a->EndChildren(); itrChild++) {
+        TEveElement *b = *itrChild;
+        b->SetRnrSelfChildren(true, false);
+        if (overrideDetectorColors) b->SetMainColor(kGreen-5);
+        if (TEveShape *shape = dynamic_cast<TEveShape *>(b))
+          shape->SetDrawFrame(false);
+      }
+    }
+    // turn off the Si wrapper endcap envelope since it does not render well
+    // instead show its daughter volume instead
+    else if (s.BeginsWith("Si wrapper endcap")) {
+      a->SetRnrSelfChildren(false, true);
+      for (TEveElement::List_i itrChild = a->BeginChildren(); itrChild != a->EndChildren(); itrChild++) {
+        TEveElement *b = *itrChild;
+        TString childName(b->GetElementName());
+        if (childName.BeginsWith("SiWrD_envelope")) {
+          b->SetRnrSelfChildren(false, true);
+          for (TEveElement::List_i itrGrandChild = b->BeginChildren(); itrGrandChild != b->EndChildren(); itrGrandChild++) {
+            TEveElement *c = *itrGrandChild;
+            c->SetRnrSelfChildren(true, false);
           }
         }
       }
     }
-
-    if (showFullDetector && element)
+    // ECAL barrel
+    else if (s.BeginsWith("ECal barrel")) {
+      showECalBarrelContent(a, false);
+    }
+    // HCAL barrel - do not draw the envelope, rather show the layers
+    else if (s.BeginsWith("HCal barrel"))
     {
-      for (TEveElement::List_i itr = element->BeginChildren(); itr != element->EndChildren(); itr++) {
-        TEveElement *a = *itr;
-        TString s(a->GetElementName());
-
-        // MDI, beampipe, lumical can be enabled
-        if (s.BeginsWith("MDI") || s.BeginsWith("Beampipe") || s.BeginsWith("LumiCal")) {
-          a->SetRnrSelfChildren(true, true);
+      if (a->NumChildren() == 0)
+        continue;
+      showEnvelopeContent(*(a->BeginChildren()), [this](TEveElement *el, const TString &elname) {
+        el->SetRnrSelfChildren(true, false);
+        if (elname.Contains("HCalLayerVol")) {
+          if (overrideDetectorColors) el->SetMainColor(kAzure-7);
+          el->SetMainTransparency(0);
+          // note: can do el->SetRnrSelfChildren(false, true); to see detailed row structure (tile/abs/..)
         }
-        // turn off the envelopes of the vertex barrel
-        else if (s.BeginsWith("Vertex barrel")) {
-          a->SetRnrSelfChildren(false, true);
-          for (TEveElement::List_i itrChild = a->BeginChildren(); itrChild != a->EndChildren(); itrChild++) {
-            TEveElement *b = *itrChild;
-            TString childName(b->GetElementName());
-            if (childName.Contains("assembly")) {
-              b->SetRnrSelfChildren(false, true);
-            }
-          }
+      });
+    }
+    // HCAL endcap - do not draw the envelope
+    else if (s.BeginsWith("HCal endcap"))
+    {
+      TPRegexp re("HCalThreePartsEndcap*");
+      TEveElement *envelope = a->FindChild(re);
+      if (!envelope)
+        continue;
+      showEnvelopeContent(envelope, [this](TEveElement *el, const TString &elname) {
+        el->SetRnrSelfChildren(true, false);
+        if (elname.Contains("HCalECLayerVol")) {
+          if (overrideDetectorColors) el->SetMainColor(kAzure-7);
+          el->SetMainTransparency(0);
+          // note: can do el->SetRnrSelfChildren(false, true); to see detailed row structure (tile/abs/..)
         }
-        // show vessel and gas for DCH
-        else if (s.BeginsWith("Drift chamber")) {
-          a->SetRnrSelfChildren(false, true);
-          for (TEveElement::List_i itrChild = a->BeginChildren(); itrChild != a->EndChildren(); itrChild++) {
-            TEveElement *b = *itrChild;
-            b->SetRnrSelfChildren(true, false);
-            if (overrideDetectorColors) b->SetMainColor(kGreen-5);
-            ((TEveGeoShape *)b)->SetDrawFrame(false);
-          }
-        }
-        // turn off the Si wrapper endcap envelope since it does not render well
-        // instead show its daughter volume instead
-        else if (s.BeginsWith("Si wrapper endcap")) {
-          a->SetRnrSelfChildren(false, true);
-          for (TEveElement::List_i itrChild = a->BeginChildren(); itrChild != a->EndChildren(); itrChild++) {
-            TEveElement *b = *itrChild;
-            TString childName(b->GetElementName());
-            if (childName.BeginsWith("SiWrD_envelope")) {
-              b->SetRnrSelfChildren(false, true);
-              for (TEveElement::List_i itrGrandChild = b->BeginChildren(); itrGrandChild != b->EndChildren(); itrGrandChild++) {
-                TEveElement *c = *itrGrandChild;
-                c->SetRnrSelfChildren(true, false);
-              }
-            }
-          }
-        }
-        // ECAL barrel
-        else if (s.BeginsWith("ECal barrel")) {
-          TPRegexp re("ECalBarrel_vol_(\\w+)");
-          TEveElement *projbarrel = a->FindChild(re);
-          if (!projbarrel)
-            continue;
-          projbarrel->SetMainTransparency(useTransparencies ? 60 : 0);
-          // do not draw the envelope, which would cover the layers, but its content
-          projbarrel->SetRnrSelfChildren(false, true);
-          TPRegexp rebath("LAr_bath(\\w+)");
-          TEveElement *projbath = projbarrel->FindChild(rebath);
-          if (projbath) {
-            projbath->SetRnrSelfChildren(false, true);
-            for (TEveElement::List_i itr2 = projbath->BeginChildren(); itr2 != projbath->EndChildren(); itr2++) {
-              TEveElement *el = *itr2;
-              TString s2(el->GetElementName());
-              if (s2.BeginsWith("passive_") || s2.BeginsWith("PCB_"))
-                el->SetRnrSelfChildren(false, false);
-            }
-          }
-        }
-        // HCAL barrel - do not draw the envelope, rather show the layers
-        else if (s.BeginsWith("HCal barrel"))
-        {
-          if (a->NumChildren() == 0)
-            continue;
-          TEveElement *envelope = *(a->BeginChildren());
-          envelope->SetRnrSelfChildren(false, true);
-          ((TEveGeoShape *)envelope)->SetDrawFrame(false);
-          // loop over the children of the envelope
-          for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
-          {
-            TEveElement *el = *itr2;
-            TString elname(el->GetElementName());
-            // std::cout << elname << std::endl;
-            el->SetRnrSelfChildren(true, false);
-            if (elname.Contains("HCalLayerVol")) {
-              if (overrideDetectorColors) el->SetMainColor(kAzure-7);
-              el->SetMainTransparency(0);
-              // note: can do el->SetRnrSelfChildren(false, true); to see detailed row structure (tile/abs/..)
-            }
-          }
-        }
-        // HCAL endcap - do not draw the envelope
-        else if (s.BeginsWith("HCal endcap"))
-        {
-          TPRegexp re("HCalThreePartsEndcap*");
-          TEveElement *envelope = a->FindChild(re);
-          if (!envelope)
-            continue;
-          envelope->SetRnrSelfChildren(false, true);
-          ((TEveGeoShape *)envelope)->SetDrawFrame(false);
-          for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
-          {
-            TEveElement *el = *itr2;
-            TString elname(el->GetElementName());
-            el->SetRnrSelfChildren(true, false);
-            if (elname.Contains("HCalECLayerVol")) {
-              if (overrideDetectorColors) el->SetMainColor(kAzure-7);
-              el->SetMainTransparency(0);
-              // note: can do el->SetRnrSelfChildren(false, true); to see detailed row structure (tile/abs/..)
-            }
-          }
-        }
-        // MUON barrel - do not draw the envelopes, rather show the layers
-        else if (s.BeginsWith("Muon tagger barrel"))
-        {
-          if (a->NumChildren() == 0)
-            continue;
-          TEveElement *envelope = *(a->BeginChildren());
-          envelope->SetRnrSelfChildren(false, true);
-          ((TEveGeoShape *)envelope)->SetDrawFrame(false);
-          for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
-          {
-            TEveElement *el = *itr2;
-            TString elname(el->GetElementName());
-            el->SetRnrSelfChildren(true, false);
-            if (overrideDetectorColors) el->SetMainColor(kOrange);
-            el->SetMainTransparency(0);
-            ((TEveGeoShape *)el)->SetDrawFrame(true);
-          }
-        }
-        // MUON endcap - do not draw the envelope, rather show the layers
-        else if (s.BeginsWith("Muon tagger endcap"))
-        {
-          for (TEveElement::List_i itrenv = a->BeginChildren(); itrenv != a->EndChildren(); itrenv++) {
-            TEveElement *envelope = *itrenv;
-            envelope->SetRnrSelfChildren(false, true);
-            ((TEveGeoShape *)envelope)->SetDrawFrame(false);
-            for (TEveElement::List_i itr2 = envelope->BeginChildren(); itr2 != envelope->EndChildren(); itr2++)
-            {
-              TEveElement *el = *itr2;
-              TString elname(el->GetElementName());
-              el->SetRnrSelfChildren(true, false);
-              if (overrideDetectorColors) el->SetMainColor(kOrange);
-              el->SetMainTransparency(0);
-              ((TEveGeoShape *)el)->SetDrawFrame(true);
-            }
-          }
-        }
-      }
+      });
+    }
+    // MUON barrel - do not draw the envelopes, rather show the layers
+    else if (s.BeginsWith("Muon tagger barrel"))
+    {
+      if (a->NumChildren() == 0)
+        continue;
+      showMuonLayers(*(a->BeginChildren()));
+    }
+    // MUON endcap - do not draw the envelope, rather show the layers
+    else if (s.BeginsWith("Muon tagger endcap"))
+    {
+      for (TEveElement::List_i itrenv = a->BeginChildren(); itrenv != a->EndChildren(); itrenv++)
+        showMuonLayers(*itrenv);
     }
   }
+}
+
+void EventDisplay::showEnvelopeContent(TEveElement *envelope,
+                                       const std::function<void(TEveElement *, const TString &)> &setChild)
+{
+  envelope->SetRnrSelfChildren(false, true);
+  if (TEveShape *shape = dynamic_cast<TEveShape *>(envelope))
+    shape->SetDrawFrame(false);
+  for (TEveElement::List_i itr = envelope->BeginChildren(); itr != envelope->EndChildren(); itr++)
+    setChild(*itr, TString((*itr)->GetElementName()));
+}
+
+void EventDisplay::showVertexBarrelLayers(TEveElement *vertexBarrel)
+{
+  // turn off the envelopes of the vertex barrel
+  vertexBarrel->SetRnrSelfChildren(false, true);
+  for (TEveElement::List_i itr = vertexBarrel->BeginChildren(); itr != vertexBarrel->EndChildren(); itr++)
+  {
+    TEveElement *b = *itr;
+    TString childName(b->GetElementName());
+    if (childName.Contains("assembly"))
+      b->SetRnrSelfChildren(false, true);
+  }
+}
+
+void EventDisplay::showECalBathCells(TEveElement *projectedGeometry, bool hideCryoSide)
+{
+  // the lists of the elements in the LAr bath created by buildCalorimeters
+  TPRegexp re("ECalBarrel_vol_(\\w+)");
+  TEveElement *projbarrel = projectedGeometry->FindChild(re);
+  if (!projbarrel)
+    return;
+  if (hideCryoSide)
+  {
+    TPRegexp reCryo("ECAL_Cryo_side_(\\w+)");
+    TEveElement *projcryoside = projbarrel->FindChild(reCryo);
+    if (projcryoside)
+      projcryoside->SetRnrSelf(false);
+  }
+  TEveElement *projbath = projbarrel->FindChild("LAr_bath [P]");
+  if (!projbath)
+    return;
+  projbath->SetRnrSelfChildren(true, true);
+  TEveElement *projpassives = projbath->FindChild("Passive elements [P]");
+  if (projpassives)
+    projpassives->SetRnrSelfChildren(false, false);
+  TEveElement *projpcbs = projbath->FindChild("PCBs [P]");
+  if (projpcbs)
+    projpcbs->SetRnrSelfChildren(false, false);
+}
+
+void EventDisplay::showECalBarrelContent(TEveElement *ecalBarrel, bool transparentActiveLayers)
+{
+  TPRegexp re("ECalBarrel_vol_(\\w+)");
+  TEveElement *projbarrel = ecalBarrel->FindChild(re);
+  if (!projbarrel)
+    return;
+  projbarrel->SetMainTransparency(useTransparencies ? 60 : 0);
+  // do not draw the envelope, which would cover the layers, but its content
+  projbarrel->SetRnrSelfChildren(false, true);
+  TPRegexp rebath("LAr_bath(\\w+)");
+  TEveElement *projbath = projbarrel->FindChild(rebath);
+  if (!projbath)
+    return;
+  projbath->SetRnrSelfChildren(false, true);
+  for (TEveElement::List_i itr = projbath->BeginChildren(); itr != projbath->EndChildren(); itr++)
+  {
+    TEveElement *el = *itr;
+    TString name(el->GetElementName());
+    if (name.BeginsWith("passive_") || name.BeginsWith("PCB_"))
+      el->SetRnrSelfChildren(false, false);
+    else if (transparentActiveLayers && name.BeginsWith("active_"))
+    {
+      for (TEveElement::List_i itr2 = el->BeginChildren(); itr2 != el->EndChildren(); itr2++)
+        (*itr2)->SetMainTransparency(100);
+    }
+  }
+}
+
+void EventDisplay::showMuonLayers(TEveElement *envelope)
+{
+  showEnvelopeContent(envelope, [this](TEveElement *el, const TString &) {
+    el->SetRnrSelfChildren(true, false);
+    if (overrideDetectorColors) el->SetMainColor(kOrange);
+    el->SetMainTransparency(0);
+    if (TEveShape *shape = dynamic_cast<TEveShape *>(el))
+      shape->SetDrawFrame(true);
+  });
 }
 
 void EventDisplay::drawRhoZReadout()
@@ -3868,7 +3797,7 @@ EventDisplay::SubDetector* EventDisplay::findSubDetector(TString const& s)
   return nullptr;
 }
 
-void EventDisplay::addSimpleElement(TEveElement* el, SubDetector& det)
+TEveElementList *EventDisplay::subDetectorList(SubDetector &det)
 {
   if (! det.list) {
     det.list = new TEveElementList(det.name.c_str());
@@ -3876,10 +3805,25 @@ void EventDisplay::addSimpleElement(TEveElement* el, SubDetector& det)
     if (! det.visibleByDefault)
       det.list->SetRnrSelfChildren(false, false);
   }
+  return det.list;
+}
+
+void EventDisplay::setVolumeStyle(TEveElement *el, Color_t color, int nSegments)
+{
+  el->SetRnrSelfChildren(true, false);
+  el->SetMainTransparency(useTransparencies ? 60 : 0);
+  if (overrideDetectorColors) el->SetMainColor(color);
+  if (nSegments > 0)
+    ((TEveGeoShape *)el)->SetNSegments(nSegments);
+  ((TEveGeoShape *)el)->SetDrawFrame(false);
+}
+
+void EventDisplay::addSimpleElement(TEveElement* el, SubDetector& det)
+{
   if (debug) {
     std::cout << "Adding " << el->GetElementName() << " to " << det.name << std::endl;
   }
-  det.list->AddElement(el);
+  subDetectorList(det)->AddElement(el);
   ((TEveGeoShape *)el)->SetDrawFrame(false);
 }
 
@@ -3948,93 +3892,52 @@ void EventDisplay::addVertex(TEveElement* el, SubDetector& /*det*/)
 void EventDisplay::addDCH(TEveElement* el, SubDetector& det)
 {
   addSimpleElement(el, det);
-  el->SetRnrSelfChildren(true, false);
-  el->SetMainTransparency(useTransparencies ? 60 : 0);
-  if (overrideDetectorColors) el->SetMainColor(kGreen-5);
-  ((TEveGeoShape *)el)->SetNSegments(128);
-  ((TEveGeoShape *)el)->SetDrawFrame(false);
+  setVolumeStyle(el, kGreen-5, 128);
 }
 
 void EventDisplay::addWrapper(TEveElement* el, SubDetector& det)
 {
-  // TODO
-  // cannot use SimpleElement because it will add assembly to element list so I have to duplicate code. Need to refactor
-  // addSimpleElement(el, det);
-  if (! det.list) {
-    det.list = new TEveElementList(det.name.c_str());
-    geom->AddElement(det.list);
-    if (! det.visibleByDefault)
-      det.list->SetRnrSelfChildren(false, false);
-  }
+  // rather than the assembly we add directly the layers
+  TEveElementList *list = subDetectorList(det);
   if (debug) {
     std::cout << "Adding " << el->GetElementName() << " to " << det.name << std::endl;
   }
-
-  // rather than the assembly we add directly the layers
   for (TEveElement::List_i itr2 = el->BeginChildren(); itr2 != el->EndChildren(); itr2++) {
     TEveElement *child = *itr2;
-    det.list->AddElement(child);
-    child->SetRnrSelfChildren(true, false);
-    child->SetMainTransparency(useTransparencies ? 60 : 0);
-    if (overrideDetectorColors) child->SetMainColor(kRed);
-    ((TEveGeoShape *)child)->SetNSegments(128);
-    ((TEveGeoShape *)child)->SetDrawFrame(false);
+    list->AddElement(child);
+    setVolumeStyle(child, kRed, 128);
   }
 }
 
 void EventDisplay::addECalB(TEveElement* el, SubDetector& det)
 {
   addSimpleElement(el, det);
-  el->SetRnrSelfChildren(true, false);
-  if (overrideDetectorColors) el->SetMainColor(kAzure+7);
-  el->SetMainTransparency(useTransparencies ? 60 : 0);
-  ((TEveGeoShape *)el)->SetDrawFrame(false);
+  setVolumeStyle(el, kAzure+7, 0);
 
   // daughter properties - essentially for projections...
   for (TEveElement::List_i itr2 = el->BeginChildren(); itr2 != el->EndChildren(); itr2++)
   {
     TEveElement *child = *itr2;
-    if (overrideDetectorColors) child->SetMainColor(kAzure+7);
     TString elname(child->GetElementName());
     if (debug) std::cout << elname << std::endl;
-    child->SetRnrSelfChildren(false, false);
+    setVolumeStyle(child, kAzure+7, 128);
     if (elname.BeginsWith("ECAL_Cryo_side"))
       child->SetRnrSelfChildren(false, false);
-    else
-      child->SetRnrSelfChildren(true, false);
-    child->SetMainTransparency(useTransparencies ? 60 : 0);
-    ((TEveGeoShape *)child)->SetNSegments(128);
-    ((TEveGeoShape *)child)->SetDrawFrame(false);
   }
 }
-
 
 void EventDisplay::addECalEC(TEveElement* el, SubDetector& det)
 {
   addSimpleElement(el, det);
-  el->SetRnrSelfChildren(true, false);
-  el->SetMainTransparency(useTransparencies ? 60 : 0);
-  if (overrideDetectorColors) el->SetMainColor(kAzure+7);
-  ((TEveGeoShape *)el)->SetDrawFrame(false);
+  setVolumeStyle(el, kAzure+7, 0);
 }
 
 void EventDisplay::addHCalB(TEveElement* el, SubDetector& det)
 {
   // for the HCal barrel, we draw the envelope in the 3d model,
-  // and the subvolumes in the 2D views
-
-  // add element to list
+  // and the subvolumes in the 2D views (see projectGeometryRhoPhi/RhoZ)
   addSimpleElement(el, det);
-
-  // for 3D view, draw envelope but not children
-  // for projections will be overridden later
-  el->SetRnrSelfChildren(true, false);
-  // this if we wanted to not draw the envelope but not the layers.. but then too many details in 3D
-  // el->SetRnrSelfChildren(false, true);
-  el->SetMainTransparency(useTransparencies ? 60 : 0);
-  if (overrideDetectorColors) el->SetMainColor(kAzure-7);
-  ((TEveGeoShape *)el)->SetNSegments(128);
-  ((TEveGeoShape *)el)->SetDrawFrame(false);
+  setVolumeStyle(el, kAzure-7, 128);
 
   // setup the properties of the children of the envelope (for the projection)
   // for NSegments I do it here since it does not seem to work in the projection
@@ -4047,8 +3950,6 @@ void EventDisplay::addHCalB(TEveElement* el, SubDetector& det)
     }
     // show the radial layers
     ((TEveGeoShape *)child)->SetDrawFrame(true);
-    // or not
-    // ((TEveGeoShape *)child)->SetDrawFrame(false);
     ((TEveGeoShape *)child)->SetNSegments(128);
   }
 }
@@ -4056,20 +3957,9 @@ void EventDisplay::addHCalB(TEveElement* el, SubDetector& det)
 void EventDisplay::addHCalEC(TEveElement* el, SubDetector& det)
 {
   // for the HCal endcap, we draw the envelope in the 3d model,
-  // and the subvolumes in the 2D views
-
-  // add element to list
+  // and the subvolumes in the 2D views (see projectGeometryRhoZ)
   addSimpleElement(el, det);
-
-  // for 3D view, draw envelope but not children
-  // for projections will be overridden later
-  el->SetRnrSelfChildren(true, false);
-  // this if we wanted to not draw the envelope but not the layers.. but then too many details in 3D
-  // el->SetRnrSelfChildren(false, true);
-  el->SetMainTransparency(useTransparencies ? 60 : 0);
-  if (overrideDetectorColors) el->SetMainColor(kAzure-7);
-  ((TEveGeoShape *)el)->SetNSegments(128);
-  ((TEveGeoShape *)el)->SetDrawFrame(false);
+  setVolumeStyle(el, kAzure-7, 128);
 
   // setup the properties of the children of the envelope
   for (TEveElement::List_i itr = el->BeginChildren(); itr != el->EndChildren(); itr++)
@@ -4077,71 +3967,35 @@ void EventDisplay::addHCalEC(TEveElement* el, SubDetector& det)
     TEveElement *child = *itr;
     TString elname(child->GetElementName());
     if (elname.Contains("ECLayer")) {
-      // do not show the layers
-      // child->SetRnrSelfChildren(true, false);
       // show the layers
       child->SetRnrSelfChildren(false, true);
       child->SetMainColor(kAzure-7);
-      // child->SetMainTransparency(useTransparencies ? 60 : 0);
       child->SetMainTransparency(0);
       // set to false if we don't want to see the layer structure
       ((TEveGeoShape *)child)->SetDrawFrame(true);
-      // ((TEveGeoShape *)child)->SetDrawFrame(false);
     }
   }
-
-  // quite identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(128)... maybe we can merge code...
 }
 
 void EventDisplay::addMuonB(TEveElement* el, SubDetector& det)
 {
-  // add element to list
-  addSimpleElement(el, det);
-
   // draw envelope but not children
-  el->SetRnrSelfChildren(true, false);
-  el->SetMainTransparency(useTransparencies ? 60 : 0);
-  if (overrideDetectorColors) el->SetMainColor(kOrange);
-  ((TEveGeoShape *)el)->SetNSegments(128);
-  ((TEveGeoShape *)el)->SetDrawFrame(false);
+  addSimpleElement(el, det);
+  setVolumeStyle(el, kOrange, 128);
 
   // setup the properties of the children of the envelope
   // for the projections (number of segments for rho-phi view)
   for (TEveElement::List_i itr = el->BeginChildren(); itr != el->EndChildren(); itr++)
   {
     TEveElement *child = *itr;
-    // show the radial layers
-    // child->SetRnrSelfChildren(false, true);
     ((TEveGeoShape *)child)->SetNSegments(128);
-    // child->SetMainColor(kOrange);
     ((TEveGeoShape *)child)->SetDrawFrame(true);
   }
 }
 
 void EventDisplay::addMuonEC(TEveElement* el, SubDetector& det)
 {
-  // add element to list
+  // draw envelope but not children (the layers are shown in the projections)
   addSimpleElement(el, det);
-
-  // draw envelope but not children
-  el->SetRnrSelfChildren(true, false);
-  el->SetMainTransparency(useTransparencies ? 60 : 0);
-  if (overrideDetectorColors) el->SetMainColor(kOrange);
-  ((TEveGeoShape *)el)->SetDrawFrame(false);
-
-  // setup the properties of the children of the envelope
-  // do not do it here, but directly in the projections..
-  /*
-  for (TEveElement::List_i itr = el->BeginChildren(); itr != el->EndChildren(); itr++)
-  {
-    TEveElement *child = *itr;
-    // show the radial layers
-    child->SetRnrSelfChildren(false, true);
-    ((TEveGeoShape *)child)->SetNSegments(128);
-    child->SetMainColor(kOrange);
-    ((TEveGeoShape *)child)->SetDrawFrame(true);
-  }
-  */
-
-  // identical to HCALB only difference for B is ((TEveGeoShape *)child)->SetNSegments(128)... maybe we can merge code...
+  setVolumeStyle(el, kOrange, 0);
 }
