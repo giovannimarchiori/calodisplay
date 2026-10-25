@@ -84,6 +84,12 @@ The configuration is read from a JSON file (see `config.json`), containing a map
 The event file is a podio/EDM4hep ROOT file, e.g. produced by the ALLEGRO simulation, digitisation and reconstruction chain.
 - The cellID encodings of the calorimeter cell collections are read from the metadata of the file (`<collection>__CellIDEncoding`). If they are not found, default encodings are used.
 - The cells of the clusters are taken from the dedicated cluster cell collections (`topoClusterCells`, `caloClusterCells`) if present in the file. Otherwise, the links stored in the clusters to the cells of the cell collections in the file (e.g. `ECalBarrelModuleThetaMergedPositioned`) are followed.
+- Several collections of clusters of the same type can be drawn at the same time, e.g. in the barrel and in the endcap, by listing them separated by commas, with their cell collections (if any) in the same order:
+  ```json
+  "caloClusters": "AugmentedEMBCaloClusters,AugmentedEMECCaloClusters",
+  "caloClusterCells": "EMBCaloClusterCells,EMECCaloClusterCells",
+  ```
+  Each collection is drawn as a separate set of clusters. An empty or missing entry in the list of cells means that the default name (the name of the clusters, ending in `Cells` instead of `s`) is tried, and then the links.
 
 ### Detector geometry
 The geometry files contain all the volumes of the detector (about 850k for ALLEGRO o1_v03), but only a small fraction of them is drawn. To make the display start faster, the first time a geometry file is used with a given set of options (`--fulldet`, `--dohcal`, `--doendcap`), the volumes that can be drawn in one of the views are determined, and the geometry without the other volumes is saved in a cache file, `<geometry>.displaycache.root`, next to the geometry file (or in `~/.cache/calodisplay` if that directory is not writable). The following times the geometry is read from the cache: e.g. with `--fulldet` the startup time goes from about 60 s to about 10 s. The cache is rebuilt automatically when the geometry file changes or calodisplay is recompiled. With `--nocache`, the full geometry is read (and all the volumes can be turned on in the browser).

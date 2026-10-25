@@ -188,12 +188,34 @@ public:
 
   // clusters: the graphic elements of the clusters of a type (topo or
   // sliding window); the cells are drawn only for the ECAL and HCAL barrel
+  // final window of the sliding-window clusters: nTheta x nPhi towers of size
+  // deltaTheta x deltaPhi, centred on the tower containing the cluster
+  // position, with tower indices (thetaMax - theta)/deltaTheta and
+  // (phi - phiMin)/deltaPhi; read from the options of the job that produced
+  // the clusters, stored in the event file (nTheta = 0 if not found)
+  struct SlidingWindow
+  {
+    int nTheta = 0;
+    int nPhi = 0;
+    double deltaTheta = 0.;
+    double deltaPhi = 0.;
+    double thetaMax = 0.;
+    double phiMin = 0.;
+    // radial range of the barrel calorimeters used for the towers
+    // (0 if none)
+    double rMin = 0.;
+    double rMax = 0.;
+    // |z| range of the endcap calorimeters used for the towers (0 if none)
+    double zMin = 0.;
+    double zMax = 0.;
+  };
   struct ClusterSet
   {
     std::string type;    // used in the names of the elements
     std::string label;   // used in the printouts
     Color_t centerColor; // colour of the barycenters
     bool drawWindow;     // draw the window of the sliding-window clusters
+    SlidingWindow window;
     // the clusters in the event reader (set when the event file is opened)
     const EventReader::Clusters *clusters = nullptr;
     // the clusters above threshold, with their energy and barycenter per layer
@@ -206,8 +228,9 @@ public:
     TEvePointSet *center = nullptr;
     TEveStraightLineSet *direction = nullptr;
   };
-  ClusterSet topoClusterSet{"topo", "topo", kWhite, false};
-  ClusterSet swClusterSet{"sw", "SW", kGray, true};
+  // one set for each collection of topo and sliding-window clusters
+  // (set when the event file is opened)
+  std::vector<ClusterSet> clusterSets;
 
   //
   TEveGeoShape *ecalbarrel = nullptr;
@@ -495,31 +518,14 @@ private:
   // decode the cellIDs with the CellIDEncoding stored in the event file
   void setCellIDEncodings();
 
-  // final window of the sliding-window clusters: nTheta x nPhi towers of size
-  // deltaTheta x deltaPhi, centred on the tower containing the cluster
-  // position, with tower indices (thetaMax - theta)/deltaTheta and
-  // (phi - phiMin)/deltaPhi; read from the options of the job that produced
-  // the clusters, stored in the event file (nTheta = 0 if not found)
-  struct SlidingWindow
-  {
-    int nTheta = 0;
-    int nPhi = 0;
-    double deltaTheta = 0.;
-    double deltaPhi = 0.;
-    double thetaMax = 0.;
-    double phiMin = 0.;
-    // radial range of the barrel calorimeters used for the towers
-    double rMin = 0.;
-    double rMax = 0.;
-  };
-  SlidingWindow swWindow;
-  void setSlidingWindow();
+  // set the window of a set of sliding-window clusters
+  void setSlidingWindow(ClusterSet &set);
   // theta and phi range of the final window of a cluster
-  void getSlidingWindowRange(float xcl, float ycl, float zcl,
+  void getSlidingWindowRange(const SlidingWindow &window, float xcl, float ycl, float zcl,
                              double &thetaLow, double &thetaHigh,
                              double &phiLow, double &phiHigh) const;
   // draw the final window of a sliding-window cluster in the projections
-  void drawSlidingWindow(float xcl, float ycl, float zcl, const char *name,
+  void drawSlidingWindow(const SlidingWindow &window, float xcl, float ycl, float zcl, const char *name,
                          TEveElement *rhoz, TEveElement *rhophi);
 
   void addSimpleElement(TEveElement* element, SubDetector&);

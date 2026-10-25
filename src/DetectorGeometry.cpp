@@ -397,6 +397,21 @@ ULong_t DetectorGeometry::ECalEndCapZBin(ULong_t cellID) {
   return ReadField(fECalEndCapZ, cellID);
 }
 
+bool DetectorGeometry::ECalEndCapCellRhoZ(ULong_t cellID, double &rho, double &z, double &dRho, double &dZ) const {
+  ULong_t wheel = ECalEndCapWheel(cellID);
+  if (wheel >= (ULong_t)nWheelsECalEndCap)
+    return false;
+  ULong_t rhoBin = ECalEndCapRhoBin(cellID);
+  ULong_t zBin = ECalEndCapZBin(cellID);
+  if (rhoBin >= (ULong_t)nRhoBinsECalEndCap[wheel] || zBin >= (ULong_t)nZBinsECalEndCap[wheel])
+    return false;
+  dRho = gridSizeRhoECalEndCap[wheel];
+  dZ = gridSizeZECalEndCap[wheel];
+  rho = offsetRhoECalEndCap[wheel] + (rhoBin + 0.5) * dRho;
+  z = (ECalEndCapSide(cellID) > 0 ? 1. : -1.) * (offsetZECalEndCap[wheel] + (zBin + 0.5) * dZ);
+  return true;
+}
+
 ULong_t DetectorGeometry::HCalEndCapLayer(ULong_t cellID) {
   return ReadField(fHCalEndCapLayer, cellID);
 }

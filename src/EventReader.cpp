@@ -12,6 +12,36 @@
 
 #include <TBranchElement.h>
 
+#include <sstream>
+
+namespace
+{
+// the names in a comma-separated list (ignoring the spaces around them)
+std::vector<std::string> splitList(const std::string& list)
+{
+  std::vector<std::string> names;
+  std::stringstream ss(list);
+  std::string name;
+  while (std::getline(ss, name, ','))
+  {
+    const size_t first = name.find_first_not_of(" \t");
+    if (first == std::string::npos)
+      continue;
+    names.push_back(name.substr(first, name.find_last_not_of(" \t") - first + 1));
+  }
+  return names;
+}
+
+// the comma-separated list of names (empty names are kept, to keep the positions)
+std::string joinList(const std::vector<std::string>& names)
+{
+  std::string list;
+  for (size_t i = 0; i < names.size(); i++)
+    list += (i == 0 ? "" : ",") + names[i];
+  return list;
+}
+}
+
 EventReader::EventReader(TFile* f)
 {
   fReader = std::make_unique<TTreeReader>("events", f);
@@ -204,38 +234,64 @@ void EventReader::setBranches()
     setHits(muonEndcapCells, collection2, "energy", "position", true);
   }
 
-  // SW clusters and their cells
-  if (checkCollection("drawCaloClusters", "caloClusters", "energy", collection))
-    setClusters(swClusters, collection);
-  if (displayConfig.getBoolConfig("drawCaloClusters"))
-    setClusterCells(swClusters, "caloClusters", "caloClusterCells");
-
-  // topo clusters and their cells
-  if (checkCollection("drawTopoClusters", "topoClusters", "energy", collection))
-    setClusters(topoClusters, collection);
-  if (displayConfig.getBoolConfig("drawTopoClusters"))
-    setClusterCells(topoClusters, "topoClusters", "topoClusterCells");
+  // SW and topo clusters and their cells
+  setClusterCollections(swClusters, "drawCaloClusters", "caloClusters", "caloClusterCells");
+  setClusterCollections(topoClusters, "drawTopoClusters", "topoClusters", "topoClusterCells");
 }
 
-bool EventReader::setClusterCells(Clusters& clusters, const std::string& clustersKey, const std::string& cellsKey)
+void EventReader::setClusterCollections(std::vector<Clusters>& clustersList, const std::string& drawFlag,
+                                        const std::string& clustersKey, const std::string& cellsKey)
 {
-  std::string clustersName = displayConfig.getStringConfig(clustersKey);
-  std::string collection = displayConfig.getStringConfig(cellsKey);
+  if (!displayConfig.getBoolConfig(drawFlag))
+    return;
+  const std::vector<std::string> names = splitList(displayConfig.getStringConfig(clustersKey));
+  const std::vector<std::string> cellNames = splitList(displayConfig.getStringConfig(cellsKey));
+  if (cellNames.size() > names.size())
+    std::cout << "WARNING: more collections in " << cellsKey << " than in " << clustersKey
+              << ", ignoring the last ones" << std::endl;
+
+  // (reserve, so that the clusters are not moved while their branches are set)
+  clustersList.reserve(names.size());
+  std::vector<std::string> usedNames, usedCellNames;
+  for (size_t i = 0; i < names.size(); i++)
+  {
+    const std::string& name = names[i];
+    if (!fReader->GetTree()->FindBranch(Form("%s.energy", name.c_str())))
+    {
+      std::cout << "WARNING: branch " << name << ".energy not found, not drawing the clusters " << name << std::endl;
+      continue;
+    }
+    Clusters& clusters = clustersList.emplace_back();
+    clusters.name = name;
+    setClusters(clusters, name);
+    usedNames.push_back(name);
+    usedCellNames.push_back(setClusterCells(clusters, i < cellNames.size() ? cellNames[i] : ""));
+  }
+  if (usedNames.empty())
+  {
+    std::cout << "WARNING: no collection of " << clustersKey << " found, disabling " << clustersKey << std::endl;
+    displayConfig.setBoolConfig(drawFlag, false);
+  }
+  displayConfig.setStringConfig(clustersKey, joinList(usedNames));
+  displayConfig.setStringConfig(cellsKey, joinList(usedCellNames));
+}
+
+std::string EventReader::setClusterCells(Clusters& clusters, std::string collection)
+{
+  const std::string& clustersName = clusters.name;
   if (collection == "") {
     // try to use default collection
     collection = clustersName;
     collection.pop_back();
     collection += "Cells";
-    std::cout << "WARNING: " << cellsKey << " not set, trying with " << collection << std::endl;
+    std::cout << "WARNING: cell collection of " << clustersName << " not set, trying with " << collection << std::endl;
   }
 
   // 1. a dedicated collection with the cells of the clusters
   if (fReader->GetTree()->FindBranch(Form("%s.cellID", collection.c_str()))) {
-    displayConfig.setStringConfig(cellsKey, collection);
     setHits(clusters.cellCollection, collection, "energy", "position", true);
-    return true;
+    return collection;
   }
-  displayConfig.setStringConfig(cellsKey, "");
 
   // 2. the links of the clusters to the cells in the cell collections
   std::string links = "_" + clustersName + "_hits";
@@ -246,12 +302,12 @@ bool EventReader::setClusterCells(Clusters& clusters, const std::string& cluster
     clusters.hits_collectionID = makeArray<UInt_t>(links, "collectionID");
     if (cellCollections.empty())
       setCellCollections();
-    return true;
+    return "";
   }
 
   std::cout << "WARNING: neither branch " << collection << ".cellID nor " << links
             << " found, drawing the clusters without their cells" << std::endl;
-  return false;
+  return "";
 }
 
 void EventReader::setCellCollections()
@@ -386,8 +442,7 @@ void EventReader::loadEvent(int event) {
   }
   fReader->SetEntry(event);
 
-  if (topoClusters.isSet())
-    fillClusterCells(topoClusters);
-  if (swClusters.isSet())
-    fillClusterCells(swClusters);
+  for (std::vector<Clusters>* clustersList : {&topoClusters, &swClusters})
+    for (Clusters& clusters : *clustersList)
+      fillClusterCells(clusters);
 }

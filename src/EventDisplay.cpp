@@ -78,6 +78,15 @@ std::string mainTrackerName(const std::string &collection)
   return "Main tracker";
 }
 
+// bin of an ECAL endcap cell in the rho-z projection, from its wheel, rho bin,
+// side and sign of y (the cells on the two sides and above and below the beam
+// axis are drawn separately)
+int ecalEndcapRhoZBin(ULong_t cellID, float y)
+{
+  int bin = (int)DetectorGeometry::ECalEndCapWheel(cellID) * 256 + (int)DetectorGeometry::ECalEndCapRhoBin(cellID);
+  return (bin * 2 + (DetectorGeometry::ECalEndCapSide(cellID) > 0)) * 2 + (y > 0);
+}
+
 // the code that decides which volumes of the G4 geometry are drawn is in this
 // file: the geometry cache is rebuilt when it is recompiled
 const std::string geometryCodeVersion = __DATE__ " " __TIME__;
@@ -1124,7 +1133,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
   }
   if (set.list3D == nullptr)
   {
-    set.list3D = new TEveElementList(Form("%sclusters (E>%.2f GeV)",
+    set.list3D = new TEveElementList(Form("%s clusters (E>%.2f GeV)",
                                           clusterType.c_str(),
                                           ClusterEnergyThreshold));
     gEve->AddElement(set.list3D);
@@ -1334,7 +1343,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
 
       // window of the sliding-window clusters
       if (set.drawWindow)
-        drawSlidingWindow(xcl, ycl, zcl, Form("%s cluster %d window", clusterType.c_str(), (int)i),
+        drawSlidingWindow(set.window, xcl, ycl, zcl, Form("%s cluster %d window", clusterType.c_str(), (int)i),
                           clusters_rhoz, clusters_rhophi);
 
       TEveBoxSet *_bs = new TEveBoxSet(Form("%s cluster %d", clusterType.c_str(), (int)i), "");
@@ -1398,7 +1407,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
   }
 
   // check that the cells of the sliding-window clusters are inside their window
-  if (debug && set.drawWindow && swWindow.nTheta > 0)
+  if (debug && set.drawWindow && set.window.nTheta > 0)
   {
     std::vector<int> nOutside(nClusters, 0);
     for (unsigned int i = 0; i < nCells; i++)
@@ -1407,7 +1416,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
       if (icl == -1)
         continue;
       double thetaLow, thetaHigh, phiLow, phiHigh;
-      getSlidingWindowRange((*clusters.x)[icl],
+      getSlidingWindowRange(set.window, (*clusters.x)[icl],
                             (*clusters.y)[icl],
                             (*clusters.z)[icl],
                             thetaLow, thetaHigh, phiLow, phiHigh);
@@ -1444,9 +1453,11 @@ void EventDisplay::drawClusters(ClusterSet &set)
     // for 2D projections, identify the projected cell by
     // ECAL: layer-theta for rho-z, layer-module for rho-phi
     // HCAL: layer-theta for rho-z, layer-phi for rho-phi
+    // ECAL endcap: z bin (the layer) and rho bin for rho-z, not drawn in rho-phi and 3D
     float r_in(0.), r_out(0.);
     int layer(0), thetaID(0), moduleID(0), phiID(0);
     ProjectedCellKey rhophiID{}, rhozID{};
+    bool onlyRhoZ = false;
 
     if (systemID == DetectorGeometry::kECalBarrel)
     {
@@ -1468,9 +1479,15 @@ void EventDisplay::drawClusters(ClusterSet &set)
       r_in = geomReader->rHCal[layer];
       r_out = geomReader->rHCal[layer + 1];
     }
-    else if (systemID == DetectorGeometry::kECalEndcap || systemID == DetectorGeometry::kHCalEndcap || systemID == DetectorGeometry::kMuonBarrel || systemID == DetectorGeometry::kMuonEndcap)
+    else if (systemID == DetectorGeometry::kECalEndcap)
     {
-      // cells of ECAL endcap, HCAL endcap, MUON barrel and endcap are not drawn
+      layer = (int)DetectorGeometry::ECalEndCapZBin(cellID);
+      rhozID = {systemID, icl, layer, ecalEndcapRhoZBin(cellID, y_center)};
+      onlyRhoZ = true;
+    }
+    else if (systemID == DetectorGeometry::kHCalEndcap || systemID == DetectorGeometry::kMuonBarrel || systemID == DetectorGeometry::kMuonEndcap)
+    {
+      // cells of HCAL endcap, MUON barrel and endcap are not drawn
       continue;
     }
     else
@@ -1501,7 +1518,11 @@ void EventDisplay::drawClusters(ClusterSet &set)
         cellEnergies_rhoz[rhozID] = energy;
       }
       // if cell ID (in rho-phi) already inserted in map, sum energy of this cell
-      if (cellEnergies_rhophi.count(rhophiID))
+      if (onlyRhoZ)
+      {
+        // not drawn in rho-phi
+      }
+      else if (cellEnergies_rhophi.count(rhophiID))
       {
         // debug
         // std::cout << "Cell with layer, module = " << layer << " " << moduleID << " already in map with energy " << cellEnergies_rhophi[rhophiID] << " , adding energy " << energy << std::endl;
@@ -1516,7 +1537,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
     }
 
     // cluster cells in 3D
-    if (bs[icl] != nullptr)
+    if (bs[icl] != nullptr && !onlyRhoZ)
     {
       float verts3D[24];
       if (systemID == DetectorGeometry::kECalBarrel)
@@ -1653,6 +1674,11 @@ void EventDisplay::drawClusters(ClusterSet &set)
       r_in = geomReader->rHCal[layer];
       r_out = geomReader->rHCal[layer + 1];
     }
+    else if (system == DetectorGeometry::kECalEndcap)
+    {
+      layer = (int)DetectorGeometry::ECalEndCapZBin(cellID);
+      rhozID = {system, icl, layer, ecalEndcapRhoZBin(cellID, cells.y[i])};
+    }
     else
     {
       // cells of other systems are not drawn
@@ -1667,6 +1693,44 @@ void EventDisplay::drawClusters(ClusterSet &set)
     y_center = cells.y[i] * mm;
     z_center = cells.z[i] * mm;
     float r_center = sqrt(x_center * x_center + y_center * y_center);
+    if (system == DetectorGeometry::kECalEndcap)
+    {
+      // the cell is a rectangle in rho-z, from the segmentation (the position
+      // of the cell in the file is displaced in phi, along the blades, so its
+      // rho is not the centre of the cell in rho)
+      double rho, z, dRho, dZ;
+      if (!geomReader->ECalEndCapCellRhoZ(cellID, rho, z, dRho, dZ))
+      {
+        std::cout << "WARNING: ECAL endcap cell " << cellID << " outside of the segmentation, skipping cell" << std::endl;
+        continue;
+      }
+      // (warn once if the position is outside of the cell, e.g. for a file
+      // produced with a different version of the geometry)
+      static bool warnedPosition = false;
+      if (debug && !warnedPosition && (std::fabs(rho - r_center) > dRho / 2. || std::fabs(z - z_center) > dZ / 2.))
+      {
+        std::cout << "  ECAL endcap cell " << cellID << " at rho, z = " << r_center / mm << ", " << z_center / mm
+                  << " mm, outside of the cell from the segmentation (rho, z = " << rho / mm << " +- " << dRho / 2. / mm
+                  << ", " << z / mm << " +- " << dZ / 2. / mm << " mm): different version of the geometry?" << std::endl;
+        warnedPosition = true;
+      }
+      float sign = MathUtils::sign(y_center);
+      verts[0] = z - dZ / 2.;
+      verts[1] = (rho - dRho / 2.) * sign;
+      verts[3] = z + dZ / 2.;
+      verts[4] = (rho - dRho / 2.) * sign;
+      verts[6] = z + dZ / 2.;
+      verts[7] = (rho + dRho / 2.) * sign;
+      verts[9] = z - dZ / 2.;
+      verts[10] = (rho + dRho / 2.) * sign;
+      verts[2] = verts[5] = verts[8] = verts[11] = 0.;
+      qs_rhoz[icl]->AddQuad(verts);
+      qs_rhoz[icl]->QuadValue((int)(1000 * energy));
+      qs_rhoz[icl]->QuadId(new TNamed(Form("%s %d cell W%lu Rho%lu Z%d", clusterType.c_str(), icl,
+                                           DetectorGeometry::ECalEndCapWheel(cellID),
+                                           DetectorGeometry::ECalEndCapRhoBin(cellID), layer), "Dong!"));
+      continue;
+    }
     float theta_center = atan2(r_center, z_center);
     if (system == DetectorGeometry::kECalBarrel)
     {
@@ -1811,15 +1875,10 @@ void EventDisplay::drawEvent(int event)
   drawDigis();
   drawTracks();
   maxCellValue3D = maxCellValueRhoPhi = maxCellValueRhoZ = 0;
-  if (displayConfig.getBoolConfig("drawTopoClusters"))
+  for (ClusterSet &set : clusterSets)
   {
-    fillClusters(topoClusterSet);
-    drawClusters(topoClusterSet);
-  }
-  if (displayConfig.getBoolConfig("drawCaloClusters"))
-  {
-    fillClusters(swClusterSet);
-    drawClusters(swClusterSet);
+    fillClusters(set);
+    drawClusters(set);
   }
   // adapt the range of the cell palettes to the event
   setCellPaletteRange(cellPalette3D, maxCellValue3D);
@@ -3040,14 +3099,28 @@ void EventDisplay::openEventFile()
 
   // setup the branches
   eventReader->setBranches();
-  topoClusterSet.clusters = &eventReader->topoClusters;
-  swClusterSet.clusters = &eventReader->swClusters;
 
   // decode the cellIDs with the CellIDEncoding stored in the file
   setCellIDEncodings();
 
-  // size of the window of the sliding-window clusters
-  setSlidingWindow();
+  // a set of clusters for each collection of clusters, with the size of the
+  // window of the sliding-window clusters
+  // (with several collections of a type, their names are added to the type)
+  auto addClusterSets = [this](const std::vector<EventReader::Clusters> &clustersList, const std::string &type,
+                               const std::string &label, Color_t centerColor, bool slidingWindow)
+  {
+    for (const EventReader::Clusters &clusters : clustersList)
+    {
+      const std::string suffix = clustersList.size() > 1 ? " " + clusters.name : "";
+      ClusterSet set{type + suffix, label + suffix, centerColor, slidingWindow};
+      set.clusters = &clusters;
+      if (slidingWindow)
+        setSlidingWindow(set);
+      clusterSets.push_back(std::move(set));
+    }
+  };
+  addClusterSets(eventReader->topoClusters, "topo", "topo", kWhite, false);
+  addClusterSets(eventReader->swClusters, "sw", "SW", kGray, true);
 
   // print updated draw settings based on info found in ROOT file
   displayConfig.print();
@@ -3604,12 +3677,11 @@ void EventDisplay::createElementList(TEveElementList*& list, const std::string& 
   }
 }
 
-void EventDisplay::setSlidingWindow()
+void EventDisplay::setSlidingWindow(ClusterSet &set)
 {
+  SlidingWindow &swWindow = set.window;
   swWindow = SlidingWindow();
-  if (!displayConfig.getBoolConfig("drawCaloClusters"))
-    return;
-  const std::string collection = displayConfig.getStringConfig("caloClusters");
+  const std::string &collection = set.clusters->name;
   std::map<std::string, std::string> options = eventReader->readGaudiOptions();
   if (options.empty())
   {
@@ -3664,8 +3736,8 @@ void EventDisplay::setSlidingWindow()
     return;
   }
 
-  // radial range of the barrel calorimeters used for the towers
-  // (the calorimeterIDs are listed as [ 4 , 8 ])
+  // radial range of the barrel calorimeters and |z| range of the endcap
+  // calorimeters used for the towers (the calorimeterIDs are listed as [ 4 , 8 ])
   std::string ids = getOption(tool + "calorimeterIDs");
   std::replace_if(ids.begin(), ids.end(), [](char c) { return !std::isdigit(static_cast<unsigned char>(c)); }, ' ');
   std::istringstream idStream(ids);
@@ -3683,15 +3755,27 @@ void EventDisplay::setSlidingWindow()
       rMin = geomReader->rMinHCal;
       rMax = geomReader->rMaxHCal;
     }
+    else if (id == DetectorGeometry::kECalEndcap)
+    {
+      // the active part of the ECAL endcap, i.e. the z bins of its readout
+      for (int wheel = 0; wheel < geomReader->nWheelsECalEndCap; wheel++)
+      {
+        const double zMin = geomReader->offsetZECalEndCap[wheel];
+        const double zMax = zMin + geomReader->nZBinsECalEndCap[wheel] * geomReader->gridSizeZECalEndCap[wheel];
+        swWindow.zMin = (swWindow.zMin == 0.) ? zMin : std::min(swWindow.zMin, zMin);
+        swWindow.zMax = std::max(swWindow.zMax, zMax);
+      }
+      continue;
+    }
     else
       continue;
     swWindow.rMin = (swWindow.rMin == 0.) ? rMin : std::min(swWindow.rMin, rMin);
     swWindow.rMax = std::max(swWindow.rMax, rMax);
   }
-  if (swWindow.rMax == 0.)
+  if (swWindow.rMax == 0. && swWindow.zMax == 0.)
   {
     std::cout << "WARNING: the sliding-window clusters " << collection
-              << " do not use barrel calorimeters, not drawing their windows" << std::endl;
+              << " do not use the barrel calorimeters or the ECAL endcap, not drawing their windows" << std::endl;
     swWindow = SlidingWindow();
     return;
   }
@@ -3700,7 +3784,7 @@ void EventDisplay::setSlidingWindow()
             << swWindow.deltaTheta << " x " << swWindow.deltaPhi << " rad in theta x phi" << std::endl;
 }
 
-void EventDisplay::getSlidingWindowRange(float xcl, float ycl, float zcl,
+void EventDisplay::getSlidingWindowRange(const SlidingWindow &swWindow, float xcl, float ycl, float zcl,
                                          double &thetaLow, double &thetaHigh,
                                          double &phiLow, double &phiHigh) const
 {
@@ -3715,16 +3799,18 @@ void EventDisplay::getSlidingWindowRange(float xcl, float ycl, float zcl,
   phiHigh = swWindow.phiMin + (idPhi + swWindow.nPhi / 2 + 1) * swWindow.deltaPhi;
 }
 
-void EventDisplay::drawSlidingWindow(float xcl, float ycl, float zcl, const char *name,
+void EventDisplay::drawSlidingWindow(const SlidingWindow &swWindow, float xcl, float ycl, float zcl, const char *name,
                                      TEveElement *rhoz, TEveElement *rhophi)
 {
-  // only for clusters in the barrel
-  if (swWindow.nTheta == 0 || std::fabs(zcl * mm) > geomReader->zMax)
+  if (swWindow.nTheta == 0)
+    return;
+  // the window is drawn in the barrel or in the endcap, depending on the
+  // position of the cluster and on the calorimeters used for the towers
+  const bool inBarrel = std::fabs(zcl * mm) <= geomReader->zMax;
+  if ((inBarrel && swWindow.rMax == 0.) || (!inBarrel && swWindow.zMax == 0.))
     return;
   double thetaLow, thetaHigh, phiLow, phiHigh;
-  getSlidingWindowRange(xcl, ycl, zcl, thetaLow, thetaHigh, phiLow, phiHigh);
-  const double rIn = swWindow.rMin;
-  const double rOut = swWindow.rMax;
+  getSlidingWindowRange(swWindow, xcl, ycl, zcl, thetaLow, thetaHigh, phiLow, phiHigh);
 
   // rho-z: between the lines at constant theta, on the side of the cluster
   const double sign = MathUtils::sign(ycl);
@@ -3733,6 +3819,24 @@ void EventDisplay::drawSlidingWindow(float xcl, float ycl, float zcl, const char
   lines->SetLineWidth(2);
   // on top of the projected detector, which is in the same plane
   lines->SetDepthTest(kFALSE);
+  if (!inBarrel)
+  {
+    // endcap: between the inner and outer |z|, on the side of the cluster
+    // (rho = z tan(theta) on both sides); not drawn in rho-phi, as the cells
+    // of the endcap
+    const double zIn = MathUtils::sign(zcl) * swWindow.zMin;
+    const double zOut = MathUtils::sign(zcl) * swWindow.zMax;
+    lines->AddLine(zIn, sign * zIn * std::tan(thetaLow), 0., zOut, sign * zOut * std::tan(thetaLow), 0.);
+    lines->AddLine(zOut, sign * zOut * std::tan(thetaLow), 0., zOut, sign * zOut * std::tan(thetaHigh), 0.);
+    lines->AddLine(zOut, sign * zOut * std::tan(thetaHigh), 0., zIn, sign * zIn * std::tan(thetaHigh), 0.);
+    lines->AddLine(zIn, sign * zIn * std::tan(thetaHigh), 0., zIn, sign * zIn * std::tan(thetaLow), 0.);
+    rhoz->AddElement(lines);
+    return;
+  }
+
+  // barrel: between the inner and outer radius
+  const double rIn = swWindow.rMin;
+  const double rOut = swWindow.rMax;
   lines->AddLine(rIn / std::tan(thetaLow), sign * rIn, 0., rOut / std::tan(thetaLow), sign * rOut, 0.);
   lines->AddLine(rOut / std::tan(thetaLow), sign * rOut, 0., rOut / std::tan(thetaHigh), sign * rOut, 0.);
   lines->AddLine(rOut / std::tan(thetaHigh), sign * rOut, 0., rIn / std::tan(thetaHigh), sign * rIn, 0.);

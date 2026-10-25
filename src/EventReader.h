@@ -99,6 +99,7 @@ public:
   // calorimeter clusters (topo or sliding window) and their cells
   struct Clusters
   {
+    std::string name; // name of the collection
     Array<Float_t> energy;
     Array<Float_t> x, y, z;
     Array<Float_t> theta, phi;
@@ -137,11 +138,12 @@ public:
   CaloHits hcalBarrelCells, hcalEndcapCells;
   CaloHits muonBarrelCells, muonEndcapCells;
 
-  // the clusters
-  // (both the topo clusters, e.g. for ECAL+HCAL jets, and the sliding-window
-  // clusters, e.g. in ECAL for EM objects, can be drawn at the same time)
-  Clusters topoClusters;
-  Clusters swClusters;
+  // the clusters: one or more collections of topo clusters (e.g. for
+  // ECAL+HCAL jets) and of sliding-window clusters (e.g. in ECAL for EM
+  // objects), e.g. in the barrel and in the endcap, can be drawn at the same time
+  // (the vectors are filled by setBranches and not changed afterwards)
+  std::vector<Clusters> topoClusters;
+  std::vector<Clusters> swClusters;
 
   // the calorimeter cell collections in the file, by podio collection ID,
   // used to follow the links
@@ -190,11 +192,17 @@ public:
   }
   void setParticles(Particles& particles, const std::string& collection);
   void setClusters(Clusters& clusters, const std::string& collection);
+  // set up the reading of the collections of clusters listed (comma-separated)
+  // in the configuration parameter clustersKey, and of their cells (the
+  // collections of cells listed in cellsKey, in the same order), if drawFlag is set
+  void setClusterCollections(std::vector<Clusters>& clustersList, const std::string& drawFlag,
+                             const std::string& clustersKey, const std::string& cellsKey);
   void setBranches();
   // set up the reading of the cells of the clusters, from the cell collection
   // (if present) or from the links of the clusters to the cell collections
-  // returns false if neither is available
-  bool setClusterCells(Clusters& clusters, const std::string& clustersKey, const std::string& cellsKey);
+  // returns the cell collection used ("" if the links are used, or neither
+  // is available)
+  std::string setClusterCells(Clusters& clusters, std::string collection);
   // find all the calorimeter cell collections in the file
   void setCellCollections();
   // fill the cells of the clusters for the current event

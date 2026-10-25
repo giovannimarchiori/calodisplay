@@ -74,12 +74,25 @@ public:
 
   // z extent
   const double rMinEndCap = 350.0*Units::mm;
-  const double rMaxEndCap = 2900.0*Units::cm;
+  const double rMaxEndCap = 2900.0*Units::mm;
   const double zMinEndCap = 3200.*Units::mm;
   const double zMaxEndCap = 3850.*Units::mm;
 
   // number of layers
   const int nLayersECalEndCap = 10;
+
+  // readout segmentation (FCCSWEndcapTurbine_k4geo): in each wheel, the cells
+  // are bins of size gridSizeRho in rho starting from offsetRho, and of size
+  // gridSizeZ in |z| starting from offsetZ (from ECalEndcaps_Turbine_o1_v03.xml:
+  // offset_rho = EMECRminWheel<i>+EMECSupportTubeThickness, grid_size_rho =
+  // EMECGridSizeRho<i>, offset_z = EMEC_z1, grid_size_z = EMECGridSizeZ<i>)
+  const int nWheelsECalEndCap = 3;
+  const std::vector<int> nRhoBinsECalEndCap = {10, 14, 34};
+  const std::vector<int> nZBinsECalEndCap = {10, 10, 10};
+  const std::vector<double> offsetRhoECalEndCap = {410.0*Units::mm, 774.2605*Units::mm, 1470.2352*Units::mm};
+  const std::vector<double> gridSizeRhoECalEndCap = {35.4260*Units::mm, 48.9982*Units::mm, 38.8166*Units::mm};
+  const std::vector<double> offsetZECalEndCap = {3260.0*Units::mm, 3260.0*Units::mm, 3260.0*Units::mm};
+  const std::vector<double> gridSizeZECalEndCap = {45.0*Units::mm, 45.0*Units::mm, 45.0*Units::mm};
 
 
   // HCAL barrel
@@ -175,6 +188,10 @@ public:
 
   bool isInECalBarrel(double rho, double z);
   bool isInECalEndCap(double rho, double z);
+
+  // the centre in rho and z (signed) and the size of an ECAL endcap cell in the
+  // readout segmentation; returns false if its wheel or bins are out of range
+  bool ECalEndCapCellRhoZ(ULong_t cellID, double &rho, double &z, double &dRho, double &dZ) const;
 
   /******************************************************************************/
   // HELPER FUNCTIONS related to the readout
