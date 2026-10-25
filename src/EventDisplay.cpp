@@ -1134,12 +1134,13 @@ void EventDisplay::drawClusters(ClusterSet &set)
   {
     std::cout << "  Creating the containers to hold the 3D clusters" << std::endl;
   }
+  createElementList(clustersFolder, "clusters");
   if (set.list3D == nullptr)
   {
     set.list3D = new TEveElementList(Form("%s clusters (E>%.2f GeV)",
                                           clusterType.c_str(),
                                           ClusterEnergyThreshold));
-    gEve->AddElement(set.list3D);
+    clustersFolder->AddElement(set.list3D);
   }
   else
   {
@@ -1158,9 +1159,8 @@ void EventDisplay::drawClusters(ClusterSet &set)
     set.listRhoZ = new TEveElementList(Form("%s clusters in rho-z (E>%.2f GeV)",
                                             clusterType.c_str(),
                                             ClusterEnergyThreshold));
-    // add to scene (that is not auto-projected!)
-    rhoZEventSceneManual->AddElement(set.listRhoZ);
-    gEve->AddToListTree(set.listRhoZ, false);
+    // kept between the events, when the projected replica it is added to is deleted
+    set.listRhoZ->IncDenyDestroy();
   }
   else
     set.listRhoZ->DestroyElements();
@@ -1170,9 +1170,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
     set.listRhoPhi = new TEveElementList(Form("%s clusters in rho-phi (E>%.2f GeV)",
                                               clusterType.c_str(),
                                               ClusterEnergyThreshold));
-    // add to scene (that is not auto-projected!)
-    rhoPhiEventSceneManual->AddElement(set.listRhoPhi);
-    gEve->AddToListTree(set.listRhoPhi, false);
+    set.listRhoPhi->IncDenyDestroy();
   }
   else
     set.listRhoPhi->DestroyElements();
@@ -1917,6 +1915,8 @@ void EventDisplay::drawEvent(int event)
 
     rhoZEventScene->DestroyElements();
     rhoZProjManager->ImportElements(top, rhoZEventScene);
+
+    attachClusterProjections();
   }
 
   std::cout << "Done" << std::endl
@@ -2558,9 +2558,6 @@ void EventDisplay::createRhoPhiView()
     rhoPhiView->AddScene(rhoPhiEventScene);
   }
 
-  rhoPhiEventSceneManual = gEve->SpawnNewScene("Rho-Phi Event Data 2",
-                                               "Scene holding hand-crafted event-data for the Rho-Phi view.");
-  rhoPhiView->AddScene(rhoPhiEventSceneManual);
   rhoPhiGLView = rhoPhiView->GetGLViewer();
   // set camera orientation
   rhoPhiGLView->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
@@ -2751,9 +2748,6 @@ void EventDisplay::createRhoZView()
                                          "Scene holding projected event-data for the Rho-Z view.");
     rhoZView->AddScene(rhoZEventScene);
   }
-  rhoZEventSceneManual = gEve->SpawnNewScene("Rho-Z Event Data 2",
-                                             "Scene holding hand-crafted event-data for the Rho-Z view.");
-  rhoZView->AddScene(rhoZEventSceneManual);
   rhoZGLView = rhoZView->GetGLViewer();
   // set camera orientation
   rhoZGLView->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
@@ -3755,6 +3749,27 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
 std::string EventDisplay::geometryCacheTag() const
 {
   return Form("fulldet%d_hcal%d_endcap%d", showFullDetector, doHCal, doEndcaps);
+}
+
+void EventDisplay::attachClusterProjections()
+{
+  // the projections of the clusters are drawn by hand in the projected
+  // coordinates, so they are not in the event, which is projected
+  // automatically: they are added to the projected replicas of the 3D lists of
+  // the clusters, to be shown or hidden with them (and with the event)
+  for (ClusterSet &set : clusterSets)
+  {
+    if (set.list3D == nullptr)
+      continue;
+    for (auto it = set.list3D->BeginProjecteds(); it != set.list3D->EndProjecteds(); ++it)
+    {
+      TEveElement *replica = (*it)->GetProjectedAsElement();
+      if ((*it)->GetManager() == rhoZProjManager)
+        replica->AddElement(set.listRhoZ);
+      else if ((*it)->GetManager() == rhoPhiProjManager)
+        replica->AddElement(set.listRhoPhi);
+    }
+  }
 }
 
 void EventDisplay::createElementList(TEveElementList*& list, const std::string& listName)

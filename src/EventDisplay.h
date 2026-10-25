@@ -183,6 +183,9 @@ public:
   MyPointSet *cells_merged = nullptr;
   TEveElementList *digis = nullptr;
 
+  // Clusters (a folder for each set of clusters, see ClusterSet)
+  TEveElementList *clustersFolder = nullptr;
+
   // Reconstructed tracks
   TEveTrackList *tracks = nullptr;
 
@@ -220,7 +223,8 @@ public:
     const EventReader::Clusters *clusters = nullptr;
     // the clusters above threshold, with their energy and barycenter per layer
     std::vector<std::unique_ptr<CaloCluster>> data;
-    // the lists of the clusters in 3D and in the projections
+    // the lists of the clusters in 3D and in the projections (drawn by hand,
+    // added to the projected replicas of list3D: see attachClusterProjections)
     TEveElementList *list3D = nullptr;
     TEveElementList *listRhoZ = nullptr;
     TEveElementList *listRhoPhi = nullptr;
@@ -246,10 +250,8 @@ public:
   TGLViewer *mainGLView = nullptr;
   TEveScene *rhoPhiScene = nullptr;
   TEveScene *rhoPhiEventScene = nullptr;
-  TEveScene *rhoPhiEventSceneManual = nullptr;
   TEveScene *rhoZScene = nullptr;
   TEveScene *rhoZEventScene = nullptr;
-  TEveScene *rhoZEventSceneManual = nullptr;
   TEveProjectionManager *rhoPhiProjManager = nullptr;
   TEveProjectionManager *rhoZProjManager = nullptr;
 
@@ -328,6 +330,9 @@ public:
   
   // draw the clusters created by fillClusters
   void drawClusters(ClusterSet &set);
+  // add the projections of the clusters to the projected replicas of their
+  // 3D lists, after the event has been projected
+  void attachClusterProjections();
 
   // draw the event
   void drawEvent(int event);
