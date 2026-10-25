@@ -52,6 +52,7 @@
 #include <TEvePolygonSetProjected.h>
 #include <TEveTrack.h>
 #include <TGLOrthoCamera.h>
+#include <TGLRnrCtx.h>
 #include <TGLPerspectiveCamera.h>
 
 
@@ -3405,7 +3406,14 @@ void EventDisplay::toggleReadout()
     el->SetRnrSelf(showReadout);
   }
   updateToggleButtons();
-  gEve->FullRedraw3D(false);
+  // update now the scenes with the changed elements (faster than a full
+  // redraw, or a repaint of the projected geometry scenes, with the full
+  // detector), then redraw the views of the projections, where the readouts
+  // are, which are not redrawn by it
+  gEve->DoRedraw3D();
+  for (TGLViewer *viewer : {rhoPhiGLView, rhoZGLView})
+    if (viewer)
+      viewer->RequestDraw(TGLRnrCtx::kLODHigh);
 }
 
 void EventDisplay::togglePaletteLegends()
@@ -3414,9 +3422,10 @@ void EventDisplay::togglePaletteLegends()
   for (TGLOverlayElement *el : paletteLegends)
     el->SetBinaryState(showPaletteLegends);
   updateToggleButtons();
+  // (at high quality: the default one may not draw all the volumes)
   for (TGLViewer *viewer : {rhoPhiGLView, rhoZGLView})
     if (viewer)
-      viewer->RequestDraw();
+      viewer->RequestDraw(TGLRnrCtx::kLODHigh);
 }
 
 void EventDisplay::takeScreenshot()
@@ -3456,6 +3465,8 @@ void EventDisplay::makeGui()
 
     TGCompositeFrame* frm = tab->GetTabContainer(i);
 
+    // (the buttons and the event number entry are expanded to the height of
+    // the bar, i.e. of the tallest of them, the buttons with the icons)
     TGHorizontalFrame* hf = new TGHorizontalFrame(frm);
     // picture button with the icon from the installation directory, or a text
     // button if the icon is not found
@@ -3468,7 +3479,7 @@ void EventDisplay::makeGui()
     TGButton* b = nullptr;
 
     b = makeButton("TakeScreenshot.png", "Screenshot");
-    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
+    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsExpandY, 10, 2, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "takeScreenshot()");
     b->SetToolTipText("Take a screenshot of the selected view");
 
@@ -3485,28 +3496,28 @@ void EventDisplay::makeGui()
     entry->GetButtonUp()->SetToolTipText("Go to next event");
     entry->GetButtonDown()->SetToolTipText("Go to previous event");
     entry->SetState(evtFile != "");
-    hf->AddFrame(entry, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 10, 2, 10, 10));
+    hf->AddFrame(entry, new TGLayoutHints(kLHintsLeft | kLHintsExpandY, 10, 2, 10, 10));
     eventEntries.push_back(entry);
     TGLabel *rangeLabel = new TGLabel(hf, "(no events)");
     hf->AddFrame(rangeLabel, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
     eventRangeLabels.push_back(rangeLabel);
 
     b = makeButton("grid_icon.png", "Readout");
-    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
+    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsExpandY, 2, 10, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "toggleReadout()");
     b->SetToolTipText("Hide/Show readouts");
     b->AllowStayDown(kTRUE);
     readoutButtons.push_back(b);
 
     b = makeButton("palette_icon.png", "Legend");
-    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
+    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsExpandY, 2, 10, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "togglePaletteLegends()");
     b->SetToolTipText("Hide/Show the legend of the cluster cell energies in the projections");
     b->AllowStayDown(kTRUE);
     paletteLegendButtons.push_back(b);
 
     b = new TGTextButton(hf, "Camera");
-    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
+    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsExpandY, 2, 10, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "printCamera()");
     b->SetToolTipText("Print the camera of the view, as a --camera option for the screenshots");
 
