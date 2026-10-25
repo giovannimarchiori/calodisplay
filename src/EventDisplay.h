@@ -474,6 +474,9 @@ private:
   // in the projections: the content of the ECAL barrel (full detector), with
   // optionally transparent active layers
   void showECalBarrelContent(TEveElement *ecalBarrel, bool transparentActiveLayers);
+  // in the projected ECAL endcap, show the cryostat and, in the LAr bath, the
+  // support tubes and the active volumes (without their content)
+  void showECalEndcapContent(TEveElement *ecalEndcap);
   // in the projections: the layers of an envelope of the muon tagger
   void showMuonLayers(TEveElement *envelope);
 

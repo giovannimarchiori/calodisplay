@@ -49,13 +49,16 @@
 #endif
 #include <TEveGeoNode.h>
 #include <TEveGeoShapeExtract.h>
+#include <TEvePolygonSetProjected.h>
 
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <filesystem>
 #include <map>
+#include <set>
 #include <tuple>
 #include <unordered_map>
 #include <iostream>
@@ -2782,6 +2785,10 @@ void EventDisplay::projectGeometryRhoZ()
 
   // turn on the active elements in rho-Z so we can see the cell edges
   showECalBathCells(element, false);
+  // show the content of the LAr bath of the ECAL endcap
+  for (TEveElement::List_i itr = element->BeginChildren(); itr != element->EndChildren(); itr++)
+    if (TString((*itr)->GetElementName()).BeginsWith("ECal endcap"))
+      showECalEndcapContent(*itr);
 
   if (!showFullDetector)
     return;
@@ -2923,6 +2930,51 @@ void EventDisplay::showECalBathCells(TEveElement *projectedGeometry, bool hideCr
     projpcbs->SetRnrSelfChildren(false, false);
 }
 
+void EventDisplay::showECalEndcapContent(TEveElement *ecalEndcap)
+{
+  // tree: one envelope per side -> cryostat walls and LAr bath -> active and
+  // passive volumes between the blades of the turbine, support tubes of the
+  // wheels and mechanical supports
+  TPRegexp rebath("LAr_bath(\\w+)");
+  // the active volumes of a wheel, between the blades, all have the same
+  // projection on each side of the beam axis: draw only one active volume for
+  // each projection, identified by its bounding box (rounded to 1 mm); the
+  // others are not drawn, and are pruned from the geometry cache.
+  // The layers inside the active volumes (calibration layers) are not drawn:
+  // the readout cells are defined by the segmentation in rho and z (see
+  // drawRhoZReadout)
+  std::set<std::array<long, 4>> projections;
+  for (TEveElement::List_i itr = ecalEndcap->BeginChildren(); itr != ecalEndcap->EndChildren(); itr++)
+  {
+    TEveElement *envelope = *itr;
+    TEveElement *bath = envelope->FindChild(rebath);
+    if (!bath)
+      continue;
+    // do not draw the envelope and the bath, which would cover their content
+    envelope->SetRnrSelfChildren(false, true);
+    bath->SetRnrSelfChildren(false, true);
+    for (TEveElement::List_i itr2 = bath->BeginChildren(); itr2 != bath->EndChildren(); itr2++)
+    {
+      TEveElement *el = *itr2;
+      TString name(el->GetElementName());
+      if (name.BeginsWith("active_"))
+      {
+        bool newProjection = true;
+        if (TEvePolygonSetProjected *projected = dynamic_cast<TEvePolygonSetProjected *>(el))
+        {
+          projected->ComputeBBox();
+          if (const Float_t *bbox = projected->GetBBox())
+            newProjection = projections.insert({std::lround(bbox[0] * 10), std::lround(bbox[1] * 10),
+                                                std::lround(bbox[2] * 10), std::lround(bbox[3] * 10)}).second;
+        }
+        el->SetRnrSelfChildren(newProjection, false);
+      }
+      else
+        el->SetRnrSelfChildren(name.BeginsWith("supportTube_"), false);
+    }
+  }
+}
+
 void EventDisplay::showECalBarrelContent(TEveElement *ecalBarrel, bool transparentActiveLayers)
 {
   TPRegexp re("ECalBarrel_vol_(\\w+)");
@@ -3032,6 +3084,43 @@ void EventDisplay::drawRhoZReadout()
   }
   rhoZScene->AddElement(grid2);
   readout->AddElement(grid2);
+
+  // the ECAL endcap readout: bins in rho and z in each wheel, on both sides
+  // and above and below the beam axis
+  if (doEndcaps)
+  {
+    TEveStraightLineSet *ecalEndcapGrid = new TEveStraightLineSet("ECAL endcap rho-z readout");
+    ecalEndcapGrid->SetLineColor(kViolet);
+    for (int wheel = 0; wheel < geomReader->nWheelsECalEndCap; wheel++)
+    {
+      const int nRho = geomReader->nRhoBinsECalEndCap[wheel];
+      const int nZ = geomReader->nZBinsECalEndCap[wheel];
+      const double gridRho = geomReader->gridSizeRhoECalEndCap[wheel];
+      const double gridZ = geomReader->gridSizeZECalEndCap[wheel];
+      const double rhoMin = geomReader->offsetRhoECalEndCap[wheel];
+      const double rhoMax = rhoMin + nRho * gridRho;
+      const double zMin = geomReader->offsetZECalEndCap[wheel];
+      const double zMax = zMin + nZ * gridZ;
+      for (double side : {-1., 1.})
+      {
+        for (double sign : {-1., 1.})
+        {
+          for (int i = 0; i <= nRho; i++)
+          {
+            const double rho = sign * (rhoMin + i * gridRho);
+            ecalEndcapGrid->AddLine(side * zMin, rho, 0., side * zMax, rho, 0.);
+          }
+          for (int i = 0; i <= nZ; i++)
+          {
+            const double z = side * (zMin + i * gridZ);
+            ecalEndcapGrid->AddLine(z, sign * rhoMin, 0., z, sign * rhoMax, 0.);
+          }
+        }
+      }
+    }
+    rhoZScene->AddElement(ecalEndcapGrid);
+    readout->AddElement(ecalEndcapGrid);
+  }
 
   // draw the HCAL readout segmentation in eta or theta (rho-z view)
   if (doHCal)
