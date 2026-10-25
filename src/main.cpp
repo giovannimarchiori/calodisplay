@@ -13,7 +13,9 @@
 #include "PathUtils.h"
 
 #include <filesystem>
+#include <sstream>
 #include <string>
+#include <vector>
 #include <TRint.h>
 
 using namespace std;
@@ -24,7 +26,9 @@ std::string usage(bool verbose = false)
 {
   EventDisplay aDisplay;
   std::string use = "Usage:\n";
-  use += "calodisplay [--nog4] [--fulldet] [--dohcal] [--doendcap] [--nocache] [--debug] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-c|--config <configFile.json>] [--set <key>=<value>] [-s|--skipEvents <nevents>]\n\n";
+  use += "calodisplay [--nog4] [--fulldet] [--dohcal] [--doendcap] [--nocache] [--debug] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-c|--config <configFile.json>] [--set <key>=<value>] [-s|--skipEvents <nevents>]\n";
+  use += "            [--screenshots <prefix> [--nevents <n>] [--views <views>] [--width <pixels>]\n";
+  use += "             [--focus <cluster|track|all>[:<scale>]] [--camera <view>=<values>]]\n\n";
   use += "--nog4      : use simplified geometry rather than G4 geometry in file <geomFile.root>\n";
   use += "--fulldet   : show the full detector (including tracker, muon detector, interaction region),\n";
   use += "              with HCAL and endcaps\n";
@@ -34,7 +38,19 @@ std::string usage(bool verbose = false)
   use += "              from the geometry cache (slower, but all the volumes can be turned on in the browser)\n";
   use += "--debug     : display extended information on the console during execution\n";
   use += "--set <key>=<value> : set a parameter of the configuration (overriding the configuration file),\n";
-  use += "              e.g. --set drawCaloClusters=true (can be repeated)\n\n";
+  use += "              e.g. --set drawCaloClusters=true (can be repeated)\n";
+  use += "--screenshots <prefix> : save the views of the events to <prefix>_ev<event>_<view>.png and exit\n";
+  use += "              (still needs an X display, e.g. a VNC session)\n";
+  use += "--nevents <n>   : number of events for the screenshots, starting from the first one (-s) (default 1)\n";
+  use += "--views <views> : comma-separated views for the screenshots: 3d, rhophi, rhoz (default all)\n";
+  use += "--width <pixels>: width of the screenshots (default 1920)\n";
+  use += "--focus <cluster|track|all>[:<scale>] : frame the most energetic cluster or charged particle in the\n";
+  use += "              projections of the screenshots, with its box scaled by <scale> filling the image (default\n";
+  use += "              2 for clusters, 1.2 for tracks), or the full detector (default); the 3D view is not changed\n";
+  use += "--camera <view>=<values> : set the camera of a view in the screenshots (overriding --focus):\n";
+  use += "              rhophi=<x>,<y>,<zoom>  rhoz=<z>,<rho>,<zoom>\n";
+  use += "              3d=<fov>,<center x,y,z>,<eye x,y,z>,<up x,y,z>\n";
+  use += "              (the Camera button of the display prints them for the current view; can be repeated)\n\n";
 
   if (verbose)
   {
@@ -58,6 +74,11 @@ int main(int argc, char *argv[])
 
   EventDisplay display;
   int skipEvents = 0;
+  // screenshots mode
+  std::string screenshotPrefix;
+  int screenshotEvents = 1;
+  std::vector<std::string> screenshotViews = {"3d", "rhophi", "rhoz"};
+  int screenshotWidth = 1920;
 
   // to find the files distributed with calodisplay (icons, field map, ..)
   PathUtils::setInstallDir(argv[0]);
@@ -151,6 +172,51 @@ int main(int argc, char *argv[])
         if (displayConfig.configMap.count(key) == 0)
           std::cout << "WARNING: --set: " << key << " is not in the configuration, adding it" << std::endl;
         displayConfig.setStringConfig(key, setting.substr(eq + 1));
+        continue;
+      }
+
+      else if (arg == "--screenshots" || arg == "--nevents" || arg == "--views" || arg == "--width" ||
+               arg == "--focus" || arg == "--camera")
+      {
+        if (i == args.size() - 1)
+          throw std::runtime_error("missing value after " + std::string(arg) + " option!");
+        i++;
+        const std::string value(args[i]);
+        if (arg == "--screenshots")
+          screenshotPrefix = value;
+        else if (arg == "--nevents")
+          screenshotEvents = std::stoi(value);
+        else if (arg == "--width")
+          screenshotWidth = std::stoi(value);
+        else if (arg == "--focus")
+        {
+          const size_t colon = value.find(':');
+          display.cameraFocus = value.substr(0, colon);
+          if (colon != std::string::npos)
+            display.cameraFocusScale = std::stod(value.substr(colon + 1));
+          if (display.cameraFocus != "cluster" && display.cameraFocus != "track" && display.cameraFocus != "all")
+            throw std::runtime_error("unknown focus " + display.cameraFocus + " (cluster, track or all)");
+        }
+        else if (arg == "--camera")
+        {
+          const size_t eq = value.find('=');
+          if (eq == std::string::npos)
+            throw std::runtime_error("--camera needs <view>=<values>");
+          std::vector<double> values;
+          std::stringstream ss(value.substr(eq + 1));
+          std::string number;
+          while (std::getline(ss, number, ','))
+            values.push_back(std::stod(number));
+          display.cameraSettings[value.substr(0, eq)] = values;
+        }
+        else
+        {
+          screenshotViews.clear();
+          std::stringstream ss(value);
+          std::string view;
+          while (std::getline(ss, view, ','))
+            screenshotViews.push_back(view);
+        }
         continue;
       }
 
@@ -271,6 +337,15 @@ int main(int argc, char *argv[])
   // start the application
   argc = 0;
   argv = nullptr;
+  if (screenshotPrefix != "")
+  {
+    // (not a TRint, which would quit at the end of the standard input, e.g.
+    // when run from a script)
+    TApplication *app = new TApplication("display", &argc, argv);
+    display.startDisplay(skipEvents);
+    display.saveScreenshots(screenshotPrefix, skipEvents, screenshotEvents, screenshotViews, screenshotWidth);
+    app->Terminate(0);
+  }
   TRint *app = new TRint("display", &argc, argv);
   display.startDisplay(skipEvents);
   app->Run();

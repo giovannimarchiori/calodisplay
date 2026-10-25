@@ -50,6 +50,9 @@
 #include <TEveGeoNode.h>
 #include <TEveGeoShapeExtract.h>
 #include <TEvePolygonSetProjected.h>
+#include <TEveTrack.h>
+#include <TGLOrthoCamera.h>
+#include <TGLPerspectiveCamera.h>
 
 
 #include <algorithm>
@@ -57,6 +60,7 @@
 #include <cctype>
 #include <cmath>
 #include <filesystem>
+#include <limits>
 #include <map>
 #include <set>
 #include <tuple>
@@ -3489,6 +3493,11 @@ void EventDisplay::makeGui()
     b->Connect("Clicked()", "EventDisplay", this, "togglePaletteLegends()");
     b->SetToolTipText("Hide/Show the legend of the cluster cell energies in the projections");
 
+    b = new TGTextButton(hf, "Camera");
+    hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
+    b->Connect("Clicked()", "EventDisplay", this, "printCamera()");
+    b->SetToolTipText("Print the camera of the view, as a --camera option for the screenshots");
+
     frm->AddFrame(hf);
     frm->Layout();
     frm->MapSubwindows();
@@ -3753,6 +3762,241 @@ std::vector<ElectronSegment> EventDisplay::getElectronBremsstrahlungSegments(
 std::string EventDisplay::geometryCacheTag() const
 {
   return Form("fulldet%d_hcal%d_endcap%d", showFullDetector, doHCal, doEndcaps);
+}
+
+void EventDisplay::saveScreenshots(const std::string &prefix, int firstEvent, int nEventsToSave,
+                                   const std::vector<std::string> &views, int width)
+{
+  // the tab and the GL viewer of each view
+  const std::map<std::string, std::pair<int, TGLViewer *>> viewers = {
+      {"3d", {0, mainGLView}}, {"rhophi", {1, rhoPhiGLView}}, {"rhoz", {2, rhoZGLView}}};
+  // (without event file, only the geometry)
+  const int lastEvent = eventReader ? std::min(firstEvent + nEventsToSave, nEvents) : firstEvent + 1;
+  for (int event = firstEvent; event < lastEvent; event++)
+  {
+    if (eventReader && event != eventId)
+      drawEvent(event);
+    for (const std::string &view : views)
+    {
+      auto it = viewers.find(view);
+      if (it == viewers.end())
+      {
+        std::cout << "WARNING: unknown view " << view << " (3d, rhophi or rhoz), no screenshot" << std::endl;
+        continue;
+      }
+      // show the view (which projects the geometry the first time), let it be
+      // drawn and frame it
+      browser->GetTabRight()->SetTab(it->second.first);
+      gSystem->ProcessEvents();
+      setCamera(view);
+      const std::string file = Form("%s_ev%d_%s.png", prefix.c_str(), event, view.c_str());
+      if (it->second.second->SavePictureWidth(file.c_str(), width))
+      {
+        std::cout << "Screenshot saved to " << file << ", with camera ";
+        printCamera();
+      }
+      else
+        std::cout << "WARNING: cannot save the screenshot " << file << std::endl;
+    }
+  }
+}
+
+bool EventDisplay::getFocusBox(const std::string &view, double boxMin[3], double boxMax[3])
+{
+  // the 3D points of the object to frame
+  std::vector<std::array<double, 3>> points;
+  if (cameraFocus == "cluster")
+  {
+    // the cells of the most energetic cluster (or its position, if they are
+    // not available)
+    const ClusterSet *bestSet = nullptr;
+    int best = -1;
+    for (const ClusterSet &set : clusterSets)
+      for (unsigned int i = 0; i < set.clusters->size(); i++)
+        if (best < 0 || (*set.clusters->energy)[i] > (*bestSet->clusters->energy)[best])
+        {
+          bestSet = &set;
+          best = i;
+        }
+    if (best < 0)
+      return false;
+    const EventReader::Clusters &clusters = *bestSet->clusters;
+    const EventReader::ClusterCells &cells = clusters.cells;
+    for (unsigned int i = (*clusters.hits_begin)[best]; i < (*clusters.hits_end)[best] && i < cells.size(); i++)
+      if (cells.cellID[i] != 0)
+        points.push_back({cells.x[i] * mm, cells.y[i] * mm, cells.z[i] * mm});
+    if (points.empty())
+    {
+      const double size = 25. * cm;
+      const double x = (*clusters.x)[best] * mm, y = (*clusters.y)[best] * mm, z = (*clusters.z)[best] * mm;
+      points.push_back({x - size, y - size, z - size});
+      points.push_back({x + size, y + size, z + size});
+    }
+  }
+  else if (cameraFocus == "track")
+  {
+    // the trajectory of the most energetic charged particle, from its vertex
+    // (the electrons are drawn as segments between the bremsstrahlung photons:
+    // all the tracks of the same type with at least half of its momentum)
+    std::vector<TEveTrack *> charged;
+    TEveTrack *best = nullptr;
+    if (particles)
+      for (TEveElement::List_i it = particles->BeginChildren(); it != particles->EndChildren(); ++it)
+      {
+        TEveTrack *track = dynamic_cast<TEveTrack *>(*it);
+        if (!track || track->GetCharge() == 0)
+          continue;
+        charged.push_back(track);
+        if (!best || track->GetMomentum().Mag() > best->GetMomentum().Mag())
+          best = track;
+      }
+    if (!best)
+      return false;
+    for (TEveTrack *track : charged)
+    {
+      if (track->GetPdg() != best->GetPdg() || track->GetMomentum().Mag() < 0.5 * best->GetMomentum().Mag())
+        continue;
+      const TEveVectorD &vertex = track->GetVertex();
+      points.push_back({vertex.fX, vertex.fY, vertex.fZ});
+      for (int i = 0; i < track->Size(); i++)
+      {
+        float x, y, z;
+        track->GetPoint(i, x, y, z);
+        points.push_back({x, y, z});
+      }
+    }
+  }
+  else
+    return false;
+
+  // the box in the coordinates of the view
+  for (int j = 0; j < 3; j++)
+  {
+    boxMin[j] = std::numeric_limits<double>::max();
+    boxMax[j] = -std::numeric_limits<double>::max();
+  }
+  for (const auto &p : points)
+  {
+    double q[3] = {p[0], p[1], p[2]};
+    if (view == "rhophi")
+      q[2] = 0.;
+    else if (view == "rhoz")
+    {
+      q[0] = p[2];
+      q[1] = MathUtils::sign(p[1]) * std::sqrt(p[0] * p[0] + p[1] * p[1]);
+      q[2] = 0.;
+    }
+    for (int j = 0; j < 3; j++)
+    {
+      boxMin[j] = std::min(boxMin[j], q[j]);
+      boxMax[j] = std::max(boxMax[j], q[j]);
+    }
+  }
+  return true;
+}
+
+void EventDisplay::setOrthoCamera(TGLViewer *viewer, double x, double y, double zoom)
+{
+  TGLOrthoCamera &camera = dynamic_cast<TGLOrthoCamera &>(viewer->CurrentCamera());
+  camera.Reset();
+  camera.SetZoom(zoom);
+  // move the centre of the view (in the plane of the camera) from the default one
+  const TGLVector3 center = (camera.RefCamBase() * camera.RefCamTrans()).GetTranslation();
+  camera.Truck(x - center.X(), y - center.Y());
+  camera.IncTimeStamp();
+}
+
+void EventDisplay::setPerspectiveCamera(TGLViewer *viewer, const double center[3], const double eye[3],
+                                        const double up[3], double fov)
+{
+  TGLPerspectiveCamera &camera = dynamic_cast<TGLPerspectiveCamera &>(viewer->CurrentCamera());
+  camera.SetFOV(fov);
+  camera.SetExternalCenter(kTRUE);
+  camera.SetCenterVec(center[0], center[1], center[2]);
+  // the camera frame: axis 1 from the centre to the eye, axis 3 vertical,
+  // at the position of the eye
+  TGLVector3 axis1(eye[0] - center[0], eye[1] - center[1], eye[2] - center[2]);
+  axis1.Normalise();
+  TGLVector3 axis3(up[0], up[1], up[2]);
+  axis3 = axis3 - Dot(axis3, axis1) * axis1;
+  axis3.Normalise();
+  TGLMatrix frame;
+  frame.SetBaseVec(1, axis1);
+  frame.SetBaseVec(2, Cross(axis3, axis1));
+  frame.SetBaseVec(3, axis3);
+  frame.SetBaseVec(4, eye[0], eye[1], eye[2]);
+  TGLMatrix baseInverse = camera.RefCamBase();
+  baseInverse.Invert();
+  camera.RefCamTrans() = baseInverse * frame;
+  camera.IncTimeStamp();
+}
+
+void EventDisplay::setCamera(const std::string &view)
+{
+  TGLViewer *viewer = view == "3d" ? mainGLView : view == "rhophi" ? rhoPhiGLView : rhoZGLView;
+
+  // set explicitly
+  auto it = cameraSettings.find(view);
+  if (it != cameraSettings.end())
+  {
+    const std::vector<double> &v = it->second;
+    if (view == "3d" && v.size() == 10)
+      setPerspectiveCamera(viewer, &v[1], &v[4], &v[7], v[0]);
+    else if (view != "3d" && v.size() == 3)
+      setOrthoCamera(viewer, v[0], v[1], v[2]);
+    else
+      std::cout << "WARNING: wrong number of values in --camera " << view << " (10 for 3d, 3 for the projections)" << std::endl;
+    return;
+  }
+
+  // automatic, only for the projections (the 3D view shows the full
+  // detector): the box of the object to frame, scaled, fills the image
+  double boxMin[3], boxMax[3];
+  if (view == "3d" || !getFocusBox(view, boxMin, boxMax))
+    return;
+  const double scale = cameraFocusScale > 0. ? cameraFocusScale : (cameraFocus == "cluster" ? 2. : 1.2);
+  double center[2], size[2];
+  for (int j = 0; j < 2; j++)
+  {
+    center[j] = 0.5 * (boxMin[j] + boxMax[j]);
+    // (at least 10 cm, e.g. for a cluster with a single cell)
+    size[j] = std::max(scale * (boxMax[j] - boxMin[j]), 10. * cm);
+  }
+  // the zoom at which the box fits, from the region shown by the viewport at
+  // the current zoom
+  TGLOrthoCamera &camera = dynamic_cast<TGLOrthoCamera &>(viewer->CurrentCamera());
+  const TGLRect &viewport = camera.RefViewport();
+  const TGLVector3 shown = camera.ViewportDeltaToWorld(TGLVertex3(0., 0., 0.), viewport.Width(), viewport.Height());
+  const double zoom = camera.GetZoom() * std::min(std::fabs(shown.X()) / size[0], std::fabs(shown.Y()) / size[1]);
+  setOrthoCamera(viewer, center[0], center[1], zoom);
+}
+
+void EventDisplay::printCamera()
+{
+  if (activeGLViewer == mainGLView)
+  {
+    TGLPerspectiveCamera &camera = dynamic_cast<TGLPerspectiveCamera &>(mainGLView->CurrentCamera());
+    const TGLMatrix frame = camera.RefCamBase() * camera.RefCamTrans();
+    const TGLVector3 eye = frame.GetTranslation();
+    const TGLVector3 axis1 = frame.GetBaseVec(1);
+    const TGLVector3 axis3 = frame.GetBaseVec(3);
+    // the centre on the axis of the camera, at the distance of the rotation centre
+    const Double_t *c = camera.GetCenterVec();
+    const double distance = std::sqrt((eye.X() - c[0]) * (eye.X() - c[0]) + (eye.Y() - c[1]) * (eye.Y() - c[1]) +
+                                      (eye.Z() - c[2]) * (eye.Z() - c[2]));
+    std::cout << Form("--camera 3d=%.6g,%.6g,%.6g,%.6g,%.6g,%.6g,%.6g,%.6g,%.6g,%.6g", camera.GetFOV(),
+                      eye.X() - distance * axis1.X(), eye.Y() - distance * axis1.Y(), eye.Z() - distance * axis1.Z(),
+                      eye.X(), eye.Y(), eye.Z(), axis3.X(), axis3.Y(), axis3.Z())
+              << std::endl;
+  }
+  else
+  {
+    TGLOrthoCamera &camera = dynamic_cast<TGLOrthoCamera &>(activeGLViewer->CurrentCamera());
+    const TGLVector3 center = (camera.RefCamBase() * camera.RefCamTrans()).GetTranslation();
+    std::cout << Form("--camera %s=%.6g,%.6g,%.6g", activeGLViewer == rhoPhiGLView ? "rhophi" : "rhoz",
+                      center.X(), center.Y(), camera.GetZoom())
+              << std::endl;
+  }
 }
 
 void EventDisplay::attachClusterProjections()

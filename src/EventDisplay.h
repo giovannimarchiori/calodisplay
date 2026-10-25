@@ -337,6 +337,24 @@ public:
   // draw the event
   void drawEvent(int event);
 
+  // save the views (3d, rhophi, rhoz) of the events [firstEvent, firstEvent+nEvents)
+  // to <prefix>_ev<event>_<view>.png, with the given width in pixels
+  void saveScreenshots(const std::string &prefix, int firstEvent, int nEvents,
+                       const std::vector<std::string> &views, int width);
+
+  // framing of the views in the screenshots: automatic for the projections,
+  // on the most energetic cluster ("cluster") or charged particle ("track"),
+  // with the framed box scaled by cameraFocusScale (0 for the default of the
+  // focus) filling the image, or for some views set explicitly
+  // (cameraSettings, see --camera)
+  std::string cameraFocus = "all";
+  double cameraFocusScale = 0.;
+  std::map<std::string, std::vector<double>> cameraSettings;
+  // set the camera of a view (3d, rhophi, rhoz) for the current event
+  void setCamera(const std::string &view);
+  // print the camera of the selected view, as a --camera option
+  void printCamera();
+
   // move to next event
   void fwd();
 
@@ -358,6 +376,16 @@ public:
 
   // show/hide the legends of the cluster cell energies
   void togglePaletteLegends();
+
+  // the bounding box of the object to frame (see cameraFocus) in the
+  // coordinates of a view; returns false if there is none
+  bool getFocusBox(const std::string &view, double boxMin[3], double boxMax[3]);
+  // set an orthographic (2D) camera to show the region centred on (x, y) with
+  // the given zoom, or a perspective (3D) camera at eye, looking at center,
+  // with the given vertical direction and field of view
+  void setOrthoCamera(TGLViewer *viewer, double x, double y, double zoom);
+  void setPerspectiveCamera(TGLViewer *viewer, const double center[3], const double eye[3],
+                            const double up[3], double fov);
 
   // create the buttons for navigating through the events
   void makeGui();
