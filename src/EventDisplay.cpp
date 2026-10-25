@@ -2006,6 +2006,7 @@ void EventDisplay::readConfiguration()
   ParticleEnergyThreshold = displayConfig.getFloatConfig("energyThresholdParticles");
   HitEnergyThreshold = displayConfig.getFloatConfig("energyThresholdHits");
   CellEnergyThreshold = displayConfig.getFloatConfig("energyThresholdCells");
+  showReadout = displayConfig.getBoolConfig("showReadout");
 
   // calculate the geometry parameters
   // detectorVersion: 2 = ECAL barrel with 12 layers (ALLEGRO o1_v02)
@@ -3224,7 +3225,9 @@ void EventDisplay::openEventFile()
 void EventDisplay::addPaletteLegends()
 {
   // vertical legend of the cluster cell energies in the projections, on the
-  // right, inside the axis labels (palette values in MeV, shown in GeV)
+  // right, inside the axis labels (palette values in MeV, shown in GeV),
+  // shown at startup if set in the configuration
+  showPaletteLegends = displayConfig.getBoolConfig("showCellEnergyLegend");
   const std::vector<std::pair<TGLViewer *, TEveRGBAPalette *>> legends = {
       {rhoPhiGLView, cellPaletteRhoPhi}, {rhoZGLView, cellPaletteRhoZ}};
   for (const auto &[viewer, palette] : legends)
@@ -3239,6 +3242,9 @@ void EventDisplay::addPaletteLegends()
     paletteLegends.push_back(legend);
     paletteLegends.push_back(title);
   }
+  for (TGLOverlayElement *el : paletteLegends)
+    el->SetBinaryState(showPaletteLegends);
+  updateToggleButtons();
 }
 
 void EventDisplay::setInitialCamera()
@@ -3398,6 +3404,7 @@ void EventDisplay::toggleReadout()
     TEveElement *el = *itr;
     el->SetRnrSelf(showReadout);
   }
+  updateToggleButtons();
   gEve->FullRedraw3D(false);
 }
 
@@ -3406,6 +3413,7 @@ void EventDisplay::togglePaletteLegends()
   showPaletteLegends = !showPaletteLegends;
   for (TGLOverlayElement *el : paletteLegends)
     el->SetBinaryState(showPaletteLegends);
+  updateToggleButtons();
   for (TGLViewer *viewer : {rhoPhiGLView, rhoZGLView})
     if (viewer)
       viewer->RequestDraw();
@@ -3487,11 +3495,15 @@ void EventDisplay::makeGui()
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "toggleReadout()");
     b->SetToolTipText("Hide/Show readouts");
+    b->AllowStayDown(kTRUE);
+    readoutButtons.push_back(b);
 
     b = makeButton("palette_icon.png", "Legend");
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
     b->Connect("Clicked()", "EventDisplay", this, "togglePaletteLegends()");
     b->SetToolTipText("Hide/Show the legend of the cluster cell energies in the projections");
+    b->AllowStayDown(kTRUE);
+    paletteLegendButtons.push_back(b);
 
     b = new TGTextButton(hf, "Camera");
     hf->AddFrame(b, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 2, 10, 10, 10));
@@ -3503,8 +3515,25 @@ void EventDisplay::makeGui()
     frm->MapSubwindows();
   }
 
+  updateToggleButtons();
+
   // hide command tab
   gEve->GetBrowser()->HideBottomTab();
+}
+
+void EventDisplay::updateToggleButtons()
+{
+  // in all the tabs, also the ones of the buttons not clicked: a pressed
+  // stay-down button is engaged (not just down, or its next click would not
+  // be signalled); the buttons already in the right state are not changed, as
+  // the clicked one, which is still handling its click
+  auto setPressed = [](const std::vector<TGButton *> &buttons, bool pressed) {
+    for (TGButton *b : buttons)
+      if (b->IsDown() != pressed)
+        b->SetState(pressed ? kButtonEngaged : kButtonUp);
+  };
+  setPressed(readoutButtons, showReadout);
+  setPressed(paletteLegendButtons, showPaletteLegends);
 }
 
 void EventDisplay::onTabSelected(Int_t tab)

@@ -284,6 +284,11 @@ public:
   // numbers in the navigation bar (one per tab)
   std::vector<TGNumberEntry *> eventEntries;
   std::vector<TGLabel *> eventRangeLabels;
+  // the buttons to show/hide the readouts and the legends of the cell
+  // energies (one per tab), shown pressed when these are shown
+  std::vector<TGButton *> readoutButtons;
+  std::vector<TGButton *> paletteLegendButtons;
+  void updateToggleButtons();
 
   std::unique_ptr<DetectorGeometry> geomReader;
   // the file must be declared before the reader, so that the reader is destroyed first

@@ -25,6 +25,12 @@ DisplayConfig::DisplayConfig() {
   setBoolConfig("drawHCalBarrelCells", true);
   setBoolConfig("drawTopoClusters", true);
   setBoolConfig("drawCaloClusters", false);
+  // show the legend of the cluster cell energies in the projections at startup
+  // (it can then be shown/hidden with its button)
+  setBoolConfig("showCellEnergyLegend", true);
+  // show the readout grids at startup (they can then be shown/hidden with
+  // their button)
+  setBoolConfig("showReadout", true);
 
   // GlobalSolenoid for an ideal solenoid with the default field, GlobalSolenoid_<B>T
   // for a field of <B> tesla, otherwise the path of the field map (an empty string
