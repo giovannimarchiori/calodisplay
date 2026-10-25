@@ -505,10 +505,12 @@ private:
   // the rho-phi and rho-z views: the projection of the geometry and the readout
   void createRhoPhiView();
   // project the geometry and the readout in the views (once, when they are
-  // first shown), showing the progress in the status bar
+  // first shown), showing the progress in the status bar; the projected event
+  // (eventScene) is added to the view after the geometry
   void buildRhoPhiProjection();
   void buildRhoZProjection();
-  void buildProjection(const char *view, TEveScene *scene, const std::function<void()> &build);
+  void buildProjection(const char *view, TEveViewer *viewer, TEveScene *scene, TEveScene *eventScene,
+                       const std::function<void()> &build);
   void projectGeometryRhoPhi();
   void drawRhoPhiReadout();
   void createRhoZView();

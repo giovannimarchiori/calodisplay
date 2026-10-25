@@ -2553,9 +2553,9 @@ void EventDisplay::createRhoPhiView()
   rhoPhiView->AddScene(rhoPhiScene);
   if (evtFile != "")
   {
+    // (added to the view when the geometry is projected, see buildProjection)
     rhoPhiEventScene = gEve->SpawnNewScene("Rho-Phi Event Data",
                                            "Scene holding projected event-data for the Rho-Phi view.");
-    rhoPhiView->AddScene(rhoPhiEventScene);
   }
 
   rhoPhiGLView = rhoPhiView->GetGLViewer();
@@ -2577,7 +2577,7 @@ void EventDisplay::buildRhoPhiProjection()
   if (rhoPhiProjectionBuilt)
     return;
   rhoPhiProjectionBuilt = true;
-  buildProjection("Rho-Phi", rhoPhiScene, [this]() {
+  buildProjection("Rho-Phi", rhoPhiView, rhoPhiScene, rhoPhiEventScene, [this]() {
     projectGeometryRhoPhi();
     drawRhoPhiReadout();
   });
@@ -2588,13 +2588,14 @@ void EventDisplay::buildRhoZProjection()
   if (rhoZProjectionBuilt)
     return;
   rhoZProjectionBuilt = true;
-  buildProjection("Rho-Z", rhoZScene, [this]() {
+  buildProjection("Rho-Z", rhoZView, rhoZScene, rhoZEventScene, [this]() {
     projectGeometryRhoZ();
     drawRhoZReadout();
   });
 }
 
-void EventDisplay::buildProjection(const char *view, TEveScene *scene, const std::function<void()> &build)
+void EventDisplay::buildProjection(const char *view, TEveViewer *viewer, TEveScene *scene, TEveScene *eventScene,
+                                   const std::function<void()> &build)
 {
   std::cout << "Projecting the geometry in the " << view << " view (slow, only first event)" << std::endl;
   if (browser)
@@ -2615,6 +2616,9 @@ void EventDisplay::buildProjection(const char *view, TEveScene *scene, const std
   // rebuild the GL representation of the scene (redrawing the viewer is not
   // enough), as done for all the scenes by FullRedraw3D at startup
   scene->Repaint(kTRUE);
+  // show the projected event only now, not without the geometry
+  if (eventScene)
+    viewer->AddScene(eventScene);
   if (browser)
     browser->SetStatusText(evtFile != "" ? Form("Event %d loaded", eventId) : "", 0);
 }
@@ -2744,9 +2748,9 @@ void EventDisplay::createRhoZView()
   rhoZView->AddScene(rhoZScene);
   if (evtFile != "")
   {
+    // (added to the view when the geometry is projected, see buildProjection)
     rhoZEventScene = gEve->SpawnNewScene("Rho-Z Event Data",
                                          "Scene holding projected event-data for the Rho-Z view.");
-    rhoZView->AddScene(rhoZEventScene);
   }
   rhoZGLView = rhoZView->GetGLViewer();
   // set camera orientation
