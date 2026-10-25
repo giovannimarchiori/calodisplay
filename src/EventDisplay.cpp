@@ -2596,7 +2596,7 @@ void EventDisplay::buildRhoZProjection()
 
 void EventDisplay::buildProjection(const char *view, TEveScene *scene, const std::function<void()> &build)
 {
-  std::cout << "Projecting the geometry in the " << view << " view" << std::endl;
+  std::cout << "Projecting the geometry in the " << view << " view (slow, only first event)" << std::endl;
   if (browser)
   {
     browser->SetStatusText(Form("Projecting the geometry in the %s view ...", view), 0);
