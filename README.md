@@ -15,7 +15,7 @@ Setup ROOT and the environment with:
 source setup.sh
 ```
 (if ROOT is already set up, i.e. `ROOTSYS` is set, it is used as is; otherwise, on lxplus and fcc-ironic ROOT is set up from the nightly key4hep stack).
-`setup.sh` also checks whether calodisplay is compiled, up to date with the sources, and built with a ROOT version compatible with the one set up, and tells you whether to run `make -j8` or `make clean` followed by `make -j8`.
+`setup.sh` also checks whether calodisplay is compiled, up to date with the sources, and built with a ROOT version compatible with the one set up and with the same compiler (e.g. not the system GCC for a build made with the one of key4hep, which an incremental build would mix, and the library could then fail to link), and tells you whether to run `make -j8` or `make clean` followed by `make -j8`.
 
 Compile:
 ```

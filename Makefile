@@ -119,6 +119,7 @@ $(SHARED_LIBRARY_PATH): $(LIB_OBJECTS) $(DICT_OBJ)
 	cp $(OBJ_DIR)/$(DICT_PCM_FILENAME) $(BIN_DIR)/$(DICT_PCM_FILENAME)
 	@echo "ROOT_VERSION=$$(root-config --version)" > $(BUILD_INFO)
 	@echo "ROOT_PREFIX=$$(root-config --prefix)" >> $(BUILD_INFO)
+	@echo "CXX=$$($(CXX) --version | head -1)" >> $(BUILD_INFO)
 
 # Target for linking the production executable (main only, rest from the library)
 $(EXECUTABLE): $(MAIN_OBJECT) $(SHARED_LIBRARY_PATH)
