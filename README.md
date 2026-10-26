@@ -8,7 +8,11 @@ I became aware only later of existing event display tools. It is likely that tho
 Works with ALLEGRO models o1_v03 and o2_v01 as of July 2026.
 
 ## Installation
-Make a local clone of the gitlab repository.
+Make a local clone of the gitlab repository:
+```
+git clone git@github.com:giovannimarchiori/calodisplay.git
+cd calodisplay
+```
 
 Setup ROOT and the environment with:
 ```
