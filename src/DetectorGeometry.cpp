@@ -397,6 +397,57 @@ ULong_t DetectorGeometry::ECalEndCapZBin(ULong_t cellID) {
   return ReadField(fECalEndCapZ, cellID);
 }
 
+bool DetectorGeometry::HCalEndCapCellBounds(ULong_t cellID, double &rhoMin, double &rhoMax, double &zMin, double &zMax,
+                                            double &phiMin, double &phiMax) const {
+  // the section and the radial range of the layer
+  const int layer = (int)HCalEndCapLayer(cellID);
+  int first = 0, section = -1;
+  for (size_t s = 0; s < numLayersHCalEndCap.size() && section < 0; s++) {
+    double r = rMinHCalEndCapSections[s];
+    for (size_t i = 0; i < dRLayersHCalEndCap.size() && section < 0; i++) {
+      for (int k = 0; k < numLayersHCalEndCap[s][i]; k++, first++) {
+        if (first == layer) {
+          section = s;
+          rhoMin = r;
+          rhoMax = r + dRLayersHCalEndCap[i];
+          break;
+        }
+        r += dRLayersHCalEndCap[i];
+      }
+    }
+  }
+  if (section < 0)
+    return false;
+
+  // the range in z of the theta bin: half way to the neighbouring bins in the
+  // layer (at its centre), or the limit of the section (on the side of the cell)
+  const double radius = 0.5 * (rhoMin + rhoMax);
+  const int thetaBin = (int)HCalEndCapThetaBin(cellID);
+  auto binToZ = [&](int bin) { return radius / std::tan(thetaOffsetHCalEndCap + bin * thetaGridHCalEndCap); };
+  const double z = binToZ(thetaBin);
+  const double sign = z > 0 ? 1. : -1.;
+  const double low = sign * zMinHCalEndCapSections[section], high = sign * zMaxHCalEndCapSections[section];
+  if (std::fabs(z) < zMinHCalEndCapSections[section] || std::fabs(z) > zMaxHCalEndCapSections[section])
+    return false;
+  auto edge = [&](int neighbour) {
+    const double zn = binToZ(neighbour);
+    if (std::fabs(zn) <= zMinHCalEndCapSections[section])
+      return low;
+    if (std::fabs(zn) >= zMaxHCalEndCapSections[section])
+      return high;
+    return 0.5 * (z + zn);
+  };
+  const double edge1 = edge(thetaBin - 1), edge2 = edge(thetaBin + 1);
+  zMin = std::min(edge1, edge2);
+  zMax = std::max(edge1, edge2);
+
+  // the phi bin, centred at -pi + (bin + 1/2) * 2pi/nbins
+  const double gridPhi = TMath::TwoPi() / nPhiBinsHCalEndCap;
+  phiMin = -TMath::Pi() + HCalEndCapPhiBin(cellID) * gridPhi;
+  phiMax = phiMin + gridPhi;
+  return true;
+}
+
 bool DetectorGeometry::ECalEndCapCellRhoZ(ULong_t cellID, double &rho, double &z, double &dRho, double &dZ) const {
   ULong_t wheel = ECalEndCapWheel(cellID);
   if (wheel >= (ULong_t)nWheelsECalEndCap)

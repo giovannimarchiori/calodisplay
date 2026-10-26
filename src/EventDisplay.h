@@ -183,6 +183,12 @@ public:
   MyPointSet *cells_merged = nullptr;
   TEveElementList *digis = nullptr;
 
+  // depth of the event in the projections, in front of the geometry (both are
+  // otherwise at the same depth, and the filled volumes can cover the tracks,
+  // hits and cluster cells, e.g. the drift chamber in the screenshots of the
+  // rho-z view): of the projected event and of the cluster cells drawn by hand
+  static constexpr float projectedEventDepth = 10.;
+
   // Clusters (a folder for each set of clusters, see ClusterSet)
   TEveElementList *clustersFolder = nullptr;
 

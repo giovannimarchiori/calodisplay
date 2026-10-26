@@ -128,8 +128,23 @@ public:
 
   // HCAL endcap
 
-  // TODO fix
-  const int nLayersHCalEndCap = 50;
+  // readout segmentation (FCCSWHCalPhiTheta_k4geo, from
+  // HCalEndcaps_ThreeParts_TileCal_v03.xml): three sections in z, each with
+  // layers in rho, numbered consecutively over the sections (in each section,
+  // numLayersHCalEndCap[section][i] layers of thickness dRLayersHCalEndCap[i],
+  // starting from rMinHCalEndCapSections), and bins in theta and phi. In each
+  // layer, the cell of a theta bin extends in z around r/tan(theta) up to half
+  // way to the neighbouring bins, within the section
+  const int nLayersHCalEndCap = 37;
+  const std::vector<double> zMinHCalEndCapSections = {2900.*Units::mm, 3400.*Units::mm, 3900.*Units::mm};
+  const std::vector<double> zMaxHCalEndCapSections = {3400.*Units::mm, 3900.*Units::mm, 5450.*Units::mm};
+  // (inner radius of the section + face plate thickness + plate space)
+  const std::vector<double> rMinHCalEndCapSections = {3610.5*Units::mm, 2910.5*Units::mm, 360.5*Units::mm};
+  const std::vector<std::vector<int>> numLayersHCalEndCap = {{5, 1, 0}, {4, 3, 2}, {4, 10, 8}};
+  const std::vector<double> dRLayersHCalEndCap = {100.*Units::mm, 150.*Units::mm, 250.*Units::mm};
+  const double thetaGridHCalEndCap = 0.022180;
+  const double thetaOffsetHCalEndCap = 0.007106;
+  const int nPhiBinsHCalEndCap = 256;
 
   // muon tagger: radial layers in the barrel, layers in z in the endcaps
   // (MuonTaggerBarrelLayers and MuonTaggerEndcapLayers in MuonTaggerPhiTheta.xml)
@@ -192,6 +207,12 @@ public:
   // the centre in rho and z (signed) and the size of an ECAL endcap cell in the
   // readout segmentation; returns false if its wheel or bins are out of range
   bool ECalEndCapCellRhoZ(ULong_t cellID, double &rho, double &z, double &dRho, double &dZ) const;
+
+  // the boundaries in rho, z (signed) and phi of an HCAL endcap cell in the
+  // readout segmentation; returns false if its layer or theta bin are out of
+  // range
+  bool HCalEndCapCellBounds(ULong_t cellID, double &rhoMin, double &rhoMax, double &zMin, double &zMax,
+                            double &phiMin, double &phiMax) const;
 
   /******************************************************************************/
   // HELPER FUNCTIONS related to the readout

@@ -1462,10 +1462,11 @@ void EventDisplay::drawClusters(ClusterSet &set)
     // ECAL: layer-theta for rho-z, layer-module for rho-phi
     // HCAL: layer-theta for rho-z, layer-phi for rho-phi
     // ECAL endcap: z bin (the layer) and rho bin for rho-z, not drawn in rho-phi and 3D
+    // HCAL endcap: layer-theta for rho-z, not drawn in rho-phi
     float r_in(0.), r_out(0.);
     int layer(0), thetaID(0), moduleID(0), phiID(0);
     ProjectedCellKey rhophiID{}, rhozID{};
-    bool onlyRhoZ = false;
+    bool inRhoPhi = true, in3D = true;
 
     if (systemID == DetectorGeometry::kECalBarrel)
     {
@@ -1491,11 +1492,19 @@ void EventDisplay::drawClusters(ClusterSet &set)
     {
       layer = (int)DetectorGeometry::ECalEndCapZBin(cellID);
       rhozID = {systemID, icl, layer, ecalEndcapRhoZBin(cellID, y_center)};
-      onlyRhoZ = true;
+      inRhoPhi = in3D = false;
     }
-    else if (systemID == DetectorGeometry::kHCalEndcap || systemID == DetectorGeometry::kMuonBarrel || systemID == DetectorGeometry::kMuonEndcap)
+    else if (systemID == DetectorGeometry::kHCalEndcap)
     {
-      // cells of HCAL endcap, MUON barrel and endcap are not drawn
+      layer = (int)DetectorGeometry::HCalEndCapLayer(cellID);
+      thetaID = (int)DetectorGeometry::HCalEndCapThetaBin(cellID);
+      // (the theta bin distinguishes the two sides, not above and below the beam axis)
+      rhozID = {systemID, icl, layer, thetaID * 2 + (y_center > 0)};
+      inRhoPhi = false;
+    }
+    else if (systemID == DetectorGeometry::kMuonBarrel || systemID == DetectorGeometry::kMuonEndcap)
+    {
+      // cells of MUON barrel and endcap are not drawn
       continue;
     }
     else
@@ -1526,7 +1535,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
         cellEnergies_rhoz[rhozID] = energy;
       }
       // if cell ID (in rho-phi) already inserted in map, sum energy of this cell
-      if (onlyRhoZ)
+      if (!inRhoPhi)
       {
         // not drawn in rho-phi
       }
@@ -1545,7 +1554,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
     }
 
     // cluster cells in 3D
-    if (bs[icl] != nullptr && !onlyRhoZ)
+    if (bs[icl] != nullptr && in3D)
     {
       float verts3D[24];
       if (systemID == DetectorGeometry::kECalBarrel)
@@ -1639,6 +1648,27 @@ void EventDisplay::drawClusters(ClusterSet &set)
         bs[icl]->DigitValue((int)(1000 * energy));
         // bs->BoxId(new TNamed(Form("Cell %lu", cellID), "Dong!"));
       }
+      else if (systemID == DetectorGeometry::kHCalEndcap)
+      {
+        // a sector of ring between two radii and two z planes, as the HCAL
+        // barrel cells with the z of thetaMin and thetaMax
+        double rhoMin, rhoMax, zLow, zHigh, phiLow, phiHigh;
+        if (geomReader->HCalEndCapCellBounds(cellID, rhoMin, rhoMax, zLow, zHigh, phiLow, phiHigh))
+        {
+          const double rs[2] = {rhoMin, rhoMax};
+          for (int j = 0; j < 2; j++)
+          {
+            const double r = rs[j];
+            float *v = verts3D + 12 * j;
+            v[0] = r * cos(phiLow);  v[1] = r * sin(phiLow);  v[2] = zHigh;
+            v[3] = r * cos(phiHigh); v[4] = r * sin(phiHigh); v[5] = zHigh;
+            v[6] = r * cos(phiHigh); v[7] = r * sin(phiHigh); v[8] = zLow;
+            v[9] = r * cos(phiLow);  v[10] = r * sin(phiLow); v[11] = zLow;
+          }
+          bs[icl]->AddBox(verts3D);
+          bs[icl]->DigitValue((int)(1000 * energy));
+        }
+      }
     }
   }
 
@@ -1687,6 +1717,12 @@ void EventDisplay::drawClusters(ClusterSet &set)
       layer = (int)DetectorGeometry::ECalEndCapZBin(cellID);
       rhozID = {system, icl, layer, ecalEndcapRhoZBin(cellID, cells.y[i])};
     }
+    else if (system == DetectorGeometry::kHCalEndcap)
+    {
+      layer = (int)DetectorGeometry::HCalEndCapLayer(cellID);
+      thetaID = (int)DetectorGeometry::HCalEndCapThetaBin(cellID);
+      rhozID = {system, icl, layer, thetaID * 2 + (cells.y[i] > 0)};
+    }
     else
     {
       // cells of other systems are not drawn
@@ -1731,12 +1767,36 @@ void EventDisplay::drawClusters(ClusterSet &set)
       verts[7] = (rho + dRho / 2.) * sign;
       verts[9] = z - dZ / 2.;
       verts[10] = (rho + dRho / 2.) * sign;
-      verts[2] = verts[5] = verts[8] = verts[11] = 0.;
+      verts[2] = verts[5] = verts[8] = verts[11] = projectedEventDepth;
       qs_rhoz[icl]->AddQuad(verts);
       qs_rhoz[icl]->QuadValue((int)(1000 * energy));
       qs_rhoz[icl]->QuadId(new TNamed(Form("%s %d cell W%lu Rho%lu Z%d", clusterType.c_str(), icl,
                                            DetectorGeometry::ECalEndCapWheel(cellID),
                                            DetectorGeometry::ECalEndCapRhoBin(cellID), layer), "Dong!"));
+      continue;
+    }
+    if (system == DetectorGeometry::kHCalEndcap)
+    {
+      // the cell is a rectangle in rho-z, from the segmentation
+      double rhoMin, rhoMax, zLow, zHigh, phiLow, phiHigh;
+      if (!geomReader->HCalEndCapCellBounds(cellID, rhoMin, rhoMax, zLow, zHigh, phiLow, phiHigh))
+      {
+        std::cout << "WARNING: HCAL endcap cell " << cellID << " outside of the segmentation, skipping cell" << std::endl;
+        continue;
+      }
+      float sign = MathUtils::sign(y_center);
+      verts[0] = zLow;
+      verts[1] = rhoMin * sign;
+      verts[3] = zHigh;
+      verts[4] = rhoMin * sign;
+      verts[6] = zHigh;
+      verts[7] = rhoMax * sign;
+      verts[9] = zLow;
+      verts[10] = rhoMax * sign;
+      verts[2] = verts[5] = verts[8] = verts[11] = projectedEventDepth;
+      qs_rhoz[icl]->AddQuad(verts);
+      qs_rhoz[icl]->QuadValue((int)(1000 * energy));
+      qs_rhoz[icl]->QuadId(new TNamed(Form("%s %d cell L%d Th%d", clusterType.c_str(), icl, layer, thetaID), "Dong!"));
       continue;
     }
     float theta_center = atan2(r_center, z_center);
@@ -1761,7 +1821,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
     verts[7] = r_out * MathUtils::sign(y_center);
     verts[9] = r_out / tan(thetaMin);
     verts[10] = r_out * MathUtils::sign(y_center);
-    verts[2] = verts[5] = verts[8] = verts[11] = 0.;
+    verts[2] = verts[5] = verts[8] = verts[11] = projectedEventDepth;
     qs_rhoz[icl]->AddQuad(verts);
     qs_rhoz[icl]->QuadValue((int)(1000 * energy));
     qs_rhoz[icl]->QuadId(new TNamed(Form("%s %d cell L%d Th%d", clusterType.c_str(), icl, layer, thetaID), "Dong!"));
@@ -1796,7 +1856,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
         verts[7] = rMin * sin(phi0 + gridPhi) + (Lout - deltaL) * sin(phi0 + gridPhi + alpha);
         verts[9] = rMin * cos(phi0 + gridPhi) + (Lin - deltaL) * cos(phi0 + gridPhi + alpha);
         verts[10] = rMin * sin(phi0 + gridPhi) + (Lin - deltaL) * sin(phi0 + gridPhi + alpha);
-        verts[2] = verts[5] = verts[8] = verts[11] = 0.;
+        verts[2] = verts[5] = verts[8] = verts[11] = projectedEventDepth;
         qs_rhophi[icl]->AddQuad(verts);
         qs_rhophi[icl]->QuadValue((int)(1000 * energy));
         // qs_rhophi[icl]->QuadId( new TNamed(Form("%s cell %lu", clusterType.c_str(), cellID), "Dong!"));
@@ -1820,7 +1880,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
       verts[7] = r_out * sin(phiHigh);
       verts[9] = r_out * cos(phiLow);
       verts[10] = r_out * sin(phiLow);
-      verts[2] = verts[5] = verts[8] = verts[11] = 0.;
+      verts[2] = verts[5] = verts[8] = verts[11] = projectedEventDepth;
       qs_rhophi[icl]->AddQuad(verts);
       qs_rhophi[icl]->QuadValue((int)(1000 * energy));
       qs_rhophi[icl]->QuadId(new TNamed(Form("%s %d cell L%d P%d", clusterType.c_str(), icl, layer, phiID), "Dong!"));
@@ -1917,12 +1977,9 @@ void EventDisplay::drawEvent(int event)
   // if nothing is drawn, top is null
   if (top)
   {
-    // the event is projected in front of the geometry (both are otherwise at
-    // the same depth, and the filled volumes can cover the tracks and hits,
-    // e.g. the drift chamber in the screenshots of the rho-z view)
-    const float eventDepth = 10.;
+    // the event is projected in front of the geometry (see projectedEventDepth)
     for (TEveProjectionManager *manager : {rhoPhiProjManager, rhoZProjManager})
-      manager->SetCurrentDepth(eventDepth);
+      manager->SetCurrentDepth(projectedEventDepth);
 
     rhoPhiEventScene->DestroyElements();
     rhoPhiProjManager->ImportElements(top, rhoPhiEventScene);

@@ -96,6 +96,31 @@ check_build() {
         echo "         In case of problems, in ${CALODISPLAY_DIR} run 'make clean' and then 'make -j8'"
     fi
 
+    # compiler used for the build (written by the Makefile) and the one that
+    # make would use now: an incremental build with a different compiler mixes
+    # them, and the library can then fail to link (e.g. the GCC of the system
+    # and the one of key4hep)
+    local buildCxx="" cxx=$($(root-config --cxx) --version 2>/dev/null | head -1)
+    [[ -f ${dist}/build-info.txt ]] && buildCxx=$(sed -n 's/^CXX=//p' "${dist}/build-info.txt")
+    if [[ -n $buildCxx && $buildCxx != "$cxx" ]]; then
+        echo "WARNING: calodisplay was built with the compiler"
+        echo "           ${buildCxx}"
+        echo "         but the one set up now is"
+        echo "           ${cxx}"
+        echo "         to recompile it with this one, in ${CALODISPLAY_DIR} run 'make clean' and then 'make -j8'"
+    fi
+    # objects already compiled with different compilers (GCC)
+    if command -v strings >/dev/null 2>&1; then
+        local compilers=$(for o in "${CALODISPLAY_DIR}"/build/*.o; do
+                              [[ -f $o ]] && strings -a "$o" | grep -m1 '^GCC:'
+                          done | sort -u)
+        if (( $(grep -c . <<< "$compilers") > 1 )); then
+            echo "WARNING: the objects of calodisplay were compiled with different compilers:"
+            sed 's/^/           /' <<< "$compilers"
+            echo "         in ${CALODISPLAY_DIR} run 'make clean' and then 'make -j8'"
+        fi
+    fi
+
     # sources modified after the build
     local older=$exe
     [[ $lib -ot $exe ]] && older=$lib
