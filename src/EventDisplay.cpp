@@ -1917,11 +1917,21 @@ void EventDisplay::drawEvent(int event)
   // if nothing is drawn, top is null
   if (top)
   {
+    // the event is projected in front of the geometry (both are otherwise at
+    // the same depth, and the filled volumes can cover the tracks and hits,
+    // e.g. the drift chamber in the screenshots of the rho-z view)
+    const float eventDepth = 10.;
+    for (TEveProjectionManager *manager : {rhoPhiProjManager, rhoZProjManager})
+      manager->SetCurrentDepth(eventDepth);
+
     rhoPhiEventScene->DestroyElements();
     rhoPhiProjManager->ImportElements(top, rhoPhiEventScene);
 
     rhoZEventScene->DestroyElements();
     rhoZProjManager->ImportElements(top, rhoZEventScene);
+
+    for (TEveProjectionManager *manager : {rhoPhiProjManager, rhoZProjManager})
+      manager->SetCurrentDepth(0.);
 
     attachClusterProjections();
   }
