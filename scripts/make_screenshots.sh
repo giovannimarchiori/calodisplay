@@ -24,9 +24,9 @@
 SAMPLES=(
   "electron_endcap | -p e- --pmin 20 --pmax 20 --thmin 15 --thmax 30 | --fulldet --focus track"
   "photon_barrel   | -p gamma --pmin 20 --pmax 20 --thmin 70 --thmax 110 | --fulldet --focus cluster"
-  "piminus_endcap  | -p pi- --pmin 20 --pmax 20 --thmin 15 --thmax 30 --hcal --tracks | --fulldet --focus track"
+  "piminus_endcap  | -p pi- --pmin 20 --pmax 20 --thmin 15 --thmax 30 --hcal | --fulldet --focus track"
   "kaon0L_barrel   | -p kaon0L --pmin 20 --pmax 20 --thmin 70 --thmax 110 --hcal | --fulldet --focus cluster"
-  "muminus_barrel  | -p mu- --pmin 20 --pmax 20 --thmin 70 --thmax 110 --hcal --muon --tracks | --fulldet --focus track"
+  "muminus_barrel  | -p mu- --pmin 20 --pmax 20 --thmin 70 --thmax 110 --hcal --muon | --fulldet --focus track"
 )
 
 STEP=all
@@ -58,6 +58,8 @@ trim() { local s="$1"; s="${s#"${s%%[![:space:]]*}"}"; echo "${s%"${s##*[![:spac
 # produce the events of a sample with run.py, and record the output file
 generate() {
   local name=$1 runopts=$2
+  # extra options
+  runopts="${runopts} --savehits --savecells --conformaltracks"
   echo "=== $name: producing $NEVENTS events with run.py $runopts"
   local stamp
   stamp=$(mktemp)

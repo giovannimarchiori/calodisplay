@@ -12,6 +12,8 @@
     "drawSiWrapperDigis": "true",
     "drawCaloClusters": "true",
     "drawClusterDirection": "true",
+    "showCellEnergyLegend": "false",
+    "showReadout": "true",
     "drawECalBarrelCells": "true",
     "drawECalBarrelHits": "true",
     "drawECalBarrelMergedCells": "false",
@@ -58,5 +60,5 @@
     "siWrapperBarrelDigis": "SiWrBDigis",
     "siWrapperEndcapDigis": "SiWrDDigis",
     "drawTracks": "true",
-    "tracks": "FittedTracks"
+    "tracks": "ConformalSiTracks"
 }
