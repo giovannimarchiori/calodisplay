@@ -22,9 +22,9 @@
 # view by view, with --camera <view>=<values>, printed by the Camera button of
 # the display and, for each screenshot, in <outdir>/<name>.log)
 SAMPLES=(
-  "electron_endcap | -p e- --pmin 20 --pmax 20 --thmin 15 --thmax 30 | --fulldet --focus cluster"
+  "electron_endcap | -p e- --pmin 20 --pmax 20 --thmin 15 --thmax 30 | --fulldet --focus track"
   "photon_barrel   | -p gamma --pmin 20 --pmax 20 --thmin 70 --thmax 110 | --fulldet --focus cluster"
-  "piminus_endcap  | -p pi- --pmin 20 --pmax 20 --thmin 15 --thmax 30 --hcal --tracks | --fulldet --focus cluster"
+  "piminus_endcap  | -p pi- --pmin 20 --pmax 20 --thmin 15 --thmax 30 --hcal --tracks | --fulldet --focus track"
   "kaon0L_barrel   | -p kaon0L --pmin 20 --pmax 20 --thmin 70 --thmax 110 --hcal | --fulldet --focus cluster"
   "muminus_barrel  | -p mu- --pmin 20 --pmax 20 --thmin 70 --thmax 110 --hcal --muon --tracks | --fulldet --focus track"
 )

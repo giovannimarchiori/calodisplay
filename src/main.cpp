@@ -28,29 +28,28 @@ std::string usage(bool verbose = false)
   std::string use = "Usage:\n";
   use += "calodisplay [--nog4] [--fulldet] [--dohcal] [--doendcap] [--nocache] [--debug] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-c|--config <configFile.json>] [--set <key>=<value>] [-s|--skipEvents <nevents>]\n";
   use += "            [--screenshots <prefix> [--nevents <n>] [--views <views>] [--width <pixels>]\n";
-  use += "             [--focus <cluster|track|all>[:<scale>]] [--camera <view>=<values>]]\n\n";
-  use += "--nog4      : use simplified geometry rather than G4 geometry in file <geomFile.root>\n";
-  use += "--fulldet   : show the full detector (including tracker, muon detector, interaction region),\n";
-  use += "              with HCAL and endcaps\n";
-  use += "--dohcal    : show the HCAL volumes and readout\n";
-  use += "--doendcap  : show the ECAL and (with --dohcal) HCAL endcaps\n";
-  use += "--nocache   : read the full G4 geometry, not the one without the volumes that are never drawn\n";
-  use += "              from the geometry cache (slower, but all the volumes can be turned on in the browser)\n";
-  use += "--debug     : display extended information on the console during execution\n";
+  use += "            [--focus <cluster|track|all>[:<scale>]] [--camera <view>=<values>]]\n\n";
+  use += "--nog4              : use simplified geometry rather than G4 geometry in file <geomFile.root>\n";
+  use += "--fulldet           : show the full detector (otherwise only the ECAL is shown)\n";
+  use += "--dohcal            : show the HCAL volumes and readout (not necessary if --fulldet is set)\n";
+  use += "--doendcap          : show the ECAL and (with --dohcal) HCAL endcaps (not necessary if --fulldet is set)\n";
+  use += "--nocache           : read the full G4 geometry, not the one without the volumes that are never drawn\n";
+  use += "                      from the geometry cache (slower, but all the volumes can be turned on in the browser)\n";
+  use += "--debug             : display extended information on the console during execution\n";
   use += "--set <key>=<value> : set a parameter of the configuration (overriding the configuration file),\n";
-  use += "              e.g. --set drawCaloClusters=true (can be repeated)\n";
+  use += "                      e.g. --set drawCaloClusters=true (can be repeated)\n";
   use += "--screenshots <prefix> : save the views of the events to <prefix>_ev<event>_<view>.png and exit\n";
-  use += "              (still needs an X display, e.g. a VNC session)\n";
-  use += "--nevents <n>   : number of events for the screenshots, starting from the first one (-s) (default 1)\n";
-  use += "--views <views> : comma-separated views for the screenshots: 3d, rhophi, rhoz (default all)\n";
-  use += "--width <pixels>: width of the screenshots (default 1920)\n";
+  use += "                      (still needs an X display, e.g. a VNC session)\n";
+  use += "--nevents <n>       : number of events for the screenshots, starting from the first one (-s) (default 1)\n";
+  use += "--views <views>     : comma-separated views for the screenshots: 3d, rhophi, rhoz (default all)\n";
+  use += "--width <pixels>    : width of the screenshots (default 1920)\n";
   use += "--focus <cluster|track|all>[:<scale>] : frame the most energetic cluster or charged particle in the\n";
-  use += "              projections of the screenshots, with its box scaled by <scale> filling the image (default\n";
-  use += "              2 for clusters, 1.2 for tracks), or the full detector (default); the 3D view is not changed\n";
+  use += "                      projections of the screenshots, with its box scaled by <scale> filling the image (default\n";
+  use += "                      2 for clusters, 1.2 for tracks), or the full detector (default); the 3D view is not changed\n";
   use += "--camera <view>=<values> : set the camera of a view in the screenshots (overriding --focus):\n";
-  use += "              rhophi=<x>,<y>,<zoom>  rhoz=<z>,<rho>,<zoom>\n";
-  use += "              3d=<fov>,<center x,y,z>,<eye x,y,z>,<up x,y,z>\n";
-  use += "              (the Camera button of the display prints them for the current view; can be repeated)\n\n";
+  use += "                      rhophi=<x>,<y>,<zoom>  rhoz=<z>,<rho>,<zoom>\n";
+  use += "                      3d=<fov>,<center x,y,z>,<eye x,y,z>,<up x,y,z>\n";
+  use += "                      (the Camera button of the display prints them for the current view; can be repeated)\n\n";
 
   if (verbose)
   {
@@ -74,6 +73,7 @@ int main(int argc, char *argv[])
 
   EventDisplay display;
   int skipEvents = 0;
+
   // screenshots mode
   std::string screenshotPrefix;
   int screenshotEvents = 1;
@@ -83,6 +83,7 @@ int main(int argc, char *argv[])
   // to find the files distributed with calodisplay (icons, field map, ..)
   PathUtils::setInstallDir(argv[0]);
 
+  // parse the command line
   const std::vector<std::string_view> args(argv + 1, argv + argc);
 
   // check if -h option, in that case print usage and exit
