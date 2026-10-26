@@ -21,7 +21,8 @@ const std::unordered_map<int, std::wstring> names =
   {11, L"e\u207b"},         // e-
   {-11, L"e\u207a"},        // e+
   {13, L"\u03bc\u207b"},   // mu-
-  {-13, L"\u03bc\u207a"}   // mu+
+  {-13, L"\u03bc\u207a"},  // mu+
+  {130, L"K\u2070L"}        // K0L (no subscript L in the font of the labels)
 };
 }
 
