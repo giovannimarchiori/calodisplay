@@ -78,6 +78,7 @@ The navigation bar at the bottom contains:
 - the event number box: type an event number and press Enter to go to that event, or use the up/down arrows to go to the next/previous event. The range of the available events is shown next to the box. An error pop-up is shown for events out of range.
 - a button to hide/show the calorimeter readout grid
 - a button to hide/show the legend of the cell energies
+- a button to show the current camera location and zoom level
 
 ### Configuration
 The configuration is read from a JSON file (see `config.json`), containing a map of key-value strings. Keys not specified in the file keep their default values (see `src/DisplayConfig.cpp`). The main keys are:
