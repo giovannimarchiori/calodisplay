@@ -289,6 +289,13 @@ public:
   std::vector<TGButton *> readoutButtons;
   std::vector<TGButton *> paletteLegendButtons;
   void updateToggleButtons();
+  // the bars with the buttons, at the bottom of the tabs
+  std::vector<TGCompositeFrame *> buttonBars;
+  // when the main window is closed: delete the bars of the buttons before
+  // TEve closes the tabs, which destroys the windows of the bars, but not the
+  // bars (their pending redraws, e.g. of the labels in the hidden tabs, would
+  // then fail and crash), and quit the application once TEve is terminated
+  void onCloseWindow();
 
   std::unique_ptr<DetectorGeometry> geomReader;
   // the file must be declared before the reader, so that the reader is destroyed first
@@ -348,7 +355,8 @@ public:
                        const std::vector<std::string> &views, int width);
 
   // framing of the views in the screenshots: automatic for the projections,
-  // on the most energetic cluster ("cluster") or charged particle ("track"),
+  // on the most energetic cluster ("cluster"), charged particle ("track") or
+  // both ("track+cluster"),
   // with the framed box scaled by cameraFocusScale (0 for the default of the
   // focus) filling the image, or for some views set explicitly
   // (cameraSettings, see --camera)

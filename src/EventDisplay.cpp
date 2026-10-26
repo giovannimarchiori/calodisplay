@@ -20,6 +20,8 @@
 #include <TString.h>
 #include <TStyle.h>
 #include <TSystem.h>
+#include <TTimer.h>
+#include <TApplication.h>
 #include <TTimeStamp.h>
 
 // TG
@@ -2104,6 +2106,8 @@ void EventDisplay::createMainWindow()
   gEve->GetDefaultViewer()->SetElementName("3D view");
   mainGLView->CurrentCamera().RotateRad(-.8, 0.5);
   browser->GetTabRight()->Connect("Selected(Int_t)", "EventDisplay", this, "onTabSelected(Int_t)");
+  // (emitted when the window is closed, before TEve is terminated)
+  browser->Connect("CloseWindow()", "EventDisplay", this, "onCloseWindow()");
 }
 
 bool EventDisplay::buildGeometry()
@@ -3227,8 +3231,8 @@ void EventDisplay::addPaletteLegends()
 {
   // vertical legend of the cluster cell energies in the projections, on the
   // right, inside the axis labels (palette values in MeV, shown in GeV),
-  // shown at startup if set in the configuration
-  showPaletteLegends = displayConfig.getBoolConfig("showCellEnergyLegend");
+  // shown at startup if set in the configuration (not without events)
+  showPaletteLegends = displayConfig.getBoolConfig("showCellEnergyLegend") && evtFile != "";
   const std::vector<std::pair<TGLViewer *, TEveRGBAPalette *>> legends = {
       {rhoPhiGLView, cellPaletteRhoPhi}, {rhoZGLView, cellPaletteRhoZ}};
   for (const auto &[viewer, palette] : legends)
@@ -3468,6 +3472,9 @@ void EventDisplay::makeGui()
     // (the buttons and the event number entry are expanded to the height of
     // the bar, i.e. of the tallest of them, the buttons with the icons)
     TGHorizontalFrame* hf = new TGHorizontalFrame(frm);
+    // (its buttons, labels and layouts are deleted with it)
+    hf->SetCleanup(kDeepCleanup);
+    buttonBars.push_back(hf);
     // picture button with the icon from the installation directory, or a text
     // button if the icon is not found
     auto makeButton = [hf](const char* icon, const char* label) -> TGButton* {
@@ -3514,6 +3521,9 @@ void EventDisplay::makeGui()
     b->Connect("Clicked()", "EventDisplay", this, "togglePaletteLegends()");
     b->SetToolTipText("Hide/Show the legend of the cluster cell energies in the projections");
     b->AllowStayDown(kTRUE);
+    // (no legend without events)
+    if (evtFile == "")
+      b->SetState(kButtonDisabled);
     paletteLegendButtons.push_back(b);
 
     b = new TGTextButton(hf, "Camera");
@@ -3532,15 +3542,34 @@ void EventDisplay::makeGui()
   gEve->GetBrowser()->HideBottomTab();
 }
 
+void EventDisplay::onCloseWindow()
+{
+  for (TGCompositeFrame *bar : buttonBars)
+  {
+    static_cast<TGCompositeFrame *>(const_cast<TGWindow *>(bar->GetParent()))->RemoveFrame(bar);
+    bar->DestroyWindow();
+    delete bar;
+  }
+  buttonBars.clear();
+  eventEntries.clear();
+  eventRangeLabels.clear();
+  readoutButtons.clear();
+  paletteLegendButtons.clear();
+  // (after TEveManager::Terminate, called next, back in the event loop;
+  // ending the line of the ROOT prompt, for the one of the shell)
+  std::cout << std::endl;
+  TTimer::SingleShot(0, "TApplication", gApplication, "Terminate(=0)");
+}
+
 void EventDisplay::updateToggleButtons()
 {
   // in all the tabs, also the ones of the buttons not clicked: a pressed
   // stay-down button is engaged (not just down, or its next click would not
   // be signalled); the buttons already in the right state are not changed, as
-  // the clicked one, which is still handling its click
+  // the clicked one, which is still handling its click, and the disabled ones
   auto setPressed = [](const std::vector<TGButton *> &buttons, bool pressed) {
     for (TGButton *b : buttons)
-      if (b->IsDown() != pressed)
+      if (b->GetState() != kButtonDisabled && b->IsDown() != pressed)
         b->SetState(pressed ? kButtonEngaged : kButtonUp);
   };
   setPressed(readoutButtons, showReadout);
@@ -3843,9 +3872,9 @@ void EventDisplay::saveScreenshots(const std::string &prefix, int firstEvent, in
 
 bool EventDisplay::getFocusBox(const std::string &view, double boxMin[3], double boxMax[3])
 {
-  // the 3D points of the object to frame
+  // the 3D points of the objects to frame
   std::vector<std::array<double, 3>> points;
-  if (cameraFocus == "cluster")
+  if (cameraFocus == "cluster" || cameraFocus == "track+cluster")
   {
     // the cells of the most energetic cluster (or its position, if they are
     // not available)
@@ -3858,22 +3887,27 @@ bool EventDisplay::getFocusBox(const std::string &view, double boxMin[3], double
           bestSet = &set;
           best = i;
         }
-    if (best < 0)
-      return false;
-    const EventReader::Clusters &clusters = *bestSet->clusters;
-    const EventReader::ClusterCells &cells = clusters.cells;
-    for (unsigned int i = (*clusters.hits_begin)[best]; i < (*clusters.hits_end)[best] && i < cells.size(); i++)
-      if (cells.cellID[i] != 0)
-        points.push_back({cells.x[i] * mm, cells.y[i] * mm, cells.z[i] * mm});
-    if (points.empty())
+    if (best >= 0)
     {
-      const double size = 25. * cm;
-      const double x = (*clusters.x)[best] * mm, y = (*clusters.y)[best] * mm, z = (*clusters.z)[best] * mm;
-      points.push_back({x - size, y - size, z - size});
-      points.push_back({x + size, y + size, z + size});
+      const EventReader::Clusters &clusters = *bestSet->clusters;
+      const EventReader::ClusterCells &cells = clusters.cells;
+      bool cellFound = false;
+      for (unsigned int i = (*clusters.hits_begin)[best]; i < (*clusters.hits_end)[best] && i < cells.size(); i++)
+        if (cells.cellID[i] != 0)
+        {
+          points.push_back({cells.x[i] * mm, cells.y[i] * mm, cells.z[i] * mm});
+          cellFound = true;
+        }
+      if (!cellFound)
+      {
+        const double size = 25. * cm;
+        const double x = (*clusters.x)[best] * mm, y = (*clusters.y)[best] * mm, z = (*clusters.z)[best] * mm;
+        points.push_back({x - size, y - size, z - size});
+        points.push_back({x + size, y + size, z + size});
+      }
     }
   }
-  else if (cameraFocus == "track")
+  if (cameraFocus == "track" || cameraFocus == "track+cluster")
   {
     // the trajectory of the most energetic charged particle, from its vertex
     // (the electrons are drawn as segments between the bremsstrahlung photons:
@@ -3890,8 +3924,6 @@ bool EventDisplay::getFocusBox(const std::string &view, double boxMin[3], double
         if (!best || track->GetMomentum().Mag() > best->GetMomentum().Mag())
           best = track;
       }
-    if (!best)
-      return false;
     for (TEveTrack *track : charged)
     {
       if (track->GetPdg() != best->GetPdg() || track->GetMomentum().Mag() < 0.5 * best->GetMomentum().Mag())
@@ -3906,7 +3938,7 @@ bool EventDisplay::getFocusBox(const std::string &view, double boxMin[3], double
       }
     }
   }
-  else
+  if (points.empty())
     return false;
 
   // the box in the coordinates of the view

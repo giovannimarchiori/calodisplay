@@ -28,7 +28,7 @@ std::string usage(bool verbose = false)
   std::string use = "Usage:\n";
   use += "calodisplay [--nog4] [--fulldet] [--dohcal] [--doendcap] [--nocache] [--debug] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-c|--config <configFile.json>] [--set <key>=<value>] [-s|--skipEvents <nevents>]\n";
   use += "            [--screenshots <prefix> [--nevents <n>] [--views <views>] [--width <pixels>]\n";
-  use += "            [--focus <cluster|track|all>[:<scale>]] [--camera <view>=<values>]]\n\n";
+  use += "            [--focus <cluster|track|track+cluster|all>[:<scale>]] [--camera <view>=<values>]]\n\n";
   use += "--nog4              : use simplified geometry rather than G4 geometry in file <geomFile.root>\n";
   use += "--fulldet           : show the full detector (otherwise only the ECAL is shown)\n";
   use += "--dohcal            : show the HCAL volumes and readout (not necessary if --fulldet is set)\n";
@@ -43,9 +43,10 @@ std::string usage(bool verbose = false)
   use += "--nevents <n>       : number of events for the screenshots, starting from the first one (-s) (default 1)\n";
   use += "--views <views>     : comma-separated views for the screenshots: 3d, rhophi, rhoz (default all)\n";
   use += "--width <pixels>    : width of the screenshots (default 1920)\n";
-  use += "--focus <cluster|track|all>[:<scale>] : frame the most energetic cluster or charged particle in the\n";
-  use += "                      projections of the screenshots, with its box scaled by <scale> filling the image (default\n";
-  use += "                      2 for clusters, 1.2 for tracks), or the full detector (default); the 3D view is not changed\n";
+  use += "--focus <cluster|track|track+cluster|all>[:<scale>] : frame the most energetic cluster, charged particle,\n";
+  use += "                      or both, in the projections of the screenshots, with their box scaled by <scale> filling\n";
+  use += "                      the image (default 2 for clusters, 1.2 otherwise), or the full detector (default); the 3D\n";
+  use += "                      view is not changed\n";
   use += "--camera <view>=<values> : set the camera of a view in the screenshots (overriding --focus):\n";
   use += "                      rhophi=<x>,<y>,<zoom>  rhoz=<z>,<rho>,<zoom>\n";
   use += "                      3d=<fov>,<center x,y,z>,<eye x,y,z>,<up x,y,z>\n";
@@ -195,8 +196,9 @@ int main(int argc, char *argv[])
           display.cameraFocus = value.substr(0, colon);
           if (colon != std::string::npos)
             display.cameraFocusScale = std::stod(value.substr(colon + 1));
-          if (display.cameraFocus != "cluster" && display.cameraFocus != "track" && display.cameraFocus != "all")
-            throw std::runtime_error("unknown focus " + display.cameraFocus + " (cluster, track or all)");
+          if (display.cameraFocus != "cluster" && display.cameraFocus != "track" &&
+              display.cameraFocus != "track+cluster" && display.cameraFocus != "all")
+            throw std::runtime_error("unknown focus " + display.cameraFocus + " (cluster, track, track+cluster or all)");
         }
         else if (arg == "--camera")
         {
