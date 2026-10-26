@@ -6,7 +6,7 @@
 # make_screenshots.sh: produce single-particle events with run.py and save
 # screenshots of their event displays with calodisplay
 #
-# usage: make_screenshots.sh [gen|shots|all] [-n <events>] [-o <outdir>] [-r <rundir>] [--only <name>]
+# usage: make_screenshots.sh [gen|shots|all] [-n <events>] [-o <outdir>] [-r <rundir>] [--only <name>] [--width <pixels>]
 #   gen   : only produce the events (needs the key4hep environment of run.py)
 #   shots : only save the screenshots of the events already produced
 #           (needs the environment of calodisplay, see setup.sh)
@@ -18,14 +18,14 @@
 #
 
 # name | options of run.py | options of calodisplay
-# (the framing of the views is set with --focus cluster|track[:<scale>] or,
+# (the framing of the projections is set with --focus cluster|track|track+cluster[:<scale>] or,
 # view by view, with --camera <view>=<values>, printed by the Camera button of
 # the display and, for each screenshot, in <outdir>/<name>.log)
 SAMPLES=(
   "electron_endcap | -p e- --pmin 20 --pmax 20 --thmin 15 --thmax 30 | --fulldet --focus track+cluster"
   "photon_barrel   | -p gamma --pmin 20 --pmax 20 --thmin 70 --thmax 110 | --fulldet --focus cluster"
-  "piminus_endcap  | -p pi- --pmin 20 --pmax 20 --thmin 15 --thmax 30 --hcal | --fulldet --focus track+cluster"
-  "kaon0L_barrel   | -p kaon0L --pmin 20 --pmax 20 --thmin 70 --thmax 110 --hcal | --fulldet --focus cluster"
+  "piminus_endcap  | -p pi- --pmin 20 --pmax 20 --thmin 15 --thmax 30 --hcal | --fulldet --focus track+cluster --set drawTopoClusters=true --set drawCaloClusters=false"
+  "kaon0L_barrel   | -p kaon0L --pmin 20 --pmax 20 --thmin 70 --thmax 110 --hcal | --fulldet --focus cluster --set drawTopoClusters=true --set drawCaloClusters=false --set topoClusters=AugmentedCaloTopoClusters"
   "muminus_barrel  | -p mu- --pmin 20 --pmax 20 --thmin 70 --thmax 110 --hcal --muon | --fulldet --focus track+cluster"
 )
 
@@ -100,16 +100,22 @@ if [ "$STEP" != gen ]; then
       echo "ERROR: no X display (DISPLAY not set) and no Xvnc to start one"
       exit 1
     fi
+    XDISP=""
     for d in $(seq 90 99); do
       [ -e /tmp/.X11-unix/X$d ] || [ -e /tmp/.X$d-lock ] || { XDISP=$d; break; }
     done
+    if [ -z "$XDISP" ]; then
+      echo "ERROR: no free display (:90 to :99) for a virtual X server"
+      exit 1
+    fi
     Xvnc :$XDISP -SecurityTypes None -localhost -geometry 1920x1200 > /dev/null 2>&1 &
     XVNC_PID=$!
     trap 'kill $XVNC_PID 2> /dev/null' EXIT
     export DISPLAY=:$XDISP
     sleep 2
-  elif command -v vglrun > /dev/null && [ -n "$VNCDESKTOP$VNC_DESKTOP" ]; then
-    # hardware OpenGL in a VNC session
+  elif command -v vglrun > /dev/null && command -v xdpyinfo > /dev/null &&
+       xdpyinfo 2> /dev/null | grep -qE "^ +(TIGERVNC|VNC-EXTENSION)$"; then
+    # hardware OpenGL in a VNC session (detected as in setup.sh)
     VGLRUN=vglrun
   fi
 fi
