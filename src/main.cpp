@@ -25,19 +25,26 @@ std::string configFile = "config.json";
 std::string usage(bool verbose = false)
 {
   EventDisplay aDisplay;
-  std::string use = "Usage:\n";
-  use += "calodisplay [--nog4] [--fulldet] [--dohcal] [--doendcap] [--nocache] [--debug] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-c|--config <configFile.json>] [--set <key>=<value>] [-s|--skipEvents <nevents>]\n";
+  std::string use = "Usage:\n\n";
+  use += "calodisplay [-h] [--nog4] [--fulldet] [--dohcal] [--doendcap] [--nocache] [--debug] [-g|--geometry <geomFile.root>] [-e|--events <eventFile.root>] [-c|--config <configFile.json>] [--set <key>=<value>] [-s|--skipEvents <nevents>]\n";
   use += "            [--screenshots <prefix> [--nevents <n>] [--views <views>] [--width <pixels>]\n";
   use += "            [--focus <cluster|track|track+cluster|all>[:<scale>]] [--camera <view>=<values>]]\n\n";
-  use += "--nog4              : use simplified geometry rather than G4 geometry in file <geomFile.root>\n";
+  use += "-h|--help           : print this help, with the default values of the options, and exit\n";
+  use += "--nog4              : use a simplified geometry rather than the G4 geometry\n";
   use += "--fulldet           : show the full detector (otherwise only the ECAL is shown)\n";
   use += "--dohcal            : show the HCAL volumes and readout (not necessary if --fulldet is set)\n";
   use += "--doendcap          : show the ECAL and (with --dohcal) HCAL endcaps (not necessary if --fulldet is set)\n";
   use += "--nocache           : read the full G4 geometry, not the one without the volumes that are never drawn\n";
   use += "                      from the geometry cache (slower, but all the volumes can be turned on in the browser)\n";
-  use += "--debug             : display extended information on the console during execution\n";
+  use += "-g|--geometry <geomFile.root> : the G4 geometry of the detector (searched also in the installation\n";
+  use += "                      directory)\n";
+  use += "-e|--events <eventFile.root> : the events to display (without it, only the detector is shown)\n";
+  use += "-c|--config <configFile.json> : the configuration of the display (collections to draw, energy\n";
+  use += "                      thresholds, ...; searched also in the installation directory)\n";
   use += "--set <key>=<value> : set a parameter of the configuration (overriding the configuration file),\n";
   use += "                      e.g. --set drawCaloClusters=true (can be repeated)\n";
+  use += "-s|--skipEvents <nevents> : start from event <nevents> (the first one is 0)\n";
+  use += "--debug             : display extended information on the console during execution\n";
   use += "--screenshots <prefix> : save the views of the events to <prefix>_ev<event>_<view>.png and exit\n";
   use += "                      (still needs an X display, e.g. a VNC session)\n";
   use += "--nevents <n>       : number of events for the screenshots, starting from the first one (-s) (default 1)\n";
@@ -54,14 +61,14 @@ std::string usage(bool verbose = false)
 
   if (verbose)
   {
-    use += "Default values for options with parameters:\n";
-    use += "geomFile: ";
+    use += "Default values for options with parameters:\n\n";
+    use += "  geomFile: ";
     use += aDisplay.geomFile;
     use += "\n";
-    use += "eventFile: ";
+    use += "  eventFile: ";
     use += aDisplay.evtFile;
     use += "\n";
-    use += "configFile: ";
+    use += "  configFile: ";
     use += configFile;
     use += "\n";
     use += "\n";

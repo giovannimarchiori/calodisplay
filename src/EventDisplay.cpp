@@ -2061,17 +2061,24 @@ void EventDisplay::startDisplay(int initialEvent)
     return;
 
   // create the projections; the geometry is projected when they are first
-  // shown, but it is needed now to write the geometry cache
+  // shown, but it is needed now to write the geometry cache (see below)
   createRhoPhiView();
   createRhoZView();
+
+  gEve->DoRedraw3D();
+  gEve->FullRedraw3D(true);
+
+  // set the 3D view as the active tab, rotate the camera and set the clipping
+  // (after the first drawing, which sets the camera from the bounding box of
+  // the scene), so that the final 3D view is shown also while the
+  // projections below are computed
+  setInitialCamera();
+
   if (geometryExtract)
   {
     buildRhoPhiProjection();
     buildRhoZProjection();
   }
-
-  gEve->DoRedraw3D();
-  gEve->FullRedraw3D(true);
 
   // write the geometry cache, now that the volumes that can be drawn are known
   writeGeometryCache();
@@ -2099,9 +2106,6 @@ void EventDisplay::startDisplay(int initialEvent)
 
   // legends of the cluster cell energies
   addPaletteLegends();
-
-  // Set the 3D view as the active tab, rotate the camera and set the clipping
-  setInitialCamera();
 }
 
 void EventDisplay::readConfiguration()
