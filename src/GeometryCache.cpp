@@ -14,6 +14,7 @@
 #include <TEveProjectionBases.h>
 #include <TFile.h>
 #include <TGeoShape.h>
+#include <TKey.h>
 #include <TList.h>
 #include <TNamed.h>
 
@@ -22,6 +23,7 @@
 #include <filesystem>
 #include <iostream>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <unistd.h>
 
@@ -110,6 +112,87 @@ long countExtracts(TEveGeoShapeExtract* extract)
       n += countExtracts(static_cast<TEveGeoShapeExtract*>(obj));
   return n;
 }
+
+void collectShapes(TEveGeoShapeExtract* extract, std::set<TGeoShape*>& shapes)
+{
+  if (extract->GetShape())
+    shapes.insert(extract->GetShape());
+  if (extract->HasElements())
+    for (TObject* obj : *extract->GetElements())
+      collectShapes(static_cast<TEveGeoShapeExtract*>(obj), shapes);
+}
+
+// delete an object read from the cache: the extracts with their shapes,
+// which are shared between them
+void deleteCached(TObject* obj)
+{
+  TEveGeoShapeExtract* extract = dynamic_cast<TEveGeoShapeExtract*>(obj);
+  if (!extract)
+  {
+    delete obj;
+    return;
+  }
+  std::set<TGeoShape*> shapes;
+  collectShapes(extract, shapes);
+  GeometryCache::deleteExtract(extract);
+  for (TGeoShape* shape : shapes)
+    delete shape;
+}
+
+// the space in the cache file used by its entries
+Long64_t usedBytes(TFile& file)
+{
+  Long64_t used = 0;
+  for (TObject* obj : *file.GetListOfKeys())
+    used += static_cast<TKey*>(obj)->GetNbytes();
+  return used;
+}
+
+// rewrite the cache file with only its current entries: when an entry is
+// overwritten, the space of the old one is reused only by a new entry that
+// fits in it, and the file is never truncated, so it only grows
+void compact(const std::string& path)
+{
+  const std::string tmpPath = path + ".tmp";
+  bool ok = true;
+  {
+    std::unique_ptr<TFile> in(TFile::Open(path.c_str(), "READ"));
+    std::unique_ptr<TFile> out(TFile::Open(tmpPath.c_str(), "RECREATE"));
+    if (!in || in->IsZombie() || !out || out->IsZombie())
+      ok = false;
+    else
+    {
+      std::set<std::string> written;
+      for (TObject* obj : *in->GetListOfKeys())
+      {
+        TKey* key = static_cast<TKey*>(obj);
+        // (only the last cycle of each entry, the first in the list)
+        if (!written.insert(key->GetName()).second)
+          continue;
+        TObject* cached = key->ReadObj();
+        if (!cached)
+        {
+          ok = false;
+          break;
+        }
+        out->cd();
+        ok = cached->Write(key->GetName()) > 0;
+        deleteCached(cached);
+        if (!ok)
+          break;
+      }
+      out->Close();
+    }
+  }
+  std::error_code ec;
+  if (ok)
+    fs::rename(tmpPath, path, ec);
+  if (!ok || ec)
+  {
+    fs::remove(tmpPath, ec);
+    std::cout << "WARNING: cannot compact the geometry cache " << path << std::endl;
+  }
+}
 }
 
 TEveGeoShapeExtract* GeometryCache::read(const std::string& geomFile, const std::string& tag,
@@ -184,7 +267,14 @@ void GeometryCache::write(const std::string& geomFile, const std::string& tag, c
   world->Write(("world_" + tag).c_str(), TObject::kOverwrite);
   TNamed info(("info_" + tag).c_str(), versionInfo(geomFile, codeVersion).c_str());
   info.Write(nullptr, TObject::kOverwrite);
+  // compact the file when more than half of it is not used by the entries
+  // (the space left by the entries that were overwritten, also beyond the end
+  // of the data, as the file is never truncated)
+  const Long64_t used = usedBytes(*file);
   file->Close();
+  std::error_code ec;
+  if (static_cast<Long64_t>(fs::file_size(path, ec)) > 2 * used && !ec)
+    compact(path);
   std::cout << "Geometry cache written to " << path << " (" << nKept << " of " << nTotal
             << " volumes can be drawn): the display will start faster next time" << std::endl;
 }

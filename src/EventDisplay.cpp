@@ -97,9 +97,11 @@ int ecalEndcapRhoZBin(ULong_t cellID, float y)
   return (bin * 2 + (DetectorGeometry::ECalEndCapSide(cellID) > 0)) * 2 + (y > 0);
 }
 
-// the code that decides which volumes of the G4 geometry are drawn is in this
-// file: the geometry cache is rebuilt when it is recompiled
-const std::string geometryCodeVersion = __DATE__ " " __TIME__;
+// version of the code that decides which volumes of the G4 geometry are drawn
+// (in this file, e.g. buildG4Geometry and the functions that show the content
+// of the subdetectors): increment it when that code changes, so that the
+// geometry caches written by the previous versions are rebuilt
+const std::string geometryCodeVersion = "1";
 
 // vertical legend of a palette, with the axis on the right of the colour bar,
 // on a semi-transparent dark background so that it can be read on top of the
