@@ -14,6 +14,8 @@
 #include "CylField.h"
 #include "Units.h"
 #include "PathUtils.h"
+// (generated in build/ by scripts/geometry_code_version.sh)
+#include "GeometryCodeVersion.h"
 
 // ROOT core
 #include <TMath.h>
@@ -98,10 +100,9 @@ int ecalEndcapRhoZBin(ULong_t cellID, float y)
 }
 
 // version of the code that decides which volumes of the G4 geometry are drawn
-// (in this file, e.g. buildG4Geometry and the functions that show the content
-// of the subdetectors): increment it when that code changes, so that the
-// geometry caches written by the previous versions are rebuilt
-const std::string geometryCodeVersion = "1";
+// (a hash of the functions listed in scripts/geometry_code_version.sh): the
+// geometry caches written by the other versions are rebuilt
+const std::string geometryCodeVersion = GEOMETRY_CODE_VERSION;
 
 // vertical legend of a palette, with the axis on the right of the colour bar,
 // on a semi-transparent dark background so that it can be read on top of the

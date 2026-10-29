@@ -12,6 +12,7 @@
 #include "Globals.h"
 #include "PathUtils.h"
 
+#include <csignal>
 #include <filesystem>
 #include <sstream>
 #include <string>
@@ -357,7 +358,13 @@ int main(int argc, char *argv[])
     app->Terminate(0);
   }
   TRint *app = new TRint("display", &argc, argv);
+  // ignore the resizes of the terminal while the display starts: the handler
+  // of the ROOT prompt is not async-signal-safe (it calls setenv), and if it
+  // interrupts an allocation, e.g. during the long projection of the
+  // geometry, the application hangs
+  auto resizeHandler = std::signal(SIGWINCH, SIG_IGN);
   display.startDisplay(skipEvents);
+  std::signal(SIGWINCH, resizeHandler);
   app->Run();
   return 0;
 }

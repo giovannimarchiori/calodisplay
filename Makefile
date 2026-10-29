@@ -104,10 +104,21 @@ $(DICT_OBJ): $(DICT_CXX)
 	$(CXX) -c $(CXXFLAGS) -I. -I$(SRC_DIR) $< -o $@
 
 # Target for compiling the object files, with header dependency files (.d)
+# (the generated headers are in build/)
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(dir_guard)
 	@echo "Compiling "$@
-	$(CXX) -c $(CXXFLAGS) -MMD -MP $< -o $@
+	$(CXX) -c $(CXXFLAGS) -I$(OBJ_DIR) -MMD -MP $< -o $@
+
+# Header with the hash of the code that decides which volumes of the geometry
+# are drawn, which identifies the geometry caches it wrote: rewritten only if
+# the hash changes
+GEOMETRY_CODE_VERSION=$(OBJ_DIR)/GeometryCodeVersion.h
+$(GEOMETRY_CODE_VERSION): $(SRC_DIR)/EventDisplay.cpp $(SRC_DIR)/GeometryCache.cpp scripts/geometry_code_version.sh
+	$(dir_guard)
+	@scripts/geometry_code_version.sh $(SRC_DIR) > $@.tmp
+	@if cmp -s $@.tmp $@; then rm -f $@.tmp; else mv $@.tmp $@; fi
+$(OBJ_DIR)/EventDisplay.o: $(GEOMETRY_CODE_VERSION)
 
 # Target for linking the shared library from the object files and the dictionary
 # Official ROOT docs are missing $(LIBS) parameter https://root.cern.ch/interacting-shared-libraries-rootcling
