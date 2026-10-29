@@ -1497,6 +1497,11 @@ void EventDisplay::drawClusters(ClusterSet &set)
       layer = (int)DetectorGeometry::ECalBarrelLayer(cellID);
       thetaID = (int)DetectorGeometry::ECalBarrelThetaBin(cellID);
       moduleID = (int)DetectorGeometry::ECalBarrelModule(cellID);
+      if (layer < 0 || layer >= geomReader->nLayers)
+      {
+        std::cout << "WARNING: layer " << layer << " of system " << systemID << " out of range [0, " << geomReader->nLayers << "), skipping cell" << std::endl;
+        continue;
+      }
       rhophiID = {systemID, icl, layer, moduleID};
       rhozID = {systemID, icl, layer, thetaID};
       r_in = geomReader->r[layer];
@@ -1507,6 +1512,11 @@ void EventDisplay::drawClusters(ClusterSet &set)
       layer = (int)DetectorGeometry::HCalBarrelLayer(cellID);
       thetaID = (int)DetectorGeometry::HCalBarrelThetaBin(cellID);
       phiID = (int)DetectorGeometry::HCalBarrelPhiBin(cellID);
+      if (layer < 0 || layer >= geomReader->nLayersHCal)
+      {
+        std::cout << "WARNING: layer " << layer << " of system " << systemID << " out of range [0, " << geomReader->nLayersHCal << "), skipping cell" << std::endl;
+        continue;
+      }
       rhophiID = {systemID, icl, layer, phiID};
       rhozID = {systemID, icl, layer, thetaID};
       r_in = geomReader->rHCal[layer];
