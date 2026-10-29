@@ -1487,6 +1487,8 @@ void EventDisplay::drawClusters(ClusterSet &set)
     // HCAL: layer-theta for rho-z, layer-phi for rho-phi
     // ECAL endcap: z bin (the layer) and rho bin for rho-z, not drawn in rho-phi and 3D
     // HCAL endcap: layer-theta for rho-z, not drawn in rho-phi
+    // (in rho-z also the sign of y, as the cells above and below the beam
+    // axis are drawn separately)
     float r_in(0.), r_out(0.);
     int layer(0), thetaID(0), moduleID(0), phiID(0);
     ProjectedCellKey rhophiID{}, rhozID{};
@@ -1503,7 +1505,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
         continue;
       }
       rhophiID = {systemID, icl, layer, moduleID};
-      rhozID = {systemID, icl, layer, thetaID};
+      rhozID = {systemID, icl, layer, thetaID * 2 + (y_center > 0)};
       r_in = geomReader->r[layer];
       r_out = geomReader->r[layer + 1];
     }
@@ -1518,7 +1520,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
         continue;
       }
       rhophiID = {systemID, icl, layer, phiID};
-      rhozID = {systemID, icl, layer, thetaID};
+      rhozID = {systemID, icl, layer, thetaID * 2 + (y_center > 0)};
       r_in = geomReader->rHCal[layer];
       r_out = geomReader->rHCal[layer + 1];
     }
@@ -1532,7 +1534,6 @@ void EventDisplay::drawClusters(ClusterSet &set)
     {
       layer = (int)DetectorGeometry::HCalEndCapLayer(cellID);
       thetaID = (int)DetectorGeometry::HCalEndCapThetaBin(cellID);
-      // (the theta bin distinguishes the two sides, not above and below the beam axis)
       rhozID = {systemID, icl, layer, thetaID * 2 + (y_center > 0)};
       inRhoPhi = false;
     }
@@ -1734,7 +1735,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
     {
       layer = (int)DetectorGeometry::ECalBarrelLayer(cellID);
       thetaID = (int)DetectorGeometry::ECalBarrelThetaBin(cellID);
-      rhozID = {system, icl, layer, thetaID};
+      rhozID = {system, icl, layer, thetaID * 2 + (cells.y[i] > 0)};
       r_in = geomReader->r[layer];
       r_out = geomReader->r[layer + 1];
     }
@@ -1742,7 +1743,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
     {
       layer = (int)DetectorGeometry::HCalBarrelLayer(cellID);
       thetaID = (int)DetectorGeometry::HCalBarrelThetaBin(cellID);
-      rhozID = {system, icl, layer, thetaID};
+      rhozID = {system, icl, layer, thetaID * 2 + (cells.y[i] > 0)};
       r_in = geomReader->rHCal[layer];
       r_out = geomReader->rHCal[layer + 1];
     }
