@@ -35,6 +35,7 @@
 #include <TPRegexp.h>
 
 #include <memory>
+#include <set>
 
 #include "DetectorGeometry.h"
 #include "GeometryCache.h"
@@ -272,6 +273,9 @@ public:
 
   // the list of the readout elements
   TEveElementList *readout = nullptr;
+  // the readout elements not shown when the readout is switched on (e.g. the
+  // unmerged ECAL theta grid), but which can be shown from the browser
+  std::set<TEveElement *> readoutsHiddenByDefault;
   TGLTextLabel *processLabel = nullptr;
   // palettes for the energy of the cells in the clusters (values in MeV) in
   // each view, shared by all events, with a legend in the projections; their

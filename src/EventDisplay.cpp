@@ -3174,6 +3174,7 @@ void EventDisplay::drawRhoZReadout()
   readout->AddElement(grid);
   // by default we do not show the unmerged readout
   grid->SetRnrSelf(false);
+  readoutsHiddenByDefault.insert(grid);
 
   // the merged grid
   TEveStraightLineSet *grid2 = new TEveStraightLineSet("ECAL theta readout merged");
@@ -3566,7 +3567,7 @@ void EventDisplay::toggleReadout()
   readout->SetRnrSelfChildren(showReadout, showReadout);
   for (TEveElement::List_i itr = readout->BeginChildren(); itr != readout->EndChildren(); itr++) {
     TEveElement *el = *itr;
-    el->SetRnrSelf(showReadout);
+    el->SetRnrSelf(showReadout && readoutsHiddenByDefault.count(el) == 0);
   }
   updateToggleButtons();
   // update now the scenes with the changed elements (faster than a full
