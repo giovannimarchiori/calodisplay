@@ -150,6 +150,21 @@ public:
   // (MuonTaggerBarrelLayers and MuonTaggerEndcapLayers in MuonTaggerPhiTheta.xml)
   const int nLayersMuonBarrel = 2;
   const int nLayersMuonEndcap = 2;
+  // extent of the barrel and of the endcaps (DectDimensions.xml)
+  const double rMinMuonBarrel = 4550.*Units::mm;
+  const double rMaxMuonBarrel = 5000.*Units::mm;
+  const double zMaxMuonBarrel = 6000.*Units::mm;
+  const double rMinMuonEndcap = 1100.*Units::mm;
+  const double rMaxMuonEndcap = 4500.*Units::mm;
+  const double zMinMuonEndcap = 5550.*Units::mm;
+  const double zMaxMuonEndcap = 6000.*Units::mm;
+  // readout segmentation, the same in the barrel and the endcaps
+  // (FCCSWGridPhiTheta_k4geo): bins in theta and phi, centred at
+  // offset + i * grid size
+  const double thetaGridMuon = 0.0087266;
+  const double thetaOffsetMuon = 0.1047277;
+  const int nPhiBinsMuon = 704;
+  const double phiOffsetMuon = -TMath::Pi() + TMath::Pi() / nPhiBinsMuon;
   
   /******************************************************************************/
   // GEOMETRY HELPER FUNCTIONS AND DERIVED GEOMETRY PARAMETERS

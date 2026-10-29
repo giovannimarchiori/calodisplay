@@ -2814,6 +2814,24 @@ void EventDisplay::drawRhoPhiReadout()
     rhoPhiScene->AddElement(hcalPhiReadout);
     readout->AddElement(hcalPhiReadout);
   }
+
+  // the muon tagger readout in the barrel (with the full detector, where it is
+  // drawn): the edges of the phi bins
+  if (showFullDetector)
+  {
+    TEveStraightLineSet *muonPhiReadout = new TEveStraightLineSet("Muon tagger phi readout");
+    muonPhiReadout->SetLineColor(kViolet);
+    const double r1 = geomReader->rMinMuonBarrel;
+    const double r2 = geomReader->rMaxMuonBarrel;
+    const double gridPhi = TMath::TwoPi() / geomReader->nPhiBinsMuon;
+    for (int i = 0; i < geomReader->nPhiBinsMuon; i++)
+    {
+      const double phi = geomReader->phiOffsetMuon + (i - 0.5) * gridPhi;
+      muonPhiReadout->AddLine(r1 * cos(phi), r1 * sin(phi), 0., r2 * cos(phi), r2 * sin(phi), 0.);
+    }
+    rhoPhiScene->AddElement(muonPhiReadout);
+    readout->AddElement(muonPhiReadout);
+  }
 }
 
 void EventDisplay::createRhoZView()
@@ -3195,6 +3213,45 @@ void EventDisplay::drawRhoZReadout()
     }
     rhoZScene->AddElement(ecalEndcapGrid);
     readout->AddElement(ecalEndcapGrid);
+  }
+
+  // the muon tagger readout (with the full detector, where it is drawn): the
+  // edges of the theta bins, in the barrel and in the endcaps
+  if (showFullDetector)
+  {
+    TEveStraightLineSet *muonGrid = new TEveStraightLineSet("Muon tagger theta readout");
+    muonGrid->SetLineColor(kViolet);
+    // the segment of the line at theta, from the origin, with rho in
+    // [rhoMin, rhoMax] and |z| in [zMin, zMax], above and below the beam axis
+    auto addSegment = [muonGrid](double theta, double rhoMin, double rhoMax, double zMin, double zMax) {
+      const double s = std::sin(theta), c = std::fabs(std::cos(theta));
+      // the distance from the origin along the line
+      double tMin = rhoMin / s, tMax = rhoMax / s;
+      if (c > 0.)
+      {
+        tMin = std::max(tMin, zMin / c);
+        tMax = std::min(tMax, zMax / c);
+      }
+      else if (zMin > 0.)
+        return;
+      if (tMin >= tMax)
+        return;
+      for (double sign : {-1., 1.})
+        muonGrid->AddLine(tMin * std::cos(theta), sign * tMin * s, 0., tMax * std::cos(theta), sign * tMax * s, 0.);
+    };
+    for (int i = 0;; i++)
+    {
+      const double theta = geomReader->thetaOffsetMuon + (i - 0.5) * geomReader->thetaGridMuon;
+      if (theta >= TMath::Pi())
+        break;
+      if (theta <= 0.)
+        continue;
+      addSegment(theta, geomReader->rMinMuonBarrel, geomReader->rMaxMuonBarrel, 0., geomReader->zMaxMuonBarrel);
+      addSegment(theta, geomReader->rMinMuonEndcap, geomReader->rMaxMuonEndcap,
+                 geomReader->zMinMuonEndcap, geomReader->zMaxMuonEndcap);
+    }
+    rhoZScene->AddElement(muonGrid);
+    readout->AddElement(muonGrid);
   }
 
   // draw the HCAL readout segmentation in eta or theta (rho-z view)
