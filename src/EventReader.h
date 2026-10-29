@@ -78,7 +78,7 @@ public:
     Array<UInt_t> trackStates_begin, trackStates_end;
     Array<UInt_t> subdetectorHitNumbers_begin, subdetectorHitNumbers_end;
     Array<Int_t> trackState_location;
-    Array<Float_t> trackState_omega, trackState_phi, trackState_tanLambda;
+    Array<Float_t> trackState_omega, trackState_phi, trackState_tanLambda, trackState_d0, trackState_z0;
     Array<Float_t> trackState_referencePoint_x, trackState_referencePoint_y, trackState_referencePoint_z;
     Array<Int_t> subdetectorHitNumbers;
     bool isSet() const { return trackStates_begin != nullptr; }

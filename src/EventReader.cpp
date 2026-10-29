@@ -167,6 +167,8 @@ void EventReader::setBranches()
     tracks.trackState_omega = makeArray<Float_t>(trackStateColl, "omega");
     tracks.trackState_phi = makeArray<Float_t>(trackStateColl, "phi");
     tracks.trackState_tanLambda = makeArray<Float_t>(trackStateColl, "tanLambda");
+    tracks.trackState_d0 = makeArray<Float_t>(trackStateColl, "D0");
+    tracks.trackState_z0 = makeArray<Float_t>(trackStateColl, "Z0");
     tracks.trackState_referencePoint_x = makeArray<Float_t>(trackStateColl, "referencePoint.x");
     tracks.trackState_referencePoint_y = makeArray<Float_t>(trackStateColl, "referencePoint.y");
     tracks.trackState_referencePoint_z = makeArray<Float_t>(trackStateColl, "referencePoint.z");

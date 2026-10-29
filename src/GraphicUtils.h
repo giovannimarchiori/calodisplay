@@ -3,6 +3,7 @@
 // author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
 //
 // class TGLConstAnnotation: GL annotation that cannot be edited with the mouse
+// class TGLTextLabel: GL text label with unicode text
 //
 /******************************************************************************/
 

@@ -984,6 +984,9 @@ void EventDisplay::drawTracks()
       // trkProp->SetMaxZ(geomReader->zMaxEndCap);
       // trkProp->SetMaxZ(10000.*mm);
       trkProp->SetRnrReferences(true);
+      // the path marks of the track states in white (not to be confused with
+      // the yellow digis of the tracker around them)
+      trkProp->RefPMAtt().SetMarkerColor(kWhite);
       // trkProp->SetFitReferences(true);
       tracks->SetMainColor(kCyan);
       tracks->SetLineWidth(2.);
@@ -1016,7 +1019,7 @@ void EventDisplay::drawTracks()
       unsigned int nTrackStates = 0;
       if (trackStates_end > trackStates_begin)
         nTrackStates = trackStates_end - trackStates_begin;
-      float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5];
+      float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5], d0[5], z0[5];
       for (unsigned int i=0; i<5; i++) x[i]=-1e9; // set to some large value to check later if track state has been filled
       for (unsigned int its = trackStates_begin; its < trackStates_end; its++) {
         int location = (*eventReader->tracks.trackState_location)[its];
@@ -1031,6 +1034,13 @@ void EventDisplay::drawTracks()
         omega[location] = (*eventReader->tracks.trackState_omega)[its];
         tanLambda[location] = (*eventReader->tracks.trackState_tanLambda)[its];
         phi[location] = (*eventReader->tracks.trackState_phi)[its];
+        d0[location] = (*eventReader->tracks.trackState_d0)[its];
+        z0[location] = (*eventReader->tracks.trackState_z0)[its];
+        // the position of the track state: the point of closest approach to
+        // the reference point, displaced from it by d0 and z0
+        x[location] -= d0[location] * std::sin(phi[location]);
+        y[location] += d0[location] * std::cos(phi[location]);
+        z[location] += z0[location];
         if (debug) {
           std::cout << "  x = " << x[location] << std::endl;
           std::cout << "  y = " << y[location] << std::endl;
@@ -1039,6 +1049,8 @@ void EventDisplay::drawTracks()
           std::cout << "  omega = " << omega[location] << std::endl;
           std::cout << "  phi = " << phi[location] << std::endl;
           std::cout << "  tanLambda = " << tanLambda[location] << std::endl;
+          std::cout << "  d0 = " << d0[location] << std::endl;
+          std::cout << "  z0 = " << z0[location] << std::endl;
           float radius = 1.f / std::fabs(omega[location]);
           float pxy = FCT * bField * radius;
           float pz = tanLambda[location] * pxy;
