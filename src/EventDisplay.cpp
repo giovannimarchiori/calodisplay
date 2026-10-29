@@ -1016,9 +1016,6 @@ void EventDisplay::drawTracks()
       unsigned int trackStates_end = (*eventReader->tracks.trackStates_end)[ip];
       if (debug) std::cout << "  trackStates begin , end = " << trackStates_begin << " , " << trackStates_end << std::endl;
       // store in vectors the track state positions and momenta
-      unsigned int nTrackStates = 0;
-      if (trackStates_end > trackStates_begin)
-        nTrackStates = trackStates_end - trackStates_begin;
       float x[5], y[5], z[5], omega[5], tanLambda[5], phi[5], d0[5], z0[5];
       for (unsigned int i=0; i<5; i++) x[i]=-1e9; // set to some large value to check later if track state has been filled
       for (unsigned int its = trackStates_begin; its < trackStates_end; its++) {
@@ -1027,7 +1024,7 @@ void EventDisplay::drawTracks()
           std::cout << "Trackstate " << its << std::endl;
           std::cout << "  location = " << location << std::endl;
         }
-        if (location>4) continue;
+        if (location < 0 || location > 4) continue;
         x[location] = (*eventReader->tracks.trackState_referencePoint_x)[its];
         y[location] = (*eventReader->tracks.trackState_referencePoint_y)[its];
         z[location] = (*eventReader->tracks.trackState_referencePoint_z)[its];
@@ -1064,14 +1061,29 @@ void EventDisplay::drawTracks()
       unsigned int hits_begin = (*eventReader->tracks.subdetectorHitNumbers_begin)[ip];
       unsigned int hits_end = (*eventReader->tracks.subdetectorHitNumbers_end)[ip];
       if (debug) std::cout << "  subdetectorHitNumbers_begin , end = " << hits_begin << " , " << hits_end << std::endl;
-      for (unsigned int ih = hits_begin; ih < hits_end; ih++) {
+      // (only the first nSubDetectors numbers are shown)
+      for (unsigned int ih = hits_begin; ih < hits_end && ih - hits_begin < nSubDetectors; ih++) {
         nhits[ih-hits_begin] = (*eventReader->tracks.subdetectorHitNumbers)[ih];
       }
 
       // const int tsOrig=2; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
-      const int tsOrig=1; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
-      //if (x[tsOrig]<5e5) {  // GM dont remember what is this about..
-      if (nTrackStates > 0) {
+      int tsOrig=1; // which track state to use for track origin: 0=at other, 1=at IP, 2=at first hit, 3=at last hit, 4=at ECAL
+      // if the track has no state there, use the first one found along the
+      // track (at first hit, at last hit, at ECAL, at other)
+      if (x[tsOrig] < -1e8) {
+        tsOrig = -1;
+        for (int i : {2, 3, 4, 0}) {
+          if (x[i] > -1e8) {
+            tsOrig = i;
+            break;
+          }
+        }
+        if (tsOrig < 0)
+          std::cout << "WARNING: track " << ip << " has no valid track state, it is not drawn" << std::endl;
+        else if (debug)
+          std::cout << "  no track state at IP, origin at location " << tsOrig << std::endl;
+      }
+      if (tsOrig >= 0) {
         TEveRecTrack t;
         float x1 = x[tsOrig]*mm;
         float y1 = y[tsOrig]*mm;
