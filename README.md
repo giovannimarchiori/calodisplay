@@ -26,35 +26,38 @@ Works with ALLEGRO models o1_v03 and o2_v01 as of July 2026.
 <table>
   <tr>
     <td width="50%" align="center" valign="top">
+      <img src="doc/detector_3d.png" alt="ALLEGRO detector, 3D view" width="100%"><br>
+      <em>The ALLEGRO detector (3D view). TODO</em>
+    </td>
+    <td width="50%" align="center" valign="top">
       <img src="doc/electron_endcap_ev3_rhoz.png" alt="Electron in the endcap, rho-z view" width="100%"><br>
       <em>An electron in the endcap (rho-z view) - track and SW ECAL cluster</em>
     </td>
+  </tr>
+  <tr>
     <td width="50%" align="center" valign="top">
       <img src="doc/photon_barrel_ev0_rhophi.png" alt="Photon in the barrel, rho-phi view" width="100%"><br>
       <em>A photon in the barrel (rho-phi view) - SW ECAL cluster</em>
     </td>
-  </tr>
-  <tr>
     <td width="50%" align="center" valign="top">
       <img src="doc/piminus_endcap_ev0_rhoz.png" alt="Charged pion in the endcap, rho-z view" width="100%"><br>
       <em>A negative pion in the endcap (rho-z view) - track and topological ECAL+HCAL cluster</em>
     </td>
+  </tr>
+  <tr>
     <td width="50%" align="center" valign="top">
       <img src="doc/kaon0L_barrel_ev4_rhophi.png" alt="Neutral kaon in the barrel, rho-phi view" width="100%"><br>
       <em>A K0L in the barrel (rho-phi view) - topological ECAL+HCAL cluster</em>
     </td>
-  </tr>
-  <tr>
     <td width="50%" align="center" valign="top">
       <img src="doc/muminus_barrel_ev0_rhophi.png" alt="Muon in the barrel, rho-phi view" width="100%"><br>
       <em>A negative muon in the barrel (rho-phi view) - track, SW ECAL+HCAL and MUON clusters. TODO</em>
     </td>
-    <td width="50%"></td>
   </tr>
 </table>
 
 ## Installation
-Make a local clone of the gitlab repository:
+Make a local clone of the repository:
 ```
 git clone git@github.com:giovannimarchiori/calodisplay.git
 cd calodisplay
