@@ -121,10 +121,12 @@ check_build() {
         fi
     fi
 
-    # sources modified after the build
-    local older=$exe
-    [[ $lib -ot $exe ]] && older=$lib
-    local modified=$(cd "${CALODISPLAY_DIR}" && find src -newer "$older" -type f ! -name '*~' | sort)
+    # sources modified after the build: main.cpp is only in the executable,
+    # the other files in the library (a change to main.cpp does not relink it)
+    local modified=$(cd "${CALODISPLAY_DIR}" && {
+                         find src/main.cpp -newer "$exe"
+                         find src -type f ! -name main.cpp ! -name '*~' -newer "$lib"
+                     } | sort)
     if [[ -n $modified ]]; then
         echo "WARNING: calodisplay is not up to date, these files were modified after the build:"
         echo "$modified" | sed 's/^/           /'
