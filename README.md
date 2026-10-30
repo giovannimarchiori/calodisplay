@@ -7,6 +7,23 @@ I became aware only later of existing event display tools. It is likely that tho
 
 Works with ALLEGRO models o1_v03 and o2_v01 as of July 2026.
 
+## Screenshots
+
+![Electron in the endcap, rho-z view](doc/electron_endcap_ev3_rhoz.png)
+*Caption: electron in the endcap (rho-z view). TODO*
+
+![Photon in the barrel, rho-phi view](doc/photon_barrel_ev0_rhophi.png)
+*Caption: photon in the barrel (rho-phi view). TODO*
+
+![Charged pion in the endcap, rho-z view](doc/piminus_endcap_ev0_rhoz.png)
+*Caption: negative pion in the endcap (rho-z view). TODO*
+
+![Neutral kaon in the barrel, rho-phi view](doc/kaon0L_barrel_ev4_rhophi.png)
+*Caption: K0L in the barrel (rho-phi view). TODO*
+
+![Muon in the barrel, rho-phi view](doc/muminus_barrel_ev0_rhophi.png)
+*Caption: negative muon in the barrel (rho-phi view). TODO*
+
 ## Installation
 Make a local clone of the gitlab repository:
 ```
