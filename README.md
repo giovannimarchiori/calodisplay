@@ -1,5 +1,19 @@
 # calodisplay: an event display for the ALLEGRO detector
 
+- [Description](#description)
+- [Screenshots](#screenshots)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Running in a VNC session (hardware OpenGL with VirtualGL)](#running-in-a-vnc-session-hardware-opengl-with-virtualgl)
+  - [Navigation](#navigation)
+  - [Configuration](#configuration)
+  - [Input event files](#input-event-files)
+  - [Detector geometry](#detector-geometry)
+- [Code structure](#code-structure)
+- [Troubleshooting](#troubleshooting)
+- [Author](#author)
+- [Acknowledgements](#acknowledgements)
+
 ## Description
 ALLEGRO event display (with an emphasis on the calorimeter system).
 Note: development of this tool started in early 2023 as a way of helping debugging the ECAL digitisation with the new segmentation classes under development.
@@ -9,20 +23,35 @@ Works with ALLEGRO models o1_v03 and o2_v01 as of July 2026.
 
 ## Screenshots
 
-![Electron in the endcap, rho-z view](doc/electron_endcap_ev3_rhoz.png)
-*An electron in the endcap (rho-z view) - track and SW ECAL cluster*
-
-![Photon in the barrel, rho-phi view](doc/photon_barrel_ev0_rhophi.png)
-*A photon in the barrel (rho-phi view) - SW ECAL cluster*
-
-![Charged pion in the endcap, rho-z view](doc/piminus_endcap_ev0_rhoz.png)
-*A negative pion in the endcap (rho-z view) - track and topological ECAL+HCAL cluster*
-
-![Neutral kaon in the barrel, rho-phi view](doc/kaon0L_barrel_ev4_rhophi.png)
-*A K0L in the barrel (rho-phi view) - topological ECAL+HCAL cluster*
-
-![Muon in the barrel, rho-phi view](doc/muminus_barrel_ev0_rhophi.png)
-*A negative muon in the barrel (rho-phi view) - track, SW ECAL+HCAL and MUON clusters. TODO*
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="doc/electron_endcap_ev3_rhoz.png" alt="Electron in the endcap, rho-z view" width="100%"><br>
+      <em>An electron in the endcap (rho-z view) - track and SW ECAL cluster</em>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="doc/photon_barrel_ev0_rhophi.png" alt="Photon in the barrel, rho-phi view" width="100%"><br>
+      <em>A photon in the barrel (rho-phi view) - SW ECAL cluster</em>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="doc/piminus_endcap_ev0_rhoz.png" alt="Charged pion in the endcap, rho-z view" width="100%"><br>
+      <em>A negative pion in the endcap (rho-z view) - track and topological ECAL+HCAL cluster</em>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="doc/kaon0L_barrel_ev4_rhophi.png" alt="Neutral kaon in the barrel, rho-phi view" width="100%"><br>
+      <em>A K0L in the barrel (rho-phi view) - topological ECAL+HCAL cluster</em>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="doc/muminus_barrel_ev0_rhophi.png" alt="Muon in the barrel, rho-phi view" width="100%"><br>
+      <em>A negative muon in the barrel (rho-phi view) - track, SW ECAL+HCAL and MUON clusters. TODO</em>
+    </td>
+    <td width="50%"></td>
+  </tr>
+</table>
 
 ## Installation
 Make a local clone of the gitlab repository:
