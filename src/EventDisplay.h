@@ -290,6 +290,9 @@ public:
   int maxCellValueRhoZ = 0;
   // the legends of the palettes and their titles, that can be hidden
   std::vector<TGLOverlayElement *> paletteLegends;
+  // the size of the markers of the event in each view, with the zoom
+  // (if scaleMarkers is set in the configuration)
+  std::vector<MarkerScaler *> markerScalers;
   bool showPaletteLegends = true;
   TGLTextLabel *eventLabel = nullptr;
   // the event number entries and the labels with the range of the event
@@ -473,12 +476,14 @@ public:
       if (digi) {
         hitSet->SetMarkerStyle(digiMarkerStyle);
         hitSet->SetMarkerSize(digiMarkerSize);
+        MarkerScaler::SetScaling(hitSet, &digiMarkerScaling);
         hitSet->SetMarkerColor(digiMarkerColor);
         digis->AddElement(hitSet);
       }
       else {
         hitSet->SetMarkerStyle(hitsMarkerStyle);
         hitSet->SetMarkerSize(hitsMarkerSize);
+        MarkerScaler::SetScaling(hitSet, &hitsMarkerScaling);
         hitSet->SetMarkerColor(hitsMarkerColor);
         hits->AddElement(hitSet);
       }
@@ -578,6 +583,8 @@ private:
   void openEventFile();
   // legends of the cluster cell energies in the projections
   void addPaletteLegends();
+  // the scaling of the markers of the event with the zoom, in each view
+  void addMarkerScalers();
   // set the 3D view as the active tab, rotate the camera and set the clipping
   void setInitialCamera();
 

@@ -34,6 +34,9 @@ DisplayConfig::DisplayConfig() {
   // show the readout grids at startup (they can then be shown/hidden with
   // their button)
   setBoolConfig("showReadout", true);
+  // scale the markers of the hits, digis, cells and cluster barycenters with
+  // the zoom, between a min and a max size (see MarkerScaler)
+  setBoolConfig("scaleMarkers", true);
 
   // GlobalSolenoid for an ideal solenoid with the default field, GlobalSolenoid_<B>T
   // for a field of <B> tesla, otherwise the path of the field map (an empty string

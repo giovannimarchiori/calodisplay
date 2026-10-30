@@ -969,6 +969,7 @@ void EventDisplay::drawDigis()
                       -9999.);
     // override default size and color
     cells_merged->SetMarkerSize(3);
+    MarkerScaler::SetScaling(cells_merged, &mergedCellsMarkerScaling);
     cells_merged->SetMarkerColor(kBlue);
   }
 }
@@ -1250,6 +1251,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
   if (drawDirection) {
     clustersCenter->SetMarkerStyle(4);
     clustersCenter->SetMarkerSize(5);
+    MarkerScaler::SetScaling(clustersCenter, &clusterCenterMarkerScaling);
     clustersDirection->SetLineColor(kWhite);
     clustersDirection->SetLineWidth(5);
   }
@@ -1404,6 +1406,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
         layerBarycenters->SetMarkerColor(kGreen);
         layerBarycenters->SetMarkerStyle(4);
         layerBarycenters->SetMarkerSize(3);
+        MarkerScaler::SetScaling(layerBarycenters, &layerBarycenterMarkerScaling);
         clusters_3D->AddElement(layerBarycenters);
         CaloCluster *clus = (*clusterData)[iclAboveThreshold].get();
         // (not for the muon tagger)
@@ -2032,6 +2035,9 @@ void EventDisplay::drawEvent(int event)
 
     attachClusterProjections();
   }
+  // the size of the new markers with the current zoom
+  for (MarkerScaler *scaler : markerScalers)
+    scaler->Apply();
 
   std::cout << "Done" << std::endl
             << std::endl;
@@ -2106,6 +2112,7 @@ void EventDisplay::startDisplay(int initialEvent)
     std::cout << "Reading the events" << std::endl;
     std::cout << "******************************************************************************" << std::endl
          << std::endl;
+    addMarkerScalers();
     drawEvent(initialEvent);
   }
 
@@ -3452,6 +3459,22 @@ void EventDisplay::addPaletteLegends()
   updateToggleButtons();
 }
 
+void EventDisplay::addMarkerScalers()
+{
+  if (!displayConfig.getBoolConfig("scaleMarkers"))
+    return;
+  const std::vector<std::pair<TGLViewer *, TEveScene *>> views = {
+      {mainGLView, gEve->GetEventScene()}, {rhoPhiGLView, rhoPhiEventScene}, {rhoZGLView, rhoZEventScene}};
+  for (const auto &[viewer, scene] : views)
+  {
+    if (!viewer || !scene)
+      continue;
+    MarkerScaler *scaler = new MarkerScaler(viewer, scene);
+    viewer->AddOverlayElement(scaler);
+    markerScalers.push_back(scaler);
+  }
+}
+
 void EventDisplay::setInitialCamera()
 {
   // Set the 3D view as the active tab and rotate the camera
@@ -4058,6 +4081,9 @@ void EventDisplay::saveScreenshots(const std::string &prefix, int firstEvent, in
       browser->GetTabRight()->SetTab(it->second.first);
       gSystem->ProcessEvents();
       setCamera(view);
+      // draw with this camera, which sets the size of the markers
+      // (see MarkerScaler), before saving
+      it->second.second->DoDraw();
       const std::string file = Form("%s_ev%d_%s.png", prefix.c_str(), event, view.c_str());
       if (it->second.second->SavePictureWidth(file.c_str(), width))
       {

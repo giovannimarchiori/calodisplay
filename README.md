@@ -87,6 +87,7 @@ The configuration is read from a JSON file (see `config.json`), containing a map
 - energy thresholds in GeV: `energyThresholdParticles`, `energyThresholdHits`, `energyThresholdCells`, `energyThresholdClusters`, `energyThresholdMuonClusters` (for the clusters in the muon tagger, whose energies are of O(0.1 GeV))
 - `showCellEnergyLegend` (`true`/`false`): whether the legend of the cluster cell energies is shown in the projections at startup (it can then be shown/hidden with its button)
 - `showReadout` (`true`/`false`): whether the readout grids are shown at startup (they can then be shown/hidden with their button)
+- `scaleMarkers` (`true`/`false`, default `true`): the markers of the hits, digis, cells and cluster barycenters have a size in the detector, converted to pixels with the zoom of each view between a minimum and a maximum (the sizes are set in `src/Globals.cpp`), so that they shrink when zooming out; with `false` they have a fixed size in pixels
 - `bField`: `GlobalSolenoid` (default) for an ideal solenoid with B = 2 T inside (and -1 T in the return yoke), `GlobalSolenoid_<B>T` (e.g. `GlobalSolenoid_3T`) for an ideal solenoid with B = `<B>` T inside (and -`<B>`/2 T in the return yoke), otherwise the path of the ROOT file with the field map, or an empty string for the default field map `data/ALLEGRO_fieldmap_2T_20260424.root`. If the field map cannot be read, the ideal solenoid field is used. With `printFieldMap` set to `true`, the field map is printed on the terminal and drawn in `field.pdf`.
 - `bkgColor3D`: background colour of the 3D view
 

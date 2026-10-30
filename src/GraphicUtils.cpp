@@ -3,17 +3,29 @@
 // author: Giovanni Marchiori (giovanni.marchiori@cern.ch)
 //
 // class TGLConstAnnotation: GL annotation that cannot be edited with the mouse
+// class TGLTextLabel: GL text label with unicode text
+// class MarkerScaler: sets the size of the markers of a viewer from the zoom
 //
 /******************************************************************************/
 
 #include "GraphicUtils.h"
 
+#include <TEvePointSet.h>
+#include <TEveProjectionBases.h>
+#include <TEveScene.h>
+#include <TGLLogicalShape.h>
 #include <TGLRnrCtx.h>
+#include <TGLScenePad.h>
+#include <TGLViewer.h>
 #include <TGLCamera.h>
 #include <TGLUtil.h>
 #include <TGLViewerBase.h>
 #include <TMath.h>
+#include <TTimer.h>
 #include <TVirtualX.h>
+
+#include <algorithm>
+#include <cmath>
 #ifdef __APPLE__
 // OpenGL is deprecated on macOS (but still available, and used by ROOT)
 #define GL_SILENCE_DEPRECATION
@@ -98,4 +110,65 @@ void TGLTextLabel::Render(TGLRnrCtx &rnrCtx)
   rnrCtx.ProjectionMatrixPop();
   glPopAttrib();
   glDepthRange(oldDepthRange[0], oldDepthRange[1]);
+}
+
+void MarkerScaler::SetScaling(TEveElement *pointSet, const MarkerScaling *scaling)
+{
+  pointSet->SetUserData(const_cast<MarkerScaling *>(scaling));
+}
+
+void MarkerScaler::Render(TGLRnrCtx &rnrCtx)
+{
+  if (rnrCtx.Selection() || rnrCtx.Highlight())
+    return;
+  // the pixels of 1 cm at the center of the view (the units of the scene
+  // are cm). When saving a picture larger than the viewer, the viewport and
+  // the size of the points are scaled by the same factor: use the size on
+  // the screen
+  TGLCamera &camera = rnrCtx.RefCamera();
+  const Double_t *c = camera.GetCenterVec();
+  const TGLVertex3 center(c[0], c[1], c[2]);
+  const Double_t cmPerPixel = camera.ViewportDeltaToWorld(center, 100., 0.).Mag() / 100.;
+  if (cmPerPixel <= 0.)
+    return;
+  const bool first = (fPixelsPerCm == 0.);
+  fPixelsPerCm = 1. / cmPerPixel / TGLUtil::GetPointSizeScale();
+  // the first time, draw again with the new sizes, after this draw (later,
+  // they are used at the next draw)
+  if (Apply() && first)
+    TTimer::SingleShot(0, "TGLViewer", fViewer, "RequestDraw()");
+}
+
+bool MarkerScaler::Apply()
+{
+  return fPixelsPerCm > 0. && apply(fScene);
+}
+
+bool MarkerScaler::apply(TEveElement *element)
+{
+  bool changed = false;
+  if (TEvePointSet *pointSet = dynamic_cast<TEvePointSet *>(element))
+  {
+    // the projected point sets have the scaling of the original one
+    TEveElement *original = pointSet;
+    if (TEveProjected *projected = dynamic_cast<TEveProjected *>(pointSet))
+      original = dynamic_cast<TEveElement *>(projected->GetProjectable());
+    const MarkerScaling *scaling = original ? static_cast<const MarkerScaling *>(original->GetUserData()) : nullptr;
+    if (scaling)
+    {
+      const Float_t size = std::clamp(Float_t(scaling->sizeCm * fPixelsPerCm / 5.), scaling->minSize, scaling->maxSize);
+      if (std::fabs(pointSet->GetMarkerSize() - size) > 0.1 * size)
+      {
+        // only in this viewer (TEvePointSet::SetMarkerSize also sets it in
+        // the projections); the size is in the display list of the point set
+        pointSet->TAttMarker::SetMarkerSize(size);
+        if (TGLLogicalShape *logical = fScene->GetGLScene()->FindLogical(pointSet))
+          logical->DLCacheClear();
+        changed = true;
+      }
+    }
+  }
+  for (TEveElement::List_i itr = element->BeginChildren(); itr != element->EndChildren(); ++itr)
+    changed |= apply(*itr);
+  return changed;
 }
