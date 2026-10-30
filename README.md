@@ -1,4 +1,4 @@
-# calodisplay
+# calodisplay: an event display for the ALLEGRO detector
 
 ## Description
 ALLEGRO event display (with an emphasis on the calorimeter system).
@@ -10,19 +10,19 @@ Works with ALLEGRO models o1_v03 and o2_v01 as of July 2026.
 ## Screenshots
 
 ![Electron in the endcap, rho-z view](doc/electron_endcap_ev3_rhoz.png)
-*Caption: electron in the endcap (rho-z view). TODO*
+*An electron in the endcap (rho-z view) - track and SW ECAL cluster*
 
 ![Photon in the barrel, rho-phi view](doc/photon_barrel_ev0_rhophi.png)
-*Caption: photon in the barrel (rho-phi view). TODO*
+*A photon in the barrel (rho-phi view) - SW ECAL cluster*
 
 ![Charged pion in the endcap, rho-z view](doc/piminus_endcap_ev0_rhoz.png)
-*Caption: negative pion in the endcap (rho-z view). TODO*
+*A negative pion in the endcap (rho-z view) - track and topological ECAL+HCAL cluster*
 
 ![Neutral kaon in the barrel, rho-phi view](doc/kaon0L_barrel_ev4_rhophi.png)
-*Caption: K0L in the barrel (rho-phi view). TODO*
+*A K0L in the barrel (rho-phi view) - topological ECAL+HCAL cluster*
 
 ![Muon in the barrel, rho-phi view](doc/muminus_barrel_ev0_rhophi.png)
-*Caption: negative muon in the barrel (rho-phi view). TODO*
+*A negative muon in the barrel (rho-phi view) - track, SW ECAL+HCAL and MUON clusters. TODO*
 
 ## Installation
 Make a local clone of the gitlab repository:
