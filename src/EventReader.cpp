@@ -236,9 +236,10 @@ void EventReader::setBranches()
     setHits(muonEndcapCells, collection2, "energy", "position", true);
   }
 
-  // SW and topo clusters and their cells
+  // SW and topo clusters and their cells, and SW clusters in the muon tagger
   setClusterCollections(swClusters, "drawCaloClusters", "caloClusters", "caloClusterCells");
   setClusterCollections(topoClusters, "drawTopoClusters", "topoClusters", "topoClusterCells");
+  setClusterCollections(muonClusters, "drawMuonClusters", "muonClusters", "muonClusterCells");
 }
 
 void EventReader::setClusterCollections(std::vector<Clusters>& clustersList, const std::string& drawFlag,
@@ -444,7 +445,7 @@ void EventReader::loadEvent(int event) {
   }
   fReader->SetEntry(event);
 
-  for (std::vector<Clusters>* clustersList : {&topoClusters, &swClusters})
+  for (std::vector<Clusters>* clustersList : {&topoClusters, &swClusters, &muonClusters})
     for (Clusters& clusters : *clustersList)
       fillClusterCells(clusters);
 }

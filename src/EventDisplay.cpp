@@ -363,7 +363,7 @@ void EventDisplay::fillClusters(ClusterSet &set)
   {
     // keep only those above threshold
     float E = (*clusters.energy)[i];
-    if (E < ClusterEnergyThreshold)
+    if (E < set.energyThreshold)
     {
       if (debug)
       {
@@ -1174,7 +1174,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
   {
     set.list3D = new TEveElementList(Form("%s clusters (E>%.2f GeV)",
                                           clusterType.c_str(),
-                                          ClusterEnergyThreshold));
+                                          set.energyThreshold));
     clustersFolder->AddElement(set.list3D);
   }
   else
@@ -1193,7 +1193,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
   {
     set.listRhoZ = new TEveElementList(Form("%s clusters in rho-z (E>%.2f GeV)",
                                             clusterType.c_str(),
-                                            ClusterEnergyThreshold));
+                                            set.energyThreshold));
     // kept between the events, when the projected replica it is added to is deleted
     set.listRhoZ->IncDenyDestroy();
   }
@@ -1204,7 +1204,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
   {
     set.listRhoPhi = new TEveElementList(Form("%s clusters in rho-phi (E>%.2f GeV)",
                                               clusterType.c_str(),
-                                              ClusterEnergyThreshold));
+                                              set.energyThreshold));
     set.listRhoPhi->IncDenyDestroy();
   }
   else
@@ -1256,7 +1256,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
 
   for (unsigned int i = 0; i < nClusters; i++) {
     float E = (*clusters.energy)[i];
-    if (E < ClusterEnergyThreshold)
+    if (E < set.energyThreshold)
       continue;
 
     float x0(0.), y0(0.), z0(0.);
@@ -1340,7 +1340,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
     float phicl = atan2(ycl, xcl);
     float thetacl = atan2(rcl, zcl);
 
-    if (energy < ClusterEnergyThreshold)
+    if (energy < set.energyThreshold)
     {
       qs_rhoz.push_back(nullptr);
       qs_rhophi.push_back(nullptr);
@@ -2116,7 +2116,6 @@ void EventDisplay::startDisplay(int initialEvent)
 void EventDisplay::readConfiguration()
 {
   // read some display setup from config file
-  ClusterEnergyThreshold = displayConfig.getFloatConfig("energyThresholdClusters");
   ParticleEnergyThreshold = displayConfig.getFloatConfig("energyThresholdParticles");
   HitEnergyThreshold = displayConfig.getFloatConfig("energyThresholdHits");
   CellEnergyThreshold = displayConfig.getFloatConfig("energyThresholdCells");
@@ -3399,23 +3398,26 @@ void EventDisplay::openEventFile()
   setCellIDEncodings();
 
   // a set of clusters for each collection of clusters, with the size of the
-  // window of the sliding-window clusters
+  // window of the sliding-window clusters and the min energy from thresholdKey
   // (with several collections of a type, their names are added to the type)
   auto addClusterSets = [this](const std::vector<EventReader::Clusters> &clustersList, const std::string &type,
-                               const std::string &label, Color_t centerColor, bool slidingWindow)
+                               const std::string &label, Color_t centerColor, bool slidingWindow,
+                               const std::string &thresholdKey)
   {
     for (const EventReader::Clusters &clusters : clustersList)
     {
       const std::string suffix = clustersList.size() > 1 ? " " + clusters.name : "";
-      ClusterSet set{type + suffix, label + suffix, centerColor, slidingWindow};
+      ClusterSet set{type + suffix, label + suffix, centerColor, slidingWindow,
+                     displayConfig.getFloatConfig(thresholdKey)};
       set.clusters = &clusters;
       if (slidingWindow)
         setSlidingWindow(set);
       clusterSets.push_back(std::move(set));
     }
   };
-  addClusterSets(eventReader->topoClusters, "topo", "topo", kWhite, false);
-  addClusterSets(eventReader->swClusters, "sw", "SW", kGray, true);
+  addClusterSets(eventReader->topoClusters, "topo", "topo", kWhite, false, "energyThresholdClusters");
+  addClusterSets(eventReader->swClusters, "sw", "SW", kGray, true, "energyThresholdClusters");
+  addClusterSets(eventReader->muonClusters, "muon sw", "muon SW", kGray, true, "energyThresholdMuonClusters");
 
   // print updated draw settings based on info found in ROOT file
   displayConfig.print();
@@ -4359,14 +4361,15 @@ void EventDisplay::setSlidingWindow(ClusterSet &set)
   }
 
   // radial range of the barrel calorimeters and |z| range of the endcap
-  // calorimeters used for the towers (the calorimeterIDs are listed as [ 4 , 8 ])
+  // calorimeters (or of the muon tagger) used for the towers (the
+  // calorimeterIDs are listed as [ 4 , 8 ])
   std::string ids = getOption(tool + "calorimeterIDs");
   std::replace_if(ids.begin(), ids.end(), [](char c) { return !std::isdigit(static_cast<unsigned char>(c)); }, ' ');
   std::istringstream idStream(ids);
   int id;
   while (idStream >> id)
   {
-    double rMin = 0., rMax = 0.;
+    double rMin = 0., rMax = 0., zMaxBarrel = geomReader->zMax;
     if (id == DetectorGeometry::kECalBarrel)
     {
       rMin = geomReader->rMin;
@@ -4376,6 +4379,18 @@ void EventDisplay::setSlidingWindow(ClusterSet &set)
     {
       rMin = geomReader->rMinHCal;
       rMax = geomReader->rMaxHCal;
+    }
+    else if (id == DetectorGeometry::kMuonBarrel)
+    {
+      rMin = geomReader->rMinMuonBarrel;
+      rMax = geomReader->rMaxMuonBarrel;
+      zMaxBarrel = geomReader->zMaxMuonBarrel;
+    }
+    else if (id == DetectorGeometry::kMuonEndcap)
+    {
+      swWindow.zMin = (swWindow.zMin == 0.) ? geomReader->zMinMuonEndcap : std::min(swWindow.zMin, geomReader->zMinMuonEndcap);
+      swWindow.zMax = std::max(swWindow.zMax, geomReader->zMaxMuonEndcap);
+      continue;
     }
     else if (id == DetectorGeometry::kECalEndcap)
     {
@@ -4393,11 +4408,13 @@ void EventDisplay::setSlidingWindow(ClusterSet &set)
       continue;
     swWindow.rMin = (swWindow.rMin == 0.) ? rMin : std::min(swWindow.rMin, rMin);
     swWindow.rMax = std::max(swWindow.rMax, rMax);
+    swWindow.zMaxBarrel = std::max(swWindow.zMaxBarrel, zMaxBarrel);
   }
   if (swWindow.rMax == 0. && swWindow.zMax == 0.)
   {
     std::cout << "WARNING: the sliding-window clusters " << collection
-              << " do not use the barrel calorimeters or the ECAL endcap, not drawing their windows" << std::endl;
+              << " do not use the barrel calorimeters, the ECAL endcap or the muon tagger, not drawing their windows"
+              << std::endl;
     swWindow = SlidingWindow();
     return;
   }
@@ -4427,8 +4444,11 @@ void EventDisplay::drawSlidingWindow(const SlidingWindow &swWindow, float xcl, f
   if (swWindow.nTheta == 0)
     return;
   // the window is drawn in the barrel or in the endcap, depending on the
-  // position of the cluster and on the calorimeters used for the towers
-  const bool inBarrel = std::fabs(zcl * mm) <= geomReader->zMax;
+  // position of the cluster and on the calorimeters used for the towers (the
+  // barrel and the endcap of the muon tagger overlap in |z|, and are
+  // distinguished by the radius)
+  const bool inBarrel = std::fabs(zcl * mm) <= swWindow.zMaxBarrel &&
+                        std::hypot(xcl, ycl) * mm >= swWindow.rMin;
   if ((inBarrel && swWindow.rMax == 0.) || (!inBarrel && swWindow.zMax == 0.))
     return;
   double thetaLow, thetaHigh, phiLow, phiHigh;

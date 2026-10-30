@@ -26,7 +26,7 @@ SAMPLES=(
   "photon_barrel   | -p gamma --pmin 20 --pmax 20 --thmin 70 --thmax 110 | --fulldet --focus cluster"
   "piminus_endcap  | -p pi- --pmin 20 --pmax 20 --thmin 15 --thmax 30 --hcal | --fulldet --focus track+cluster --set drawTopoClusters=true --set drawCaloClusters=false"
   "kaon0L_barrel   | -p kaon0L --pmin 20 --pmax 20 --thmin 70 --thmax 110 --hcal | --fulldet --focus cluster --set drawTopoClusters=true --set drawCaloClusters=false --set topoClusters=AugmentedCaloTopoClusters"
-  "muminus_barrel  | -p mu- --pmin 20 --pmax 20 --thmin 70 --thmax 110 --hcal --muon | --fulldet --focus track+cluster"
+  "muminus_barrel  | -p mu- --pmin 20 --pmax 20 --thmin 70 --thmax 110 --hcal --muon | --fulldet --focus track+cluster --set caloClusters=AugmentedCaloClusters --set caloClusterCells="
 )
 
 # options of calodisplay for all the samples: no simulated hits (only the

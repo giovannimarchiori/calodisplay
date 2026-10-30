@@ -125,8 +125,7 @@ public:
   // min hit and cell energy (GeV)
   float HitEnergyThreshold = 0.0;
   float CellEnergyThreshold = 0.0;
-  // min cluster energy (in GeV)
-  float ClusterEnergyThreshold = 0.0;
+  // (the min cluster energy is set for each set of clusters, see ClusterSet)
   // max radius for propagator
   float rMax = 0.0;
 
@@ -211,11 +210,13 @@ public:
     double deltaPhi = 0.;
     double thetaMax = 0.;
     double phiMin = 0.;
-    // radial range of the barrel calorimeters used for the towers
-    // (0 if none)
+    // radial range of the barrel calorimeters (or muon tagger) used for the
+    // towers, and their max |z| (0 if none)
     double rMin = 0.;
     double rMax = 0.;
-    // |z| range of the endcap calorimeters used for the towers (0 if none)
+    double zMaxBarrel = 0.;
+    // |z| range of the endcap calorimeters (or muon tagger) used for the
+    // towers (0 if none)
     double zMin = 0.;
     double zMax = 0.;
   };
@@ -225,6 +226,7 @@ public:
     std::string label;   // used in the printouts
     Color_t centerColor; // colour of the barycenters
     bool drawWindow;     // draw the window of the sliding-window clusters
+    float energyThreshold; // min cluster energy (GeV)
     SlidingWindow window;
     // the clusters in the event reader (set when the event file is opened)
     const EventReader::Clusters *clusters = nullptr;

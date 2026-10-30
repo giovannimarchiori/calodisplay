@@ -140,10 +140,12 @@ public:
 
   // the clusters: one or more collections of topo clusters (e.g. for
   // ECAL+HCAL jets) and of sliding-window clusters (e.g. in ECAL for EM
-  // objects), e.g. in the barrel and in the endcap, can be drawn at the same time
+  // objects), e.g. in the barrel and in the endcap, can be drawn at the same time,
+  // and of sliding-window clusters in the muon tagger
   // (the vectors are filled by setBranches and not changed afterwards)
   std::vector<Clusters> topoClusters;
   std::vector<Clusters> swClusters;
+  std::vector<Clusters> muonClusters;
 
   // the calorimeter cell collections in the file, by podio collection ID,
   // used to follow the links

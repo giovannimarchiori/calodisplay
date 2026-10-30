@@ -25,6 +25,7 @@ DisplayConfig::DisplayConfig() {
   setBoolConfig("drawHCalBarrelCells", true);
   setBoolConfig("drawTopoClusters", true);
   setBoolConfig("drawCaloClusters", false);
+  setBoolConfig("drawMuonClusters", false);
   // draw the barycenters of the clusters (and in 3D their barycenters in each layer)
   setBoolConfig("drawClusterBarycenters", true);
   // show the legend of the cluster cell energies in the projections at startup
@@ -55,12 +56,15 @@ DisplayConfig::DisplayConfig() {
   setStringConfig("topoClusterCells", "CaloTopoClusterCells");
   setStringConfig("caloClusters", "CaloClusters");
   setStringConfig("caloClusterCells", "CaloClusterCells");
+  setStringConfig("muonClusters", "MuonCaloClusters");
 
   // energy thresholds in GeV
   setFloatConfig("energyThresholdParticles", 1.0);
   setFloatConfig("energyThresholdHits", 0.0);
   setFloatConfig("energyThresholdCells", 0.0);
   setFloatConfig("energyThresholdClusters", 1.0);
+  // (the clusters in the muon tagger have energies of O(0.1 GeV))
+  setFloatConfig("energyThresholdMuonClusters", 0.0);
 
   // default bkg color
   setIntConfig("bkgColor3D", 1);
