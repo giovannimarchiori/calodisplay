@@ -15,11 +15,10 @@
 - [Acknowledgements](#acknowledgements)
 
 ## Description
-ALLEGRO event display (with an emphasis on the calorimeter system).
-Note: development of this tool started in early 2023 as a way of helping debugging the ECAL digitisation with the new segmentation classes under development.
+Calodisplay is a simple ALLEGRO event display, with an emphasis on the calorimeter system. The development of this tool started in early 2023 as a way of helping debugging the ECAL digitisation with the new segmentation classes under development.
 I became aware only later of existing event display tools. It is likely that those tools (e.g. DDEve) can - after proper customisation for the non projective ECAL cell geometry for instance - provide similar functionality as well as many more features with a more robust code.
 
-Works with ALLEGRO models o1_v03 and o2_v01 as of July 2026.
+It works with ALLEGRO models o1_v03 and o2_v01 as of July 2026.
 
 ## Screenshots
 
@@ -27,7 +26,7 @@ Works with ALLEGRO models o1_v03 and o2_v01 as of July 2026.
   <tr>
     <td width="50%" align="center" valign="top">
       <img src="doc/detector_3d.png" alt="ALLEGRO detector, 3D view" width="100%"><br>
-      <em>The ALLEGRO detector (3D view)</em>
+      <em>The ALLEGRO o1_v03 detector (3D view)</em>
     </td>
     <td width="50%" align="center" valign="top">
       <img src="doc/electron_endcap_ev3_rhoz.png" alt="Electron in the endcap, rho-z view" width="100%"><br>
