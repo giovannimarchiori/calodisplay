@@ -29,6 +29,12 @@ SAMPLES=(
   "muminus_barrel  | -p mu- --pmin 20 --pmax 20 --thmin 70 --thmax 110 --hcal --muon | --fulldet --focus track+cluster"
 )
 
+# options of calodisplay for all the samples: no simulated hits (only the
+# digis and the cells), and no cluster barycenters
+COMMON_DISPOPTS="--set drawVertexHits=false --set drawMainTrackerHits=false --set drawSiWrapperHits=false
+  --set drawECalBarrelHits=false --set drawECalEndcapHits=false --set drawHCalBarrelHits=false
+  --set drawHCalEndcapHits=false --set drawMuonHits=false --set drawClusterBarycenters=false"
+
 STEP=all
 NEVENTS=5
 CALODISPLAY_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -86,7 +92,7 @@ screenshots() {
   local file
   file=$(cat "$OUTDIR/$name.file")
   echo "=== $name: screenshots of $file"
-  (cd "$CALODISPLAY_DIR" && $VGLRUN dist/calodisplay $dispopts -e "$file" -c config.json \
+  (cd "$CALODISPLAY_DIR" && $VGLRUN dist/calodisplay $COMMON_DISPOPTS $dispopts -e "$file" -c config.json \
      --screenshots "$OUTDIR/$name" --nevents "$NEVENTS" --width "$WIDTH" < /dev/null > "$OUTDIR/$name.log" 2>&1) \
     || { echo "ERROR: calodisplay failed for $name, see $OUTDIR/$name.log"; return 1; }
   grep "Screenshot saved" "$OUTDIR/$name.log" | sed 's/^/    /'

@@ -25,6 +25,8 @@ DisplayConfig::DisplayConfig() {
   setBoolConfig("drawHCalBarrelCells", true);
   setBoolConfig("drawTopoClusters", true);
   setBoolConfig("drawCaloClusters", false);
+  // draw the barycenters of the clusters (and in 3D their barycenters in each layer)
+  setBoolConfig("drawClusterBarycenters", true);
   // show the legend of the cluster cell energies in the projections at startup
   // (it can then be shown/hidden with its button)
   setBoolConfig("showCellEnergyLegend", true);

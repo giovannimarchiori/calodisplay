@@ -12,6 +12,7 @@
     "drawSiWrapperDigis": "true",
     "drawCaloClusters": "true",
     "drawClusterDirection": "true",
+    "drawClusterBarycenters": "true",
     "showCellEnergyLegend": "false",
     "showReadout": "true",
     "drawECalBarrelCells": "true",

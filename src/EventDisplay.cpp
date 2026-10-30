@@ -1147,6 +1147,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
   const EventReader::ClusterCells &cells = clusters.cells;
   // read once, not in the loop over the clusters
   const bool drawDirection = displayConfig.getBoolConfig("drawClusterDirection");
+  const bool drawBarycenters = displayConfig.getBoolConfig("drawClusterBarycenters");
 
   std::cout << "Drawing " << set.label << " clusters" << std::endl;
   std::vector<std::unique_ptr<CaloCluster>> *clusterData = &set.data;
@@ -1269,7 +1270,8 @@ void EventDisplay::drawClusters(ClusterSet &set)
       phi = (*clusters.phi)[i];
     }
 
-    clustersCenter->SetNextPoint(x0, y0, z0);
+    if (drawBarycenters)
+      clustersCenter->SetNextPoint(x0, y0, z0);
     if (theta!=0.) {
       float t1(0), t2(0);
       if (geomReader->isInECalBarrel(std::sqrt(x0*x0 + y0*y0), z0)) {
@@ -1395,7 +1397,7 @@ void EventDisplay::drawClusters(ClusterSet &set)
       clusters_3D->AddElement(_bs);
 
       // try showing the barycenter vs layer
-      if (drawClustersBarycenterVsLayer)
+      if (drawBarycenters && drawClustersBarycenterVsLayer)
       {
         TEvePointSet *layerBarycenters = new TEvePointSet();
         layerBarycenters->SetName(Form("%s cluster %d barycenters", clusterType.c_str(), (int)i));
