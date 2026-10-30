@@ -117,7 +117,7 @@ check_build() {
         if (( $(grep -c . <<< "$compilers") > 1 )); then
             echo "WARNING: the objects of calodisplay were compiled with different compilers:"
             sed 's/^/           /' <<< "$compilers"
-            echo "         in ${CALODISPLAY_DIR} run 'make clean' and then 'make -j8'"
+            echo "In ${CALODISPLAY_DIR} run 'make clean' and then 'make -j8'"
         fi
     fi
 
@@ -130,7 +130,7 @@ check_build() {
     if [[ -n $modified ]]; then
         echo "WARNING: calodisplay is not up to date, these files were modified after the build:"
         echo "$modified" | sed 's/^/           /'
-        echo "         in ${CALODISPLAY_DIR} run 'make -j8'"
+        echo "In ${CALODISPLAY_DIR} run 'make -j8'"
         echo "Then run it with e.g.: ${runExample}"
         return
     fi
