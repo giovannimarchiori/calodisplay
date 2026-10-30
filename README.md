@@ -27,7 +27,7 @@ Works with ALLEGRO models o1_v03 and o2_v01 as of July 2026.
   <tr>
     <td width="50%" align="center" valign="top">
       <img src="doc/detector_3d.png" alt="ALLEGRO detector, 3D view" width="100%"><br>
-      <em>The ALLEGRO detector (3D view). TODO</em>
+      <em>The ALLEGRO detector (3D view)</em>
     </td>
     <td width="50%" align="center" valign="top">
       <img src="doc/electron_endcap_ev3_rhoz.png" alt="Electron in the endcap, rho-z view" width="100%"><br>
