@@ -2773,9 +2773,13 @@ void EventDisplay::projectGeometryRhoPhi()
     if (s.Contains("endcap"))
       a->SetRnrSelfChildren(false, false);
 
-    // turn off the envelopes of the vertex barrel
+    // turn off the envelopes of the vertex barrel, and show its sensors,
+    // parallel to the beam axis
     else if (s.BeginsWith("Vertex barrel"))
+    {
       showVertexBarrelLayers(a);
+      showThinVolumes(a);
+    }
 
     // show active volumes in ecal barrel
     else if (s.BeginsWith("ECal barrel"))
@@ -2939,6 +2943,10 @@ void EventDisplay::projectGeometryRhoZ()
     else if (s.BeginsWith("Vertex barrel")) {
       showVertexBarrelLayers(a);
     }
+    // the sensors of the vertex disks are perpendicular to the beam axis
+    else if (s.BeginsWith("Vertex endcap")) {
+      showThinVolumes(a);
+    }
     // show vessel and gas for DCH
     else if (s.BeginsWith("Drift chamber")) {
       a->SetRnrSelfChildren(false, true);
@@ -3037,6 +3045,27 @@ void EventDisplay::showVertexBarrelLayers(TEveElement *vertexBarrel)
     if (childName.Contains("assembly"))
       b->SetRnrSelfChildren(false, true);
   }
+}
+
+void EventDisplay::showThinVolumes(TEveElement *list)
+{
+  // TEve discards the projected polygons thinner than twice its resolution
+  // (fgEps = 50 um): project the drawn volumes again with a resolution of
+  // 1 um, and draw their outline, since they are too thin to be seen when filled
+  const Float_t eps = TEveProjection::fgEps, epsSqr = TEveProjection::fgEpsSqr;
+  TEveProjection::fgEps = 1e-4;
+  TEveProjection::fgEpsSqr = 1e-8;
+  for (TEveElement::List_i itr = list->BeginChildren(); itr != list->EndChildren(); itr++)
+  {
+    TEvePolygonSetProjected *projected = dynamic_cast<TEvePolygonSetProjected *>(*itr);
+    if (!projected || !projected->GetRnrSelf())
+      continue;
+    projected->UpdateProjection();
+    projected->SetDrawFrame(true);
+    projected->SetLineColor(projected->GetMainColor());
+  }
+  TEveProjection::fgEps = eps;
+  TEveProjection::fgEpsSqr = epsSqr;
 }
 
 void EventDisplay::showECalBathCells(TEveElement *projectedGeometry, bool hideCryoSide)

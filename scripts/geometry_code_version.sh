@@ -24,7 +24,7 @@ FUNCTIONS=(
   addSimpleElement addVertex addDCH addWrapper addECalB addECalEC
   addHCalB addHCalEC addMuonB addMuonEC
   # the content shown
-  showEnvelopeContent showVertexBarrelLayers showECalBathCells
+  showEnvelopeContent showVertexBarrelLayers showThinVolumes showECalBathCells
   showECalEndcapContent showECalBarrelContent showMuonLayers
   # the projections, and the views from which the cache is written
   projectGeometryRhoPhi projectGeometryRhoZ writeGeometryCache

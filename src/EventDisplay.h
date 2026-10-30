@@ -524,6 +524,9 @@ private:
                            const std::function<void(TEveElement *, const TString &)> &setChild);
   // in the projections: the layers of the vertex barrel, without their envelopes
   void showVertexBarrelLayers(TEveElement *vertexBarrel);
+  // in the projections: the drawn volumes in the list (e.g. the 50 um thick
+  // sensors of the vertex detector), projected with a finer resolution
+  void showThinVolumes(TEveElement *list);
   // in the projections: the active elements in the LAr bath of the ECAL barrel
   // (calorimeters only mode), optionally without the cryostat side
   void showECalBathCells(TEveElement *projectedGeometry, bool hideCryoSide);
