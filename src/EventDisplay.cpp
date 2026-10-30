@@ -2674,10 +2674,15 @@ void EventDisplay::createRhoPhiView()
   // create second tab (R-phi view)
   rhoPhiView = gEve->SpawnNewViewer("Projection Rho-Phi");
 
-  // two scenes, for geometry and event
+  // three scenes, for geometry, readout and event (the readout, which can be
+  // shown/hidden, in its own scene, so that the scene of the projected
+  // geometry is not rebuilt each time)
   rhoPhiScene = gEve->SpawnNewScene("Rho-Phi geometry",
                                     "Scene holding projected geometry data for the Rho-Phi view.");
   rhoPhiView->AddScene(rhoPhiScene);
+  rhoPhiReadoutScene = gEve->SpawnNewScene("Rho-Phi readout",
+                                           "Scene holding the readout segmentation for the Rho-Phi view.");
+  rhoPhiView->AddScene(rhoPhiReadoutScene);
   if (evtFile != "")
   {
     // (added to the view when the geometry is projected, see buildProjection)
@@ -2704,7 +2709,7 @@ void EventDisplay::buildRhoPhiProjection()
   if (rhoPhiProjectionBuilt)
     return;
   rhoPhiProjectionBuilt = true;
-  buildProjection("Rho-Phi", rhoPhiView, rhoPhiScene, rhoPhiEventScene, [this]() {
+  buildProjection("Rho-Phi", rhoPhiView, rhoPhiScene, rhoPhiReadoutScene, rhoPhiEventScene, [this]() {
     projectGeometryRhoPhi();
     drawRhoPhiReadout();
   });
@@ -2715,14 +2720,14 @@ void EventDisplay::buildRhoZProjection()
   if (rhoZProjectionBuilt)
     return;
   rhoZProjectionBuilt = true;
-  buildProjection("Rho-Z", rhoZView, rhoZScene, rhoZEventScene, [this]() {
+  buildProjection("Rho-Z", rhoZView, rhoZScene, rhoZReadoutScene, rhoZEventScene, [this]() {
     projectGeometryRhoZ();
     drawRhoZReadout();
   });
 }
 
-void EventDisplay::buildProjection(const char *view, TEveViewer *viewer, TEveScene *scene, TEveScene *eventScene,
-                                   const std::function<void()> &build)
+void EventDisplay::buildProjection(const char *view, TEveViewer *viewer, TEveScene *scene, TEveScene *readoutScene,
+                                   TEveScene *eventScene, const std::function<void()> &build)
 {
   std::cout << "Projecting the geometry in the " << view << " view (slow, only first event)" << std::endl;
   if (browser)
@@ -2740,9 +2745,10 @@ void EventDisplay::buildProjection(const char *view, TEveViewer *viewer, TEveSce
   for (TEveElement::List_i itr = readout->BeginChildren(); itr != readout->EndChildren(); ++itr, ++i)
     if (i >= nReadouts && !showReadout)
       (*itr)->SetRnrSelf(false);
-  // rebuild the GL representation of the scene (redrawing the viewer is not
+  // rebuild the GL representation of the scenes (redrawing the viewer is not
   // enough), as done for all the scenes by FullRedraw3D at startup
   scene->Repaint(kTRUE);
+  readoutScene->Repaint(kTRUE);
   // show the projected event only now, not without the geometry
   if (eventScene)
     viewer->AddScene(eventScene);
@@ -2842,7 +2848,7 @@ void EventDisplay::drawRhoPhiReadout()
       gridmod->AddLine(x1, y1, 0.0, x2, y2, 0.0);
     }
   }
-  rhoPhiScene->AddElement(gridmod);
+  rhoPhiReadoutScene->AddElement(gridmod);
   readout->AddElement(gridmod);
 
   // draw the HCAL readout segmentation in rho-phi
@@ -2865,7 +2871,7 @@ void EventDisplay::drawRhoPhiReadout()
         hcalPhiReadout->AddLine(x1, y1, 0., x2, y2, 0.);
       }
     }
-    rhoPhiScene->AddElement(hcalPhiReadout);
+    rhoPhiReadoutScene->AddElement(hcalPhiReadout);
     readout->AddElement(hcalPhiReadout);
   }
 
@@ -2883,7 +2889,7 @@ void EventDisplay::drawRhoPhiReadout()
       const double phi = geomReader->phiOffsetMuon + (i - 0.5) * gridPhi;
       muonPhiReadout->AddLine(r1 * cos(phi), r1 * sin(phi), 0., r2 * cos(phi), r2 * sin(phi), 0.);
     }
-    rhoPhiScene->AddElement(muonPhiReadout);
+    rhoPhiReadoutScene->AddElement(muonPhiReadout);
     readout->AddElement(muonPhiReadout);
   }
 }
@@ -2892,9 +2898,13 @@ void EventDisplay::createRhoZView()
 {
   // third tab (R-z view)
   rhoZView = gEve->SpawnNewViewer("Projection Rho-Z");
+  // (the readout in its own scene, as in the rho-phi view)
   rhoZScene = gEve->SpawnNewScene("Rho-Z geometry",
                                   "Scene holding projected geometry data for the Rho-Z view.");
   rhoZView->AddScene(rhoZScene);
+  rhoZReadoutScene = gEve->SpawnNewScene("Rho-Z readout",
+                                         "Scene holding the readout segmentation for the Rho-Z view.");
+  rhoZView->AddScene(rhoZReadoutScene);
   if (evtFile != "")
   {
     // (added to the view when the geometry is projected, see buildProjection)
@@ -3214,7 +3224,7 @@ void EventDisplay::drawRhoZReadout()
       grid->AddLine(z1, -r1, 0., z2, -r2, 0.);
     }
   }
-  rhoZScene->AddElement(grid);
+  rhoZReadoutScene->AddElement(grid);
   readout->AddElement(grid);
   // by default we do not show the unmerged readout
   grid->SetRnrSelf(false);
@@ -3255,7 +3265,7 @@ void EventDisplay::drawRhoZReadout()
       }
     }
   }
-  rhoZScene->AddElement(grid2);
+  rhoZReadoutScene->AddElement(grid2);
   readout->AddElement(grid2);
 
   // the ECAL endcap readout: bins in rho and z in each wheel, on both sides
@@ -3291,7 +3301,7 @@ void EventDisplay::drawRhoZReadout()
         }
       }
     }
-    rhoZScene->AddElement(ecalEndcapGrid);
+    rhoZReadoutScene->AddElement(ecalEndcapGrid);
     readout->AddElement(ecalEndcapGrid);
   }
 
@@ -3330,7 +3340,7 @@ void EventDisplay::drawRhoZReadout()
       addSegment(theta, geomReader->rMinMuonEndcap, geomReader->rMaxMuonEndcap,
                  geomReader->zMinMuonEndcap, geomReader->zMaxMuonEndcap);
     }
-    rhoZScene->AddElement(muonGrid);
+    rhoZReadoutScene->AddElement(muonGrid);
     readout->AddElement(muonGrid);
   }
 
@@ -3364,7 +3374,7 @@ void EventDisplay::drawRhoZReadout()
         hcalRhoZReadout->AddLine(z1, -r1, 0., z2, -r2, 0.);
       }
     }
-    rhoZScene->AddElement(hcalRhoZReadout);
+    rhoZReadoutScene->AddElement(hcalRhoZReadout);
     readout->AddElement(hcalRhoZReadout);
   }
 }
@@ -3633,14 +3643,10 @@ void EventDisplay::toggleReadout()
     el->SetRnrSelf(showReadout && readoutsHiddenByDefault.count(el) == 0);
   }
   updateToggleButtons();
-  // update now the scenes with the changed elements (faster than a full
-  // redraw, or a repaint of the projected geometry scenes, with the full
-  // detector), then redraw the views of the projections, where the readouts
-  // are, which are not redrawn by it
+  // update now the scenes with the changed elements (only the readout scenes,
+  // not the much larger ones of the projected geometry), which also redraws
+  // the views of the projections, where the readouts are
   gEve->DoRedraw3D();
-  for (TGLViewer *viewer : {rhoPhiGLView, rhoZGLView})
-    if (viewer)
-      viewer->RequestDraw(TGLRnrCtx::kLODHigh);
 }
 
 void EventDisplay::togglePaletteLegends()

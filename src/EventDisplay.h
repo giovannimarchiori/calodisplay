@@ -258,8 +258,10 @@ public:
   TGLViewer *rhoZGLView = nullptr;
   TGLViewer *mainGLView = nullptr;
   TEveScene *rhoPhiScene = nullptr;
+  TEveScene *rhoPhiReadoutScene = nullptr;
   TEveScene *rhoPhiEventScene = nullptr;
   TEveScene *rhoZScene = nullptr;
+  TEveScene *rhoZReadoutScene = nullptr;
   TEveScene *rhoZEventScene = nullptr;
   TEveProjectionManager *rhoPhiProjManager = nullptr;
   TEveProjectionManager *rhoZProjManager = nullptr;
@@ -566,12 +568,13 @@ private:
   // the rho-phi and rho-z views: the projection of the geometry and the readout
   void createRhoPhiView();
   // project the geometry and the readout in the views (once, when they are
-  // first shown), showing the progress in the status bar; the projected event
-  // (eventScene) is added to the view after the geometry
+  // first shown), showing the progress in the status bar; the readout is in
+  // its own scene (readoutScene), and the projected event (eventScene) is
+  // added to the view after the geometry
   void buildRhoPhiProjection();
   void buildRhoZProjection();
-  void buildProjection(const char *view, TEveViewer *viewer, TEveScene *scene, TEveScene *eventScene,
-                       const std::function<void()> &build);
+  void buildProjection(const char *view, TEveViewer *viewer, TEveScene *scene, TEveScene *readoutScene,
+                       TEveScene *eventScene, const std::function<void()> &build);
   void projectGeometryRhoPhi();
   void drawRhoPhiReadout();
   void createRhoZView();
